@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Wizard</class>
+ <widget class="QWizard" name="Wizard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>682</width>
+    <height>508</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Wizard</string>
+  </property>
+  <property name="wizardStyle">
+   <enum>QWizard::ClassicStyle</enum>
+  </property>
+  <widget class="QWizardPage" name="geocode_step">
+   <property name="title">
+    <string>Geocode</string>
+   </property>
+   <property name="subTitle">
+    <string>Run configured geocoders</string>
+   </property>
+   <attribute name="pageId">
+    <string notr="true">geocode_page</string>
+   </attribute>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QPushButton" name="run_geocoders">
+      <property name="text">
+       <string>Run geocoders</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWizardPage" name="evaluate_step">
+   <property name="title">
+    <string>Evaluate Geocode</string>
+   </property>
+   <property name="subTitle">
+    <string>Evalute geocoding results</string>
+   </property>
+   <attribute name="pageId">
+    <string notr="true">evaluate_page</string>
+   </attribute>
+   <layout class="QVBoxLayout" name="verticalLayout_3">
+    <item>
+     <widget class="QPushButton" name="load_layers">
+      <property name="text">
+       <string>Load layers</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_2">
+      <property name="title">
+       <string>Statistics</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <widget class="QTabWidget" name="tabWidget">
+         <property name="currentIndex">
+          <number>1</number>
+         </property>
+         <widget class="QWidget" name="tab">
+          <attribute name="title">
+           <string>Geocoder1</string>
+          </attribute>
+         </widget>
+         <widget class="QWidget" name="tab_2">
+          <attribute name="title">
+           <string>Geocoder2</string>
+          </attribute>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox">
+      <property name="title">
+       <string>Preview</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QTableWidget" name="tableWidget"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWizardPage" name="select_step">
+   <property name="title">
+    <string>Select results</string>
+   </property>
+   <property name="subTitle">
+    <string>Decide gocoding results accepting rule</string>
+   </property>
+   <attribute name="pageId">
+    <string notr="true">select_page</string>
+   </attribute>
+  </widget>
+  <widget class="QWizardPage" name="update_step">
+   <property name="title">
+    <string>Update session</string>
+   </property>
+   <property name="subTitle">
+    <string>Update current session with geocoded results</string>
+   </property>
+   <attribute name="pageId">
+    <string notr="true">update_page</string>
+   </attribute>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
