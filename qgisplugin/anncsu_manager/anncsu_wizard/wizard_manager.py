@@ -1,6 +1,5 @@
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from qgis.PyQt.QtWidgets import (
-    QDialog,
     QWizard,
     QProgressBar,
 )
