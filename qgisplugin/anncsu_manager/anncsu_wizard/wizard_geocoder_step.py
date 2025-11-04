@@ -1,20 +1,25 @@
+import importlib
+import sys
+from pathlib import Path
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QPushButton,
 )
-import duckdb
 
+from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 
-
+import duckdb
 
 # geocoders related imports
 from geopy.geocoders import get_geocoder_for_service
+from whereabouts.Matcher import Matcher
 
 FORM_CLASS: QWizardPage = load_ui("wizard_run_geocoders_page.ui")
+
 
 class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
@@ -24,11 +29,14 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
         self.feedback: ANNCSUProcessingFeedback = feedback
 
         # actions
+        print("Connecting run_geocoders_pb.clicked to run_geocoders method")
         self.run_geocoders_pb: QPushButton
-        self.run_geocoders_pb.pressed.connect(self.run_geocoders)
+        self.run_geocoders_pb.clicked.connect(self.run_geocoders)
 
     
     def run_geocoders(self):
+        print("Running geocoders...")
+
         """Run the geocoding processes as per user settings in geocoders.json."""
         geocoders_configs = ANNCSUSettingsManager.get_geocoders_configs()
 
@@ -36,23 +44,21 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
         current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
         scopes = ANNCSUSettingsManager.get_scopes()
         current_scope = scopes.get(current_scope_id, {})
-        self.feedback.push_info(f"Using scope: {current_scope_id}")
+        self.feedback.pushInfo(f"Using scope: {current_scope_id}")
         if not current_scope:
             self.feedback.reportError("No scope is currently selected. Please select a scope in the settings before running geocoders.")
             return
 
         try:
-            self.progressBar.setVisible(True)
-            self.feedback.reset_progress()
-            self.feedback.set_progress_maximum(100)
+            self.feedback.progress_bar.setVisible(True)
 
             # for eache enabled goecoder, run the process
-            for gocoder_name, geocoder_config in geocoders_configs.items():
+            for geocoder_name, geocoder_config in geocoders_configs.items():
                 # skip geocoder if not active
                 if not geocoder_config.get("active", False):
                     continue
 
-                duck_db_source = current_scope.get("duckdb_path", "")
+                duck_db_source = current_scope.to_dict().get("duckdb_path", "")
                 if not duck_db_source:
                     self.feedback.reportError("No DuckDB database path found in the current scope settings.")
                     return
@@ -61,9 +67,69 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 if scopedb is None:
                     self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
                     return
+
+                # isntanciate geocoder
+                whereabouts_matcher = Matcher(
+                    db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
+                    how=geocoder_config.get("how", ["standard"]),
+                    threshold=geocoder_config.get("threshold", 0.5),
+                )
+
+                addresses_to_geocode = []
+                field_names = ("COMUNE", "PROVINCIA", "REGIONE", "CODICE_COMUNE", "CODICE_ISTAT", "PROGRESSIVO_NAZIONALE", "CODICE_COMUNALE", "ODONIMO", 'LOCALITA\'', "DIZIONE_LINGUA1", "DIZIONE_LINGUA2", "PROGRESSIVO_ACCESSO", "CODICE_COMUNALE_ACCESSO", "CIVICO", "ESPONENTE", "SPECIFICITA", "METRICO", "PROGRESSIVO_SNC", "COORD_X_COMUNE", "COORD_Y_COMUNE", "QUOTA", "METODO")
                 for to_geocode in scopedb.execute("SELECT * FROM anncsu").fetchall():
-                    pass
-                    # address_to_geocode = f"""{to_geocode["ODONIMO"]}  {to_geocode["CIVICO"]}, {to_geocode["COMUNE"] ()}
+                    to_geocode_dict = dict(zip(field_names, to_geocode))
+                    address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["COMUNE"].strip("'")} ({to_geocode_dict["PROVINCIA"].strip("'")}), Italia"""
+                    addresses_to_geocode.append(address_to_geocode)
+
+                self.feedback.progress_signal.emit(0)
+                self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
+                self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} addresses using {geocoder_name}...")
+
+                if geocoder_name == "WhereAbouts":
+                    geocoded = whereabouts_matcher.geocode(addresses=addresses_to_geocode)
+
+                    # add spatial extension to duckdb
+                    scopedb.execute("INSTALL spatial;")
+                    scopedb.execute("LOAD spatial;")
+
+                    # save results in a result table
+                    scopedb.execute("""
+                        CREATE OR REPLACE TABLE geocoding_results (
+                            address_id INTEGER,
+                            input_address TEXT,
+                            address_matched TEXT,
+                            suburb TEXT,
+                            postcode TEXT,
+                            latitude DOUBLE,
+                            longitude DOUBLE,
+                            score DOUBLE,
+                            geometry GEOMETRY
+                        )
+                    """)
+                    for idx, result in enumerate(geocoded):
+                        self.feedback.progress_signal.emit(idx + 1)
+                        if result:
+                            scopedb.execute("""
+                                    INSERT INTO geocoding_results (address_id, input_address, address_matched, suburb, postcode, latitude, longitude, score, geometry)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
+                                """, (
+                                    result.get("address_id", idx),
+                                    result.get("address", ""),
+                                    result.get("address_matched", ""),
+                                    result.get("suburb", ""),
+                                    result.get("postcode", ""),
+                                    result.get("latitude", None),
+                                    result.get("longitude", None),
+                                    result.get("similarity", 0.0),
+                                    result.get("latitude", 0.0),
+                                    result.get("longitude", 0.0),
+                                )
+                            )
+
+                            message = f"Geocoded address ID {result.get('address_id', idx)}: '{result.get('address', '')}' to coordinates: ({result.get('latitude', None)}, {result.get('longitude', None)}) with score {result.get('similarity', 0.0)}"
+                            self.feedback.pushInfo(message)
+
                     # geocoder_service_name = geocoder_config.get("service", "")
                     # GeocoderClass = get_geocoder_for_service(geocoder_service_name)
                     # if GeocoderClass is None:
@@ -72,24 +138,16 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                     # geocoder = GeocoderClass(**geocoder_config.get("params", {}))
                     # location = geocoder.geocode(address)
                     # if location:
-                    #     self.feedback.push_info(f"Geocoded address '{address}' to coordinates: ({location.latitude}, {location.longitude})")
+                    #     self.feedback.pushInfo(f"Geocoded address '{address}' to coordinates: ({location.latitude}, {location.longitude})")
                     # else:
-                    #     self.feedback.push_info(f"Could not geocode address '{address}'.")"""
+                    #     self.feedback.pushInfo(f"Could not geocode address '{address}'.")
 
 
-            # Example of running a geocoding process
-                # self.feedback.push_info("Running Nominatim Geocoder...")
-                # # Here would be the code to run the Nominatim geocoder
-                # # For example: NominatimGeocoder.run(self.feedback)
-                # self.feedback.push_info("Nominatim Geocoder completed successfully.")
-
-
-            self.feedback.push_info("All geocoding processes completed.")
+            self.feedback.progress_signal.emit(100)
+            self.feedback.pushInfo("All geocoding processes completed.")
 
         except QgsPluginException as e:
             self.feedback.reportError(f"An error occurred: {str(e)}")
         finally:
-            self.progressBar.setVisible(False)
+            self.feedback.progress_bar.setVisible(False)
 
-    def update_feedback_progress(self, progress: int):
-        self.feedback.progress_bar.setValue(progress)

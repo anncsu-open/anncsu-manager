@@ -12,7 +12,7 @@ from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 
 # wizard pages
-from .wizard_geocoder_step import ANNCSUWizardRunGeocoders
+from anncsu_manager.anncsu_wizard.wizard_geocoder_step import ANNCSUWizardRunGeocoders
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
 
@@ -35,7 +35,10 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
 
         # add run geocoder wizard page
         self.run_geocoders_page = ANNCSUWizardRunGeocoders(parent=self, feedback=self.feedback)
-        self.addPage(self.run_geocoders_page)
+        self.run_geocoders_page_id = self.addPage(self.run_geocoders_page)
+
+        # activate first page to allow enable it's events
+        self.setStartId(self.run_geocoders_page_id);
     
     # def run_geocoders(self):
     #     """Run the geocoding processes as per user settings in geocoders.json."""
