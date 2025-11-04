@@ -23,11 +23,31 @@ from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 
 @dataclass
+class MunicipalityData:
+    id: Annotated[int, "Sequencial ID of the municipality"]
+    nome: Annotated[str, "Name of the municipality"]
+    provincia: Annotated[str, "Province of the municipality"]
+    regione: Annotated[str, "Region of the municipality"]
+    anncsu_id: Annotated[str, "ANNCSU code of the municipality"]
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "provincia": self.provincia,
+            "regione": self.regione,
+            "anncsu_id": self.anncsu_id,
+        }
+
+    def toJson(self) -> str:
+        return json.dumps(self.to_dict())
+
+@dataclass
 class ScopeData:
     duckdb_path: Annotated[Path, "Path to local duckdb file"]
     remote_duckdb_url: Annotated[Optional[AnyUrl], "URL to remote duckdb file"]
     syncked: Annotated[bool, "Whether the local duckdb is syncked with remote"]
-    municipality_code: Annotated[str, "Municipality code associated with this scope"]
+    municipality_data: Annotated[MunicipalityData, "Municipality data associated with this scope"]
     source_db: Annotated[Optional[AnyUrl], "Source URL from where the duckdb has been extracted"]
     creation_date: datetime
     update_date: Optional[datetime]
@@ -38,7 +58,7 @@ class ScopeData:
             "duckdb_path": str(self.duckdb_path),
             "remote_duckdb_url": str(self.remote_duckdb_url) if self.remote_duckdb_url else None,
             "syncked": self.syncked,
-            "municipality_code": self.municipality_code,
+            "municipality_data": self.municipality_data.to_dict(),
             "source_db": str(self.source_db) if self.source_db else None,
             "creation_date": self.creation_date.isoformat(),
             "update_date": self.update_date.isoformat() if self.update_date else None,
@@ -85,6 +105,7 @@ class ANNCSUSettingsManager:
 
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
+    DEFAULT_MUNICIPALITY = "NoName"
     DEFAULT_MUNICIPALITY_CODE = "0000000"
     DEFAULT_GEOCODERS_CONFIGS = {
             "Nominatim": {
@@ -179,6 +200,7 @@ class ANNCSUSettingsManager:
     SCOPES_KEY = "anncsu_manager/geocoders_json_path"
     GEOCODERS_JSON_PATH_KEY = "anncsu_manager/geocoders_json_path"
     ANNCSU_REPO_URL_KEY = "anncsu_manager/anncsu_repo_url"
+    MUNICIPALITY_KEY = "anncsu_manager/default_municipality"
     MUNICIPALITY_CODE_KEY = "anncsu_manager/default_municipality_code"
     GEOCODERS_CONFIGS_KEY = "anncsu_manager/geocoders_configs" # unused in QGIS.ini because saved in geocoders.json
     SCOPES_KEY = "anncsu_manager/scopes"
@@ -187,6 +209,7 @@ class ANNCSUSettingsManager:
     DEFAULTS = {
         GEOCODERS_JSON_PATH_KEY: str(DEFAULT_GEOCODERS_JSON_PATH),
         ANNCSU_REPO_URL_KEY: DEFAULT_ANNCSU_REPO_URL,
+        MUNICIPALITY_KEY: DEFAULT_MUNICIPALITY,
         MUNICIPALITY_CODE_KEY: DEFAULT_MUNICIPALITY_CODE,
         GEOCODERS_CONFIGS_KEY: DEFAULT_GEOCODERS_CONFIGS,
         SCOPES_KEY: SCOPES,
@@ -203,6 +226,11 @@ class ANNCSUSettingsManager:
     @classmethod
     def get_anncsu_repo(cls) -> str:
         key = cls.ANNCSU_REPO_URL_KEY
+        return QgsSettings().value(key, cls.DEFAULTS[key])
+
+    @classmethod
+    def get_municipality(cls) -> str:
+        key = cls.MUNICIPALITY_KEY
         return QgsSettings().value(key, cls.DEFAULTS[key])
 
     @classmethod
@@ -247,6 +275,10 @@ class ANNCSUSettingsManager:
             scopes_dict = json.loads(serialised)
             scopes = {}
             for scope_id, scope_data in scopes_dict.items():
+                # manage if ScopeData has been changed and discard old structures
+                if not all(k in scope_data for k in ("duckdb_path", "remote_duckdb_url", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
+                    continue
+
                 # parse dates
                 creation_date = datetime.fromisoformat(scope_data["creation_date"])
                 update_date = datetime.fromisoformat(scope_data["update_date"]) if scope_data["update_date"] else None
@@ -254,7 +286,7 @@ class ANNCSUSettingsManager:
                     duckdb_path=Path(scope_data["duckdb_path"]),
                     remote_duckdb_url=scope_data["remote_duckdb_url"],
                     syncked=scope_data["syncked"],
-                    municipality_code=scope_data["municipality_code"],
+                    municipality_data=MunicipalityData(**scope_data["municipality_data"]),
                     source_db=scope_data["source_db"],
                     creation_date=creation_date,
                     update_date=update_date,
@@ -290,6 +322,11 @@ class ANNCSUSettingsManager:
         QgsSettings().setValue(cls.ANNCSU_REPO_URL_KEY, anncsu_repo)
 
     @classmethod
+    def set_municipality(cls, municipality: str):
+        print(f"Setting municipality code to {municipality}")
+        QgsSettings().setValue(cls.MUNICIPALITY_KEY, municipality)
+
+    @classmethod
     def set_municipality_code(cls, municipality_code: str):
         print(f"Setting municipality code to {municipality_code}")
         QgsSettings().setValue(cls.MUNICIPALITY_CODE_KEY, municipality_code)
@@ -322,6 +359,10 @@ class ANNCSUSettingsManager:
         QgsSettings().setValue(cls.ANNCSU_REPO_URL_KEY, cls.DEFAULTS[cls.ANNCSU_REPO_URL_KEY])
 
     @classmethod
+    def reset_municipality(cls):
+        QgsSettings().setValue(cls.MUNICIPALITY_KEY, cls.DEFAULTS[cls.MUNICIPALITY_KEY])
+
+    @classmethod
     def reset_municipality_code(cls):
         QgsSettings().setValue(cls.MUNICIPALITY_CODE_KEY, cls.DEFAULTS[cls.MUNICIPALITY_CODE_KEY])
 
@@ -337,6 +378,7 @@ class ANNCSUSettingsManager:
     @classmethod
     def reset_all(cls):
         cls.reset_anncsu_repo()
+        cls.reset_municipality()
         cls.reset_municipality_code()
         cls.reset_geocoders_configs()
         cls.reset_scopes()
@@ -361,7 +403,7 @@ class ANNCSUSettingsManager:
     def create_new_session(
         cls,
         source_db: AnyUrl,
-        municipality_code: str,
+        municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback,
     ) -> Tuple[str, ScopeData]:
         """Create a new session and add it to SCOPES.
@@ -372,7 +414,7 @@ class ANNCSUSettingsManager:
         Returns:
             scope: ScopeData"""
         now = datetime.now()
-        scope_name = f"{municipality_code}_{now.strftime('%Y%m%d_%H%M%S')}"
+        scope_name = f"{municipality_data.anncsu_id}_{now.strftime('%Y%m%d_%H%M%S')}"
         duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / f"{scope_name}.duckdb"
 
         # populate scope session with subset of municipality data get from source_db
@@ -421,8 +463,19 @@ class ANNCSUSettingsManager:
         force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'VARCHAR'}"
         duckdb_conn.execute(f"""
             CREATE TABLE anncsu AS
-            SELECT * FROM READ_CSV_AUTO('zip://{str(temp_duckdb_path)}', header = true, delim=';', types={force_column_types})
-            WHERE codice_comune = '{municipality_code}';
+            SELECT
+                $tag$'{municipality_data.nome}'$tag$ as COMUNE,
+                $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
+                $tag$'{municipality_data.regione}'$tag$ as REGIONE,
+                *
+            FROM
+                READ_CSV_AUTO(
+                    'zip://{str(temp_duckdb_path)}',
+                    header = true,
+                    delim=';',
+                    types={force_column_types}
+                )
+            WHERE codice_comune = '{municipality_data.anncsu_id}';
         """)
         duckdb_conn.close()
 
@@ -435,11 +488,11 @@ class ANNCSUSettingsManager:
             duckdb_path=duckdb_path,
             remote_duckdb_url=None,
             syncked=False,
-            municipality_code=municipality_code,
+            municipality_data=municipality_data,
             source_db=source_db,
             creation_date=now,
             update_date=None,
-            description=f"ANNCSU Data for municipality {municipality_code} created on {now.strftime('%Y-%m-%d %H:%M:%S')}"
+            description=f"ANNCSU Data for municipality {municipality_data.anncsu_id} created on {now.strftime('%Y-%m-%d %H:%M:%S')}"
         )
         scopes = cls.get_scopes()
         scopes[scope_name] = scope

@@ -7,7 +7,7 @@ import duckdb
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from qgis.gui import QgsMessageBar
 from qgis.core import Qgis
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -28,11 +28,12 @@ from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.anncsu_wizard.data_models.geocoder_model import GeocoderModel
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
-from anncsu_manager.utils.settings_manager import ScopeData
+from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
 
 FORM_CLASS: QDialog = load_ui("wizard_settings.ui")
 
 CODICE_COMUNE_DB_PATH = Path(PLUGIN_PATH) / "resources" / "data" / "CODICE_COMUNE.parquet"
+CODICE_CATASTRO_DB_PATH = Path(PLUGIN_PATH) / "resources" / "data" / "Elenco-comuni-italiani.csv"
 
 class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
@@ -56,7 +57,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
         # binding var to UI elements
         self.anncsu_base_url: QLineEdit
-        self.codice_comune: QComboBox
+        self.comune_cb: QComboBox
         self.geocodersTreeView: QTreeView
         self.session_url: QLabel
         # this comobobox store current session data
@@ -73,7 +74,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.current_session.currentIndexChanged.connect(
             lambda: self.manageSessionChange(
                 self.current_session.currentText(),
-                self.current_session.currentData()
+                self.current_session.currentData() # ScopeData
             )
         )
         self.delete_session.clicked.connect(lambda: self.manageDeleteSession())
@@ -169,19 +170,21 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 self.current_session.setCurrentIndex(index)
             else:
                 self.current_session.setCurrentIndex(0)
+        else:
+            print(f"Session changed to {current_scope_id} for {current_scope}")
         
         # set gui basing on current scope
         scope = self.current_session.currentData()
         scope_dict = scope.to_dict() if scope else {}
         anncsu_repo = scope_dict.get("source_db", self.fallout_anncsu_repo)
-        municipality_code = scope_dict.get("municipality_code", self.fallout_codice_comune)
+        municipality_code = scope_dict.get("municipality_data", {}).get("anncsu_id", self.fallout_codice_comune)
 
         self.anncsu_base_url.setText(anncsu_repo)
-        index = self.codice_comune.findData(municipality_code)
+        index = self.comune_cb.findText(municipality_code, Qt.MatchFlag.MatchContains)
         if index != -1:
-            self.codice_comune.setCurrentIndex(index)
+            self.comune_cb.setCurrentIndex(index)
         else:
-            self.codice_comune.setCurrentIndex(0)
+            self.comune_cb.setCurrentIndex(0)
 
             # no municipality is set yet, notity user to save settings to create a session
             ANNCSUMessageManager().show_message(
@@ -213,20 +216,42 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
         # populate codice_comune combobox
         # before populate need to suspend envnts to avoid triggering currentIndexChanged signal
-        self.codice_comune.blockSignals(True)
-        comuni = duckdb.read_parquet(str(CODICE_COMUNE_DB_PATH))
-        self.codice_comune.clear()
-        self.codice_comune.addItem("Seleziona codice comune", "")
-        for codice_comune in comuni.fetchall():
-            self.codice_comune.addItem(f"{codice_comune[0]}", codice_comune[0])
-        self.codice_comune.blockSignals(False)
+        self.comune_cb.blockSignals(True)
+        # comuni = duckdb.read_parquet(str(CODICE_COMUNE_DB_PATH))
+        codice_catastro = duckdb.sql(f"""
+            select
+                "Progressivo del comune (2)" as id,
+                "Denominazione in italiano" as nome,
+                "Denominazione dell'Unità territoriale sovracomunale(valida a fini statistici)" as provincia,
+                "Denominazione Regione" as regione,
+                "Codice catastale del comune" as anncsu_id
+            from read_csv(
+                '{CODICE_CATASTRO_DB_PATH}',
+                encoding='8859_1',
+                delim=';',
+                header = true)
+            ORDER BY nome ASC;
+        """)
+                
+        self.comune_cb.clear()
+        self.comune_cb.addItem("Seleziona codice comune", "")
+        for id, nome, provincia, regione, anncsu_id in codice_catastro.fetchall():
+            municipality_data = MunicipalityData(
+                id=id,
+                nome=nome,
+                provincia=provincia,
+                regione=regione,
+                anncsu_id=anncsu_id,
+            )
+            self.comune_cb.addItem(f"{nome} -- {anncsu_id}", municipality_data)
+        self.comune_cb.blockSignals(False)
         
         # set configure codice_comune in combobox
-        # index = self.codice_comune.findData(self.current_codice_comune)
+        # index = self.comune_cb.findData(self.current_codice_comune)
         # if index != -1:
-        #     self.codice_comune.setCurrentIndex(index)
+        #     self.comune_cb.setCurrentIndex(index)
         # else:
-        #     self.codice_comune.setCurrentIndex(0)
+        #     self.comune_cb.setCurrentIndex(0)
 
         # populate current_session combobox
         self.current_session.blockSignals(True)
@@ -261,16 +286,18 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             current_scope_dict = current_scope.to_dict()
         
         # need a municipality code to proceed
-        if self.codice_comune.currentData() == "":
+        if self.comune_cb.currentData() is None:
             ANNCSUMessageManager().show_message(
                 "Selezionare un codice comune per procedere.",
                 "warning",
             )
             return
 
+        municipality_data: MunicipalityData = self.comune_cb.currentData()
+        current_municipality_code = current_scope_dict.get("municipality_data", {}).get("anncsu_id", "")
         if (
             self.anncsu_base_url.text() != current_scope_dict.get("source_db", "") or
-            self.codice_comune.currentData() != current_scope_dict.get("municipality_code", "")
+            municipality_data.anncsu_id != current_municipality_code
         ):
             reply = QMessageBox.question(self,
                 "DB sorgente ANNUCSU o codice comune modificati",
@@ -281,8 +308,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             if reply == QMessageBox.StandardButton.No:
                 # set back previous data
                 self.anncsu_base_url.setText(current_scope_dict.get("source_db", ""))
-                self.codice_comune.setCurrentIndex(
-                    self.codice_comune.findData(current_scope_dict.get("municipality_code", ""))
+                self.comune_cb.setCurrentIndex(
+                    # todelete: self.comune_cb.findData(current_scope_dict.get("municipality_code", ""))
+                    self.comune_cb.findText(current_municipality_code, Qt.MatchFlag.MatchContains)
                 )
 
                 ANNCSUMessageManager().show_message("Nessun cambio salvato", "success")
@@ -292,7 +320,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 self.feedback.progress_bar.show()
                 mew_scope_id, new_scope = ANNCSUSettingsManager.create_new_session(
                     source_db=self.anncsu_base_url.text(),
-                    municipality_code=self.codice_comune.currentData(),
+                    municipality_data=municipality_data,
                     feedback=self.feedback,
                 )
                 self.feedback.progress_bar.hide()
@@ -305,7 +333,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
         ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
         ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-        ANNCSUSettingsManager.set_municipality_code(self.codice_comune.currentData())
+        ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
         ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
 
