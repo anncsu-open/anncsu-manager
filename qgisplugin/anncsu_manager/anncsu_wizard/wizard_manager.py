@@ -16,6 +16,7 @@ from anncsu_manager.anncsu_wizard.wizard_geocoder_step import ANNCSUWizardRunGeo
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
 
+
 class ANNCSUWizardManager(QWizard, FORM_CLASS):
 
     def __init__(self, parent=None, progress_bar: QProgressBar=None) -> None:
@@ -39,37 +40,6 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
 
         # activate first page to allow enable it's events
         self.setStartId(self.run_geocoders_page_id);
-    
-    # def run_geocoders(self):
-    #     """Run the geocoding processes as per user settings in geocoders.json."""
-    #     geocoders_configs = ANNCSUSettingsManager.get_geocoders_configs()
-
-    #     try:
-    #         self.progressBar.setVisible(True)
-    #         self.feedback.reset_progress()
-    #         self.feedback.set_progress_maximum(100)
-
-    #         # for eache enabled goecoder, run the process
-    #         for gocoder_name, geocoder_config in geocoders_configs.items():
-    #             # skip geocoder if not active
-    #             if not geocoder_config.get("active", False):
-    #                 continue
-                
-
-
-    #         # Example of running a geocoding process
-    #             # self.feedback.push_info("Running Nominatim Geocoder...")
-    #             # # Here would be the code to run the Nominatim geocoder
-    #             # # For example: NominatimGeocoder.run(self.feedback)
-    #             # self.feedback.push_info("Nominatim Geocoder completed successfully.")
-
-
-    #         self.feedback.push_info("All geocoding processes completed.")
-
-    #     except QgsPluginException as e:
-    #         self.feedback.reportError(f"An error occurred: {str(e)}")
-    #     finally:
-    #         self.progressBar.setVisible(False)
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
