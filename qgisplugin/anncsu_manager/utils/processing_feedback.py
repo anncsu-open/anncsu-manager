@@ -17,9 +17,8 @@ class ANNCSUProcessingFeedback(QgsProcessingFeedback):
         self.text_edit = text_edit
         self.progress_bar = progress_bar
 
-    def setProgress(self, progress: int):
-        if self.progress_bar is not None:
-            self.progress_signal.emit(progress)
+    def setProgress(self, progress: float):
+        self.progress_signal.emit(progress)
 
     def pushInfo(self, info):
         if self.text_edit is not None:
@@ -31,28 +30,24 @@ class ANNCSUProcessingFeedback(QgsProcessingFeedback):
                 self.reportError(info)
             else:
                 self.text_signal.emit(info)
+        else:
+            self.text_signal.emit(info)
 
     def pushCommandInfo(self, info):
-        if self.text_edit is not None:
-            self.text_signal.emit(f"Command: {info}")
+        self.text_signal.emit(f"Command: {info}")
 
     def pushDebugInfo(self, info):
-        if self.text_edit is not None:
-            self.text_signal.emit(f"Debug: {info}")
+        self.text_signal.emit(f"Debug: {info}")
 
     def pushConsoleInfo(self, info):
-        if self.text_edit is not None:
-            self.text_signal.emit(f"Console: {info}")
+        self.text_signal.emit(f"Console: {info}")
 
     def reportError(self, error, fatalError=False):
-        if self.text_edit is not None:
-            self.no_errors = False
-            self.text_signal.emit(f"Error: {error}")
+        self.no_errors = False
+        self.text_signal.emit(f"Error: {error}")
 
     def report_terminated_execution(self, msg = ""):
-        if self.text_edit is not None:
-            self.text_signal.emit(str(msg))
+        self.text_signal.emit(str(msg))
 
     def report_failed_run(self):
-        if self.text_edit is not None:
-            self.text_signal.emit("Processing failed.")
+        self.text_signal.emit("Processing failed.")
