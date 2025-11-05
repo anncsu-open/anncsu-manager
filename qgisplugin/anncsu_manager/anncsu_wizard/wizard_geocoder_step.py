@@ -1,5 +1,6 @@
 import importlib
 import sys
+import time
 from pathlib import Path
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
@@ -93,7 +94,12 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} addresses using {geocoder_name}...")
 
                 if geocoder_name == "WhereAbouts":
+                    # do bulk geocode using WhereAbouts to do it faster
+                    self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} bulk addresses to speedup process. ")
+                    start = time.time()
                     geocoded = whereabouts_matcher.geocode(addresses=addresses_to_geocode)
+                    end = time.time()
+                    self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
 
                     # add spatial extension to duckdb
                     scopedb.execute("INSTALL spatial;")
