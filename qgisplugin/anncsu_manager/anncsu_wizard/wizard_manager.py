@@ -1,7 +1,9 @@
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from qgis.PyQt.QtWidgets import (
     QWizard,
-    QProgressBar
+    QProgressBar,
+    QTextEdit,
+    QLabel,
 )
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
@@ -32,6 +34,7 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
             progress_bar=self.progressBar,
         )
         self.feedback.progress_signal.connect(self.update_feedback_progress)
+        self.feedback.text_signal.connect(self.update_feedback_text)
 
         # add run geocoder wizard page
         self.run_geocoders_page = ANNCSUWizardRunGeocoders(parent=self, feedback=self.feedback)
@@ -42,3 +45,22 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
+
+    def update_feedback_text(self, text: str):
+        if "success: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="success", duration=5)
+        elif "info: " in text.lower():
+            pass
+        elif "warning: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="warning", duration=5)
+        elif "invalid: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="invalid", duration=10)
+        elif "error: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="error", duration=0)
+
+        if self.feedback.text_edit is not None:
+            if isinstance(self.feedback.text_edit, QTextEdit):
+                self.feedback.text_edit.append(text)
+            elif isinstance(self.feedback.text_edit, QLabel):
+                self.feedback.text_edit.setText(text)
+
