@@ -1,8 +1,7 @@
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from qgis.PyQt.QtWidgets import (
     QWizard,
-    QProgressBar,
-    QPushButton,
+    QProgressBar
 )
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
