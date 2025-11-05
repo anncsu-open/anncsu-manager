@@ -4,6 +4,7 @@ from pathlib import Path
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QPushButton,
+    QTextEdit,
 )
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
@@ -26,7 +27,11 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
     def __init__(self, parent=None, feedback: ANNCSUProcessingFeedback=ANNCSUProcessingFeedback()) -> None:
         super().__init__(parent)
         self.setupUi(self)
+
+        # manage where to show mesages and progress
+        self.progress_text: QTextEdit
         self.feedback: ANNCSUProcessingFeedback = feedback
+        self.feedback.text_edit = self.progress_text
 
         # actions
         print("Connecting run_geocoders_pb.clicked to run_geocoders method")
@@ -55,7 +60,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
             # for eache enabled goecoder, run the process
             for geocoder_name, geocoder_config in geocoders_configs.items():
                 # skip geocoder if not active
-                if not geocoder_config.get("active", False):
+                if geocoder_config.get("active", False) in [False, "False", "false"]:
+                    self.feedback.pushInfo(f"Skiping inactive geocoder {geocoder_name}...")
                     continue
 
                 duck_db_source = current_scope.to_dict().get("duckdb_path", "")
@@ -127,7 +133,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                                 )
                             )
 
-                            message = f"Geocoded address ID {result.get('address_id', idx)}: '{result.get('address', '')}' to coordinates: ({result.get('latitude', None)}, {result.get('longitude', None)}) with score {result.get('similarity', 0.0)}"
+                            message = f"Geocoded {result.get('address_id', idx)}: '{result.get('address', '')}' to: ({result.get('latitude', None)}, {result.get('longitude', None)}) score: {result.get('similarity', 0.0)}"
                             self.feedback.pushInfo(message)
 
                     # geocoder_service_name = geocoder_config.get("service", "")

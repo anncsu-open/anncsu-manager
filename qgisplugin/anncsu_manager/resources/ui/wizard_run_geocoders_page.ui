@@ -27,6 +27,19 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QTextEdit" name="progress_text">
+     <property name="lineWrapMode">
+      <enum>QTextEdit::NoWrap</enum>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>progress log</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>
