@@ -73,6 +73,8 @@ class ANNCSUWizard(QWidget, FORM_CLASS):
         else:
             self.message_bar = iface.messageBar()
 
+        # instanciate singleton message manager where to send
+        # all general messages as QgsMessageBar
         self.message_manager = ANNCSUMessageManager()
         self.message_manager.set_message_bar(self.message_bar)
 
