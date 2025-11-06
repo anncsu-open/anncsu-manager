@@ -3,6 +3,7 @@
         "active": "False",
         "addressdetails": "True",
         "bounded": "False",
+        "builder": "NominatimGeocoderBuilder",
         "country_codes": "",
         "dedupe": "True",
         "email": "",
@@ -31,6 +32,7 @@
         "boundary.rect.max_lon": "",
         "boundary.rect.min_lat": "",
         "boundary.rect.min_lon": "",
+        "builder": "PeliasGeocoderBuilder",
         "dedupe": "True",
         "focus.point.lat": "",
         "focus.point.lon": "",
@@ -44,6 +46,7 @@
     },
     "Photon": {
         "active": "False",
+        "builder": "PhotonGeocoderBuilder",
         "dedupe": "True",
         "lang": "en",
         "limit": 10,
@@ -53,6 +56,8 @@
     },
     "WhereAbouts": {
         "active": "True",
+        "builder": "WhereaboutsGeocoderBuilder",
+        "builder_module": "whereabouts_geocoder",
         "how": [
             "standard",
             "trigram"

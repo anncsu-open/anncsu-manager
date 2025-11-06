@@ -1,6 +1,8 @@
+import sys
 import json
 from pathlib import Path
 from typing import Optional
+import importlib
 
 import duckdb
 
@@ -29,6 +31,7 @@ from anncsu_manager.anncsu_wizard.data_models.geocoder_model import GeocoderMode
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
+from factories.geocoder_factory import GeocoderFactory
 
 FORM_CLASS: QDialog = load_ui("wizard_settings.ui")
 
@@ -110,6 +113,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
         # first synchecd updated basing on session
         self.manageSessionChange()
+
+        # register geocoders in factory
+        self.registerGeocoders()
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
@@ -274,6 +280,39 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         #     remote_duckdb_url = "N/A"
         # self.session_url.setText(remote_duckdb_url)
 
+    def registerGeocoders(self):
+        """Register geocoder builders in GeocoderFactory based on geocoders.json configuration."""
+        # clean all available geocoders first
+        GeocoderFactory().reset_builders()
+
+        # get configured geocoders and regiseter buloder if any and active
+        geocoders_configs = ANNCSUSettingsManager.get_geocoders_configs()
+        for geocoder_name, geocoder_config in geocoders_configs.items():
+            # skip not active geocoders
+            if geocoder_config.get("active", False) in [False, "False", "false"]:
+                print(f"Skipping inactive geocoder {geocoder_name}...")
+                continue
+
+            # skip geocoder if not builder is specified (e.g. not implemented)
+            builder_module_name = geocoder_config.get("builder_module", None)
+            if builder_module_name is None:
+                print(f"Skipping geocoder {geocoder_name} with no builder module specified...")
+                continue  # no builder specified, skip registration
+
+            builder_name = geocoder_config.get("builder", None)
+            if builder_name is None:
+                print(f"Skipping geocoder {geocoder_name} with no builder specified...")
+                continue  # no builder specified, skip registration
+
+            # Dynamically import the builder class
+            try:
+                module = importlib.import_module(f"factories.{builder_module_name.lower()}")
+                importlib.reload(module) # to avoid to used cache one
+                builder_class = getattr(module, builder_name)
+                GeocoderFactory().register_geocoder(geocoder_name, builder_class())
+                print(f"Registered geocoder {builder_name}")
+            except (ImportError, AttributeError) as e:
+                self.feedback.reportError(f"Could not register geocoder '{geocoder_name}': {e}")
 
     def save_settings(self):
         """Save current selections.
@@ -332,6 +371,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 )
 
         ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
+        self.registerGeocoders()
         ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
         ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())

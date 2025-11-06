@@ -18,7 +18,10 @@ import duckdb
 
 # geocoders related imports
 from geopy.geocoders import get_geocoder_for_service
-from whereabouts.Matcher import Matcher
+# from whereabouts.Matcher import Matcher
+from factories.geocoder_factory import GeocoderFactory
+
+
 
 FORM_CLASS: QWizardPage = load_ui("wizard_run_geocoders_page.ui")
 
@@ -76,11 +79,18 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                     return
 
                 # isntanciate geocoder
-                whereabouts_matcher = Matcher(
-                    db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
-                    how=geocoder_config.get("how", ["standard"]),
-                    threshold=geocoder_config.get("threshold", 0.5),
+                whereabouts_matcher = GeocoderFactory().get_geocoder(
+                    geocoder_name,
+                    **geocoder_config
                 )
+                if whereabouts_matcher is None:
+                    self.feedback.reportError(f"Could not instantiate geocoder '{geocoder_name}'.")
+                    continue
+                # whereabouts_matcher = Matcher(
+                #     db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
+                #     how=geocoder_config.get("how", ["standard"]),
+                #     threshold=geocoder_config.get("threshold", 0.5),
+                # )
 
                 addresses_to_geocode = []
                 field_names = ("COMUNE", "PROVINCIA", "REGIONE", "CODICE_COMUNE", "CODICE_ISTAT", "PROGRESSIVO_NAZIONALE", "CODICE_COMUNALE", "ODONIMO", 'LOCALITA\'', "DIZIONE_LINGUA1", "DIZIONE_LINGUA2", "PROGRESSIVO_ACCESSO", "CODICE_COMUNALE_ACCESSO", "CIVICO", "ESPONENTE", "SPECIFICITA", "METRICO", "PROGRESSIVO_SNC", "COORD_X_COMUNE", "COORD_Y_COMUNE", "QUOTA", "METODO")
