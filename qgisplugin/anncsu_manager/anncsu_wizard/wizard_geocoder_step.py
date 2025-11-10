@@ -6,10 +6,12 @@ from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QPushButton,
     QTextEdit,
-    QCheckBox
+    QCheckBox,
+    QProgressBar
 )
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
+from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
@@ -29,21 +31,27 @@ FORM_CLASS: QWizardPage = load_ui("wizard_run_geocoders_page.ui")
 
 class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
-    def __init__(self, parent=None, feedback: ANNCSUProcessingFeedback=ANNCSUProcessingFeedback()) -> None:
+    def __init__(self, parent=None, progress_bar: QProgressBar = QProgressBar()) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
         # manage where to show mesages and progress
         self.progress_text: QTextEdit
-        self.feedback: ANNCSUProcessingFeedback = feedback
-        self.feedback.text_edit = self.progress_text
         self.show_details_cb: QCheckBox
         self.show_details_cb.checked = False
         self.clear_log_pb: QPushButton
         self.clear_log_pb.clicked.connect(lambda: self.progress_text.clear())
 
+        # setup GUI feedback during geocoding
+        self.feedback: ANNCSUProcessingFeedback = ANNCSUProcessingFeedback(
+            text_edit=None,
+            progress_bar=progress_bar,
+        )
+        self.feedback.text_edit = self.progress_text
+        self.feedback.progress_signal.connect(self.update_feedback_progress)
+        self.feedback.text_signal.connect(self.update_feedback_text)
+
         # actions
-        print("Connecting run_geocoders_pb.clicked to run_geocoders method")
         self.run_geocoders_pb: QPushButton
         self.run_geocoders_pb.clicked.connect(self.run_geocoders)
 
@@ -178,4 +186,25 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
             self.feedback.reportError(f"An error occurred: {str(e)}")
         finally:
             self.feedback.progress_bar.setVisible(False)
+
+    def update_feedback_progress(self, progress: int):
+        self.feedback.progress_bar.setValue(progress)
+
+    def update_feedback_text(self, text: str):
+        if "success: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="success", duration=5)
+        elif "info: " in text.lower():
+            pass
+        elif "warning: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="warning", duration=5)
+        elif "invalid: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="invalid", duration=10)
+        elif "error: " in text.lower():
+            ANNCSUMessageManager().show_message(text, level="error", duration=0)
+
+        if self.feedback.text_edit is not None:
+            if isinstance(self.feedback.text_edit, QTextEdit):
+                self.feedback.text_edit.append(text)
+            elif isinstance(self.feedback.text_edit, QLabel):
+                self.feedback.text_edit.setText(text)
 
