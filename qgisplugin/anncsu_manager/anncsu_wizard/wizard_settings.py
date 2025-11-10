@@ -306,7 +306,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
             # Dynamically import the builder class
             try:
-                module = importlib.import_module(f"factories.{builder_module_name.lower()}")
+                module = importlib.import_module(f"anncsu_manager.factories.{builder_module_name.lower()}")
                 importlib.reload(module) # to avoid to used cache one
                 builder_class = getattr(module, builder_name)
                 GeocoderFactory().register_geocoder(geocoder_name, builder_class())
