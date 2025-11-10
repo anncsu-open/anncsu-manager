@@ -312,7 +312,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 GeocoderFactory().register_geocoder(geocoder_name, builder_class())
                 print(f"Registered geocoder {builder_name}")
             except (ImportError, AttributeError) as e:
-                self.feedback.reportError(f"Could not register geocoder '{geocoder_name}': {e}")
+                ANNCSUMessageManager().show_message(f"Could not register geocoder '{geocoder_name}': {e}", "error")
 
     def save_settings(self):
         """Save current selections.
