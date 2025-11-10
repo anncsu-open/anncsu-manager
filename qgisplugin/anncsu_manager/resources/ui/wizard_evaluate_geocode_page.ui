@@ -24,9 +24,9 @@
   </attribute>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <widget class="QPushButton" name="load_layers">
+    <widget class="QPushButton" name="load_all_layers">
      <property name="text">
-      <string>Load layers</string>
+      <string>Load all layers</string>
      </property>
     </widget>
    </item>

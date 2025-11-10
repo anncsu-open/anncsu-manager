@@ -14,6 +14,7 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 
 # wizard pages
 from anncsu_manager.anncsu_wizard.wizard_geocoder_step import ANNCSUWizardRunGeocoders
+from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCSUWizardEvaluateGeocode
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
 
@@ -39,6 +40,10 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
         # add run geocoder wizard page
         self.run_geocoders_page = ANNCSUWizardRunGeocoders(parent=self, feedback=self.feedback)
         self.run_geocoders_page_id = self.addPage(self.run_geocoders_page)
+
+        # add evaluate geocode wizard page
+        self.evaluate_geocode_page = ANNCSUWizardEvaluateGeocode(parent=self, feedback=self.feedback)
+        self.evaluate_geocode_page_id = self.addPage(self.evaluate_geocode_page)
 
         # activate first page to allow enable it's events
         self.setStartId(self.run_geocoders_page_id);
