@@ -5,22 +5,58 @@ from qgis.PyQt.QtWidgets import (
     QTabWidget,
     QProgressBar,
     QTextEdit,
-    QWidget
+    QWidget,
+    QLabel,
+    QTableView
 )
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
+from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
+from anncsu_manager.qgis_plugin_tools.tools.models import DataFrameModel
 
 import duckdb
 
 FORM_CLASS_TAB: QWidget = load_ui("geocode_results_tab.ui")
 class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
-    def __init__(self, parent=None):
+    def __init__(self,
+                 parent=None,
+                 scopedb: duckdb.DuckDBPyConnection = None,
+                 result_table_name: str = "",
+                 feedback: ANNCSUProcessingFeedback = ANNCSUProcessingFeedback()) -> None:
         super().__init__(parent)
         self.setupUi(self)
+
+        self.scopedb = scopedb
+        self.result_table_name = result_table_name
+
+        # setup UI elements
+        self.feedback = feedback
+        self.geocodes_tv: QTableView
+        self.statistics_geocode_score: QLabel
+        self.statistics_num_of_records: QLabel
+        self.statistics_num_of_success: QLabel
+        self.statistics_num_of_fails: QLabel
+        self.statistics_nom_of_out_of_geofence: QLabel
+
+        self.load_results()
+    
+    def load_results(self):
+        """Load geocoding results from the database and display them in the text edit."""
+        try:
+            query = f"SELECT * FROM {self.result_table_name};"
+            results = self.scopedb.execute(query).df()
+
+            # show results in table view
+            model = DataFrameModel(results)
+            self.geocodes_tv.setModel(model)
+
+            # Display results in the 
+        except Exception as e:
+            self.feedback.reportError(f"Error loading results: {str(e)}")
 
 
 FORM_CLASS: QWizardPage = load_ui("wizard_evaluate_geocode_page.ui")
@@ -85,7 +121,12 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 continue
 
             # create a new tab for this geocoder
-            geocoder_tab = ANNCUGeocodeResultTab(parent=self)
+            geocoder_tab = ANNCUGeocodeResultTab(
+                parent=self,
+                scopedb=scopedb,
+                result_table_name=result_table_name,
+                feedback=self.feedback
+            )
             self.geocoders_tabs.addTab(geocoder_tab, geocoder_name)
 
     def update_feedback_progress(self, progress: int):
