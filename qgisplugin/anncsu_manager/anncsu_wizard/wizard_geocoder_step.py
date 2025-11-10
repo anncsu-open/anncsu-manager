@@ -63,6 +63,16 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
             self.feedback.reportError("No scope is currently selected. Please select a scope in the settings before running geocoders.")
             return
 
+        duck_db_source = current_scope.to_dict().get("duckdb_path", "")
+        if not duck_db_source:
+            self.feedback.reportError("No DuckDB database path found in the current scope settings.")
+            return
+
+        scopedb = duckdb.connect(duck_db_source)
+        if scopedb is None:
+            self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
+            return
+
         try:
             self.feedback.progress_bar.setVisible(True)
 
@@ -72,16 +82,6 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 if geocoder_config.get("active", False) in [False, "False", "false"]:
                     self.feedback.pushInfo(f"Skiping inactive geocoder {geocoder_name}...")
                     continue
-
-                duck_db_source = current_scope.to_dict().get("duckdb_path", "")
-                if not duck_db_source:
-                    self.feedback.reportError("No DuckDB database path found in the current scope settings.")
-                    return
-                
-                scopedb = duckdb.connect(duck_db_source)
-                if scopedb is None:
-                    self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
-                    return
 
                 # isntanciate geocoder
                 geocoder = GeocoderFactory().get_geocoder(
