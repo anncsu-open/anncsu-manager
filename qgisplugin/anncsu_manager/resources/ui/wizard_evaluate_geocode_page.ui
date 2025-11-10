@@ -37,35 +37,20 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
-       <widget class="QTabWidget" name="tabWidget">
+       <widget class="QTabWidget" name="geocoders_tabs">
         <property name="currentIndex">
-         <number>1</number>
+         <number>-1</number>
         </property>
-        <widget class="QWidget" name="tab">
-         <attribute name="title">
-          <string>Geocoder1</string>
-         </attribute>
-        </widget>
-        <widget class="QWidget" name="tab_2">
-         <attribute name="title">
-          <string>Geocoder2</string>
-         </attribute>
-        </widget>
        </widget>
       </item>
      </layout>
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>Preview</string>
+    <widget class="QTextEdit" name="progress_text">
+     <property name="placeholderText">
+      <string>progress log</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QTableWidget" name="tableWidget"/>
-      </item>
-     </layout>
     </widget>
    </item>
   </layout>
