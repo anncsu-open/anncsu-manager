@@ -6,6 +6,7 @@ from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QPushButton,
     QTextEdit,
+    QCheckBox
 )
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
@@ -36,6 +37,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
         self.progress_text: QTextEdit
         self.feedback: ANNCSUProcessingFeedback = feedback
         self.feedback.text_edit = self.progress_text
+        self.show_details_cb: QCheckBox
+        self.show_details_cb.checked = False
 
         # actions
         print("Connecting run_geocoders_pb.clicked to run_geocoders method")
@@ -79,14 +82,14 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                     return
 
                 # isntanciate geocoder
-                whereabouts_matcher = GeocoderFactory().get_geocoder(
+                geocoder = GeocoderFactory().get_geocoder(
                     geocoder_name,
                     **geocoder_config
                 )
-                if whereabouts_matcher is None:
+                if geocoder is None:
                     self.feedback.reportError(f"Could not instantiate geocoder '{geocoder_name}'.")
                     continue
-                # whereabouts_matcher = Matcher(
+                # geocoder = Matcher(
                 #     db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
                 #     how=geocoder_config.get("how", ["standard"]),
                 #     threshold=geocoder_config.get("threshold", 0.5),
@@ -103,67 +106,68 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
                 self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} addresses using {geocoder_name}...")
 
-                if geocoder_name == "WhereAbouts":
-                    # do bulk geocode using WhereAbouts to do it faster
-                    self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} bulk addresses to speedup process. ")
-                    start = time.time()
-                    geocoded = whereabouts_matcher.geocode(addresses=addresses_to_geocode)
-                    end = time.time()
-                    self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
+                # do bulk geocode using WhereAbouts to do it faster
+                self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} bulk addresses to speedup process. ")
+                start = time.time()
+                geocoded = geocoder.geocode(addresses=addresses_to_geocode)
+                end = time.time()
+                self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
 
-                    # add spatial extension to duckdb
-                    scopedb.execute("INSTALL spatial;")
-                    scopedb.execute("LOAD spatial;")
+                # add spatial extension to duckdb
+                scopedb.execute("INSTALL spatial;")
+                scopedb.execute("LOAD spatial;")
 
-                    # save results in a result table
-                    scopedb.execute("""
-                        CREATE OR REPLACE TABLE geocoding_results (
-                            address_id INTEGER,
-                            input_address TEXT,
-                            address_matched TEXT,
-                            suburb TEXT,
-                            postcode TEXT,
-                            latitude DOUBLE,
-                            longitude DOUBLE,
-                            score DOUBLE,
-                            geometry GEOMETRY
-                        )
-                    """)
-                    for idx, result in enumerate(geocoded):
-                        self.feedback.progress_signal.emit(idx + 1)
-                        if result:
-                            scopedb.execute("""
-                                    INSERT INTO geocoding_results (address_id, input_address, address_matched, suburb, postcode, latitude, longitude, score, geometry)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
-                                """, (
-                                    result.get("address_id", idx),
-                                    result.get("address", ""),
-                                    result.get("address_matched", ""),
-                                    result.get("suburb", ""),
-                                    result.get("postcode", ""),
-                                    result.get("latitude", None),
-                                    result.get("longitude", None),
-                                    result.get("similarity", 0.0),
-                                    result.get("latitude", 0.0),
-                                    result.get("longitude", 0.0),
-                                )
+                # save results in a result table where result table is related with geocoder name
+                result_table_name = f"geocoding_results_{geocoder_name}"
+                scopedb.execute(f"""
+                    CREATE OR REPLACE TABLE {result_table_name} (
+                        address_id INTEGER,
+                        input_address TEXT,
+                        address_matched TEXT,
+                        suburb TEXT,
+                        postcode TEXT,
+                        latitude DOUBLE,
+                        longitude DOUBLE,
+                        score DOUBLE,
+                        geometry GEOMETRY
+                    )
+                """)
+
+                self.feedback.pushInfo(f"Saving geocoding results into table {result_table_name}...")
+                for idx, result in enumerate(geocoded):
+                    self.feedback.progress_signal.emit(idx + 1)
+                    if result:
+                        scopedb.execute(f"""
+                                INSERT INTO {result_table_name} (
+                                    address_id,
+                                    input_address,
+                                    address_matched,
+                                    suburb,
+                                    postcode,
+                                    latitude,
+                                    longitude,
+                                    score,
+                                    geometry
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
+                            """, (
+                                result.get("address_id", idx),
+                                result.get("address", ""),
+                                result.get("address_matched", ""),
+                                result.get("suburb", ""),
+                                result.get("postcode", ""),
+                                result.get("latitude", None),
+                                result.get("longitude", None),
+                                result.get("similarity", 0.0),
+                                result.get("latitude", 0.0),
+                                result.get("longitude", 0.0),
                             )
+                        )
 
+                        if self.show_details_cb.isChecked():
                             message = f"Geocoded {result.get('address_id', idx)}: '{result.get('address', '')}' to: ({result.get('latitude', None)}, {result.get('longitude', None)}) score: {result.get('similarity', 0.0)}"
                             self.feedback.pushInfo(message)
 
-                    # geocoder_service_name = geocoder_config.get("service", "")
-                    # GeocoderClass = get_geocoder_for_service(geocoder_service_name)
-                    # if GeocoderClass is None:
-                    #     self.feedback.reportError(f"Geocoder service '{geocoder_service_name}' is not supported.")
-                    #     continue
-                    # geocoder = GeocoderClass(**geocoder_config.get("params", {}))
-                    # location = geocoder.geocode(address)
-                    # if location:
-                    #     self.feedback.pushInfo(f"Geocoded address '{address}' to coordinates: ({location.latitude}, {location.longitude})")
-                    # else:
-                    #     self.feedback.pushInfo(f"Could not geocode address '{address}'.")
-
+                self.feedback.pushInfo(f"Geocoder '{geocoder_name}': Geocodings saved into table {result_table_name}.")
 
             self.feedback.progress_signal.emit(100)
             self.feedback.pushInfo("All geocoding processes completed.")

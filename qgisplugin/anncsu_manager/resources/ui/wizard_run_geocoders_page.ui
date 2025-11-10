@@ -28,6 +28,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="show_details_cb">
+     <property name="text">
+      <string>Show details</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QTextEdit" name="progress_text">
      <property name="lineWrapMode">
       <enum>QTextEdit::NoWrap</enum>
