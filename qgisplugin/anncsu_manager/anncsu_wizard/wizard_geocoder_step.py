@@ -19,7 +19,7 @@ import duckdb
 # geocoders related imports
 from geopy.geocoders import get_geocoder_for_service
 # from whereabouts.Matcher import Matcher
-from factories.geocoder_factory import GeocoderFactory
+from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
 
 

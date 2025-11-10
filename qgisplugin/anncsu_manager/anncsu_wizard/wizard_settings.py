@@ -31,7 +31,7 @@ from anncsu_manager.anncsu_wizard.data_models.geocoder_model import GeocoderMode
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
-from factories.geocoder_factory import GeocoderFactory
+from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
 FORM_CLASS: QDialog = load_ui("wizard_settings.ui")
 
