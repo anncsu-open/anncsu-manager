@@ -39,6 +39,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
         self.feedback.text_edit = self.progress_text
         self.show_details_cb: QCheckBox
         self.show_details_cb.checked = False
+        self.clear_log_pb: QPushButton
+        self.clear_log_pb.clicked.connect(lambda: self.progress_text.clear())
 
         # actions
         print("Connecting run_geocoders_pb.clicked to run_geocoders method")

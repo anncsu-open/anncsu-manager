@@ -50,6 +50,13 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QPushButton" name="clear_log_pb">
+     <property name="text">
+      <string>Clear</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>
