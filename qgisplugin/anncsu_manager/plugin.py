@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Callable, List, Optional
 
 from qgis.core import QgsApplication
@@ -14,6 +15,8 @@ from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from .anncsu_wizard.wizard_main import ANNCSUWizardDialog
 from .qgis_plugin_tools.tools.i18n import setup_translation
 
+# Ensure plugin path is in sys.path for imports submodules
+sys.path.append(PLUGIN_PATH)
 
 class Plugin:
     """QGIS Plugin Implementation."""
