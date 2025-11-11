@@ -1,3 +1,8 @@
+__copyright__ = "Copyright 2025-2026, GeoBeyond.it"
+__license__ = "GPL version 3"
+__email__ = "info@geobeyond.it"
+__revision__ = "$Format:%H$"
+
 from qgis.PyQt.QtCore import QAbstractTableModel, Qt
 
 
