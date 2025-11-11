@@ -1,5 +1,5 @@
-import time
-from pathlib import Path
+import geopandas
+from qgis.utils import iface
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QTabWidget,
@@ -7,7 +7,8 @@ from qgis.PyQt.QtWidgets import (
     QTextEdit,
     QWidget,
     QLabel,
-    QTableView
+    QTableView,
+    QPushButton
 )
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
@@ -17,11 +18,14 @@ from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.qgis_plugin_tools.tools.models import DataFrameModel
+from anncsu_manager.qgis_plugin_tools.tools.layers import load_dataframe_as_layer, remove_layer_by_name
 
 import duckdb
 
 FORM_CLASS_TAB: QWidget = load_ui("geocode_results_tab.ui")
 class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
+    """Class container for the results of geocoding for a specific geocoder."""
+
     def __init__(self,
                  parent=None,
                  scopedb: duckdb.DuckDBPyConnection = None,
@@ -42,27 +46,40 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
         self.statistics_num_of_fails: QLabel
         self.statistics_num_of_out_of_geofence: QLabel
 
+        # load results
+        self.results: geopandas.GeoDataFrame
+        self.success: geopandas.GeoDataFrame
+        self.fails: geopandas.GeoDataFrame
+        self.out_of_geofence: geopandas.GeoDataFrame
+        self.successLayer: QgsVectorLayer
+        self.failsLayer: QgsVectorLayer
+        self.outOfGeofenceLayer: QgsVectorLayer
         self.load_results()
     
     def load_results(self):
         """Load geocoding results from the database and display them in the text edit."""
         try:
-            query = f"SELECT * FROM {self.result_table_name};"
-            results = self.scopedb.execute(query).df()
+            # get geocoded result as GeoDataFrame and to do this have to convert internal spatial format to WKT
+            results_df = self.scopedb.execute(f"SELECT *, ST_AsText(geometry) as newgeom FROM {self.result_table_name};").df()
+            results_df.drop(columns=["geometry"], inplace=True)
+            results_df.rename(columns={"newgeom": "geometry"}, inplace=True)
+            results_df['geometry'] = geopandas.GeoSeries.from_wkt(results_df['geometry'])
+            self.results = geopandas.GeoDataFrame(results_df, geometry='geometry', crs="EPSG:4326")
 
             # show results in table view
-            model = DataFrameModel(results)
+            model = DataFrameModel(self.results)
             self.geocodes_tv.setModel(model)
 
             # Display statistics
             success_score_threshold = 0.8  # example threshold
 
-            total_records = len(results)
-            success = results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
-            num_of_success = len(success)
-            fails = results.query(f"geometry == None or score < {success_score_threshold}", inplace=False)
-            num_of_fails = len(fails)
-            num_of_out_of_geofence = len(results[results['score'] == 'out_of_geofence'])
+            total_records = len(self.results)
+            self.success = self.results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
+            num_of_success = len(self.success)
+            self.fails = self.results.query(f"geometry == None or score < {success_score_threshold}", inplace=False)
+            num_of_fails = len(self.fails)
+            self.out_of_geofence = self.results.query("score == 'out_of_geofence'", inplace=False)
+            num_of_out_of_geofence = len(self.out_of_geofence)
 
             self.statistics_num_of_records.setText(str(total_records))
             self.statistics_num_of_success.setText(str(num_of_success))
@@ -86,6 +103,8 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
         self.setupUi(self)
 
         # gui elements
+        self.load_all_layers: QPushButton
+        self.load_all_layers.clicked.connect(self.load_geocodings_into_qgis)
         self.geocoders_tabs: QTabWidget
         self.progress_text: QTextEdit
 
@@ -102,6 +121,56 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
     def initializePage(self):
         """Called when the page is about to be shown."""
         self.populate_geocoders_tabs()
+
+    def load_geocodings_into_qgis(self):
+        """Load all geocoded results as layers into QGIS.
+        Get results from stored one saved in the shown tabls."""
+
+        for i in range(self.geocoders_tabs.count()):
+            tab: ANNCUGeocodeResultTab = self.geocoders_tabs.widget(i)
+            geocoder_name = self.geocoders_tabs.tabText(i)
+            layer_name_success = f"{geocoder_name}_geocoded_success"
+            layer_name_fails = f"{geocoder_name}_geocoded_fails"
+            layer_name_out_of_geofence = f"{geocoder_name}_geocoded_out_of_geofence"
+
+            # load success layer
+            if tab.success is not None and not tab.success.empty:
+                ANNCSUMessageManager().show_message(f"Loading layer: {layer_name_success}", level="info", duration=5)
+                remove_layer_by_name(layer_name_success)
+                tab.successLayer = load_dataframe_as_layer(
+                    dataframe=tab.success,
+                    layer_name=layer_name_success,
+                    geometry_column="geometry",
+                    crs_epsg=4326  # assuming WGS84, adjust as needed
+                )
+
+                # zoom to the layer extent
+                canvas = iface.mapCanvas()
+                canvas.setExtent(tab.successLayer.extent())
+                canvas.refresh()
+
+            # load fails layer
+            if tab.fails is not None and not tab.fails.empty:
+                ANNCSUMessageManager().show_message(f"Loading layer: {layer_name_fails}", level="info", duration=5)
+                remove_layer_by_name(layer_name_fails)
+                tab.failsLayer = load_dataframe_as_layer(
+                    dataframe=tab.fails,
+                    layer_name=layer_name_fails,
+                    geometry_column=None,  # no geometry for fails
+                    crs_epsg=None
+                )
+
+            # load out_of_geofence layer
+            if tab.out_of_geofence is not None and not tab.out_of_geofence.empty:
+                ANNCSUMessageManager().show_message(f"Loading layer: {layer_name_out_of_geofence}", level="info", duration=5)
+                remove_layer_by_name(layer_name_out_of_geofence)
+                tab.outOfGeofenceLayer = load_dataframe_as_layer(
+                    dataframe=tab.out_of_geofence,
+                    layer_name=layer_name_out_of_geofence,
+                    geometry_column=None,  # no geometry for out_of_geofence
+                    crs_epsg=None
+                )
+
 
     def populate_geocoders_tabs(self):
         """Populate the geocoders tabs with evaluation results."""
