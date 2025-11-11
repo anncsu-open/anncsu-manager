@@ -30,12 +30,14 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                  parent=None,
                  scopedb: duckdb.DuckDBPyConnection = None,
                  result_table_name: str = "",
+                 geocoder_config: dict = {},
                  feedback: ANNCSUProcessingFeedback = ANNCSUProcessingFeedback()) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
         self.scopedb = scopedb
         self.result_table_name = result_table_name
+        self.geocoder_config = geocoder_config
 
         # setup UI elements
         self.feedback = feedback
@@ -71,7 +73,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             self.geocodes_tv.setModel(model)
 
             # Display statistics
-            success_score_threshold = 0.8  # example threshold
+            success_score_threshold = self.geocoder_config.get("threshold", 0.88)
 
             total_records = len(self.results)
             self.success = self.results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
@@ -89,7 +91,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                 success_rate = (num_of_success / total_records) * 100
             else:
                 success_rate = 0.0
-            self.statistics_geocode_score.setText(f"{success_rate:.2f}%")
+            self.statistics_geocode_score.setText(f"{success_rate:.2f}% (Threshoold: {success_score_threshold})")
 
         except Exception as e:
             self.feedback.reportError(f"Error loading results: {str(e)}")
@@ -213,6 +215,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 parent=self,
                 scopedb=scopedb,
                 result_table_name=result_table_name,
+                geocoder_config=geocoder_config,
                 feedback=self.feedback
             )
             self.geocoders_tabs.addTab(geocoder_tab, geocoder_name)
