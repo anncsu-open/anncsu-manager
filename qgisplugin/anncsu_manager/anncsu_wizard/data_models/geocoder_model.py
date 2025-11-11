@@ -262,6 +262,23 @@ class GeocoderModel(QAbstractItemModel):
                     self.dataChanged.emit(index, index, [Qt.ItemDataRole.EditRole])
                     self.dataChanged.emit(index.parent(), index.parent(), [Qt.ItemDataRole.EditRole])
                     return state
+        elif role == Qt.ItemDataRole.EditRole:
+            # manage editing of threshild values as float
+            if index.column() == 1:
+                if item.value_type in (int, float):
+                    try:
+                        if item.value_type is int:
+                            item.value = int(value)
+                        else:
+                            item.value = float(value)
+                        self.dataChanged.emit(index, index, [Qt.ItemDataRole.EditRole])
+                        return True
+                    except ValueError:
+                        return False
+                else:
+                    item.value = value
+                    self.dataChanged.emit(index, index, [Qt.ItemDataRole.EditRole])
+                    return True
         return False
 
     def headerData(
