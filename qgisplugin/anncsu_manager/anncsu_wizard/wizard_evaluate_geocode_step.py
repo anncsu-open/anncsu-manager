@@ -40,7 +40,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
         self.statistics_num_of_records: QLabel
         self.statistics_num_of_success: QLabel
         self.statistics_num_of_fails: QLabel
-        self.statistics_nom_of_out_of_geofence: QLabel
+        self.statistics_num_of_out_of_geofence: QLabel
 
         self.load_results()
     
@@ -54,7 +54,26 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             model = DataFrameModel(results)
             self.geocodes_tv.setModel(model)
 
-            # Display results in the 
+            # Display statistics
+            success_score_threshold = 0.8  # example threshold
+
+            total_records = len(results)
+            success = results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
+            num_of_success = len(success)
+            fails = results.query(f"geometry == None or score < {success_score_threshold}", inplace=False)
+            num_of_fails = len(fails)
+            num_of_out_of_geofence = len(results[results['score'] == 'out_of_geofence'])
+
+            self.statistics_num_of_records.setText(str(total_records))
+            self.statistics_num_of_success.setText(str(num_of_success))
+            self.statistics_num_of_fails.setText(str(num_of_fails))
+            self.statistics_num_of_out_of_geofence.setText(str(num_of_out_of_geofence))
+            if total_records > 0:
+                success_rate = (num_of_success / total_records) * 100
+            else:
+                success_rate = 0.0
+            self.statistics_geocode_score.setText(f"{success_rate:.2f}%")
+
         except Exception as e:
             self.feedback.reportError(f"Error loading results: {str(e)}")
 
