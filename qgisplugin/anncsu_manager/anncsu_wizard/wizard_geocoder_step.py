@@ -168,8 +168,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                                 result.get("latitude", None),
                                 result.get("longitude", None),
                                 result.get("similarity", 0.0),
-                                result.get("latitude", 0.0),
                                 result.get("longitude", 0.0),
+                                result.get("latitude", 0.0),
                             )
                         )
 
