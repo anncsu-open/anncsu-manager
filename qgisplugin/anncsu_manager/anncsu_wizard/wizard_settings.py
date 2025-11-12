@@ -35,7 +35,6 @@ from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
 FORM_CLASS: QDialog = load_ui("wizard_settings.ui")
 
-CODICE_COMUNE_DB_PATH = Path(PLUGIN_PATH) / "resources" / "data" / "CODICE_COMUNE.parquet"
 CODICE_CATASTRO_DB_PATH = Path(PLUGIN_PATH) / "resources" / "data" / "Elenco-comuni-italiani.csv"
 
 class ANNCSUWizardSettings(QWidget, FORM_CLASS):
@@ -223,7 +222,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # populate codice_comune combobox
         # before populate need to suspend envnts to avoid triggering currentIndexChanged signal
         self.comune_cb.blockSignals(True)
-        # comuni = duckdb.read_parquet(str(CODICE_COMUNE_DB_PATH))
         codice_catastro = duckdb.sql(f"""
             select
                 "Progressivo del comune (2)" as id,
