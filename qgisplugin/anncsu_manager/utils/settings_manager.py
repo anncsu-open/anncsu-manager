@@ -103,8 +103,10 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
+    DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
-    DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
+    # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
+    DEFAULT_ANNCSU_REPO_URL = "https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/indirizzarioItalia.duckdb"
     DEFAULT_MUNICIPALITY = "NoName"
     DEFAULT_MUNICIPALITY_CODE = "0000000"
     DEFAULT_GEOCODERS_CONFIGS = {
@@ -197,6 +199,7 @@ class ANNCSUSettingsManager:
     # }
     SCOPES = {}
 
+    GEOFENCE_POLYGONS_SOURCE_KEY = 'anncsu_manager/geofence_polygons_source'
     SCOPES_KEY = "anncsu_manager/geocoders_json_path"
     GEOCODERS_JSON_PATH_KEY = "anncsu_manager/geocoders_json_path"
     ANNCSU_REPO_URL_KEY = "anncsu_manager/anncsu_repo_url"
@@ -207,6 +210,7 @@ class ANNCSUSettingsManager:
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
     DEFAULTS = {
+        GEOFENCE_POLYGONS_SOURCE_KEY: DEFAULT_GEOFENCE_POLYGONS_SOURCE,
         GEOCODERS_JSON_PATH_KEY: str(DEFAULT_GEOCODERS_JSON_PATH),
         ANNCSU_REPO_URL_KEY: DEFAULT_ANNCSU_REPO_URL,
         MUNICIPALITY_KEY: DEFAULT_MUNICIPALITY,
@@ -218,6 +222,11 @@ class ANNCSUSettingsManager:
     }
 
     # GETTERS
+    @classmethod
+    def get_geofence_polygons_source(cls) -> str:
+        key = cls.GEOFENCE_POLYGONS_SOURCE_KEY
+        return QgsSettings().value(key, cls.DEFAULTS[key])
+
     @classmethod
     def get_geocoders_json_path(cls) -> str:
         key = cls.GEOCODERS_JSON_PATH_KEY
@@ -307,6 +316,10 @@ class ANNCSUSettingsManager:
 
     # SETTERS
     @classmethod
+    def set_geofence_polygons_source(cls, source: str):
+        QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, source)
+
+    @classmethod
     def set_geocoders_json_path(cls, path: str):
         if not Path(path).exists():
             ANNCSUMessageManager().show_message(
@@ -355,6 +368,10 @@ class ANNCSUSettingsManager:
 
     # RESETS
     @classmethod
+    def reset_geofence_polygons_source(cls):
+        QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, cls.DEFAULTS[cls.GEOFENCE_POLYGONS_SOURCE_KEY])
+
+    @classmethod
     def reset_anncsu_repo(cls):
         QgsSettings().setValue(cls.ANNCSU_REPO_URL_KEY, cls.DEFAULTS[cls.ANNCSU_REPO_URL_KEY])
 
@@ -377,6 +394,7 @@ class ANNCSUSettingsManager:
 
     @classmethod
     def reset_all(cls):
+        cls.reset_geofence_polygons_source()
         cls.reset_anncsu_repo()
         cls.reset_municipality()
         cls.reset_municipality_code()
@@ -422,65 +440,101 @@ class ANNCSUSettingsManager:
         if duckdb_conn is None:
             raise Exception("Could not create local duckdb database.")
         
-        # load extension to parse zip content
-        duckdb_conn.execute("INSTALL zipfs FROM community;")
-        duckdb_conn.execute("LOAD zipfs;")
+        # depending if source_db is remote or local file path
+        feedback.setProgress(10)
+        if 'agenziaentrate.gov.it' in str(source_db):
+            # load extension to parse zip content
+            duckdb_conn.execute("INSTALL zipfs FROM community;")
+            duckdb_conn.execute("LOAD zipfs;")
 
-        # download file locally because do not support range requests
-        # during download notify progress
-        response = requests.get(str(source_db), stream=True)
-        if response.status_code != 200:
-            raise Exception(f"Failed to download source duckdb from {source_db}. Status code: {response.status_code}")
-        
+            # download file locally because do not support range requests
+            # during download notify progress
+            response = requests.get(str(source_db), stream=True)
+            if response.status_code != 200:
+                raise Exception(f"Failed to download source duckdb from {source_db}. Status code: {response.status_code}")
+            
 
-        # download sourc db because it is not possible to attach remote duckdb
-        follout_temp_filename = f"temp_{scope_name}.zip"
-        remote_filename = response.headers.get('Content-Disposition').split('filename=')[-1] if response.headers.get('Content-Disposition') else follout_temp_filename
-        temp_duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / remote_filename.strip('"')
+            # download sourc db because it is not possible to attach remote duckdb
+            follout_temp_filename = f"temp_{scope_name}.zip"
+            remote_filename = response.headers.get('Content-Disposition').split('filename=')[-1] if response.headers.get('Content-Disposition') else follout_temp_filename
+            temp_duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / remote_filename.strip('"')
 
-        # get amout of data to download
-        chunk_size = 8192
-        total_size = int(response.headers.get('content-length', 0))
-        number_of_chunks = total_size // chunk_size
-        if number_of_chunks == 0:
-            number_of_chunks = 100  # avoid division by zero and reset progress bar to 100 steps
-        downloaded_size = 0
+            # get amout of data to download
+            chunk_size = 8192
+            total_size = int(response.headers.get('content-length', 0))
+            number_of_chunks = total_size // chunk_size
+            if number_of_chunks == 0:
+                number_of_chunks = 100  # avoid division by zero and reset progress bar to 100 steps
+            downloaded_size = 0
 
-        chunk_number = 0
-        feedback.setProgress(chunk_number)
-        print(f"Downloading source duckdb from {source_db} to {temp_duckdb_path}...")
-        with open(temp_duckdb_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                downloaded_size += len(chunk)
-                progress = int(90 * (chunk_number / number_of_chunks))
-                feedback.setProgress(progress)
-                file.write(chunk)
-                chunk_number += 1
+            chunk_number = 0
+            feedback.setProgress(chunk_number)
+            print(f"Downloading source duckdb from {source_db} to {temp_duckdb_path}...")
+            with open(temp_duckdb_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    downloaded_size += len(chunk)
+                    progress = int(90 * (chunk_number / number_of_chunks))
+                    feedback.setProgress(progress)
+                    file.write(chunk)
+                    chunk_number += 1
 
-        # duckdb_conn.execute(f"SELEC * '{str(temp_duckdb_path)}' AS source_db;")
-        # create local duckdb with only data for selected municipality_code
-        feedback.setProgress(95)
-        force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'VARCHAR'}"
+            # duckdb_conn.execute(f"SELEC * '{str(temp_duckdb_path)}' AS source_db;")
+            # create local duckdb with only data for selected municipality_code
+            feedback.setProgress(95)
+            force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'VARCHAR'}"
+            duckdb_conn.execute(f"""
+                CREATE TABLE anncsu AS
+                SELECT
+                    $tag$'{municipality_data.nome}'$tag$ as COMUNE,
+                    $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
+                    $tag$'{municipality_data.regione}'$tag$ as REGIONE,
+                    *
+                FROM
+                    READ_CSV_AUTO(
+                        'zip://{str(temp_duckdb_path)}',
+                        header = true,
+                        delim=';',
+                        types={force_column_types}
+                    )
+                WHERE codice_comune = '{municipality_data.anncsu_id}';
+            """)
+
+            # remove temporary downloaded duckdb
+            os.remove(temp_duckdb_path)
+
+        else:
+            if not str(source_db).endswith(".duckdb"):
+                raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (shoudl end with .duckdb).")
+            feedback.pushInfo(f"Source duckdb is remote at {source_db}...")
+
+            # query from a remote duckdb
+            duckdb_conn.execute(f"ATTACH DATABASE '{str(source_db)}' AS indirizzarioItalia;")
+            duckdb_conn.execute(f"""
+                CREATE TABLE anncsu AS
+                SELECT
+                    $tag$'{municipality_data.nome}'$tag$ as COMUNE,
+                    $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
+                    $tag$'{municipality_data.regione}'$tag$ as REGIONE,
+                    *
+                FROM
+                    indirizzarioItalia.anncsu_global
+                WHERE
+                    CODICE_COMUNE == '{municipality_data.anncsu_id}';
+            """)
+            duckdb_conn.execute("DETACH DATABASE indirizzarioItalia;")
+
+        # now create geofence polygon table related to the current scope municipality
+        feedback.setProgress(97)
+        feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
         duckdb_conn.execute(f"""
-            CREATE TABLE anncsu AS
-            SELECT
-                $tag$'{municipality_data.nome}'$tag$ as COMUNE,
-                $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
-                $tag$'{municipality_data.regione}'$tag$ as REGIONE,
-                *
-            FROM
-                READ_CSV_AUTO(
-                    'zip://{str(temp_duckdb_path)}',
-                    header = true,
-                    delim=';',
-                    types={force_column_types}
-                )
-            WHERE codice_comune = '{municipality_data.anncsu_id}';
+            CREATE OR REPLACE TABLE geofence_polygon AS
+                SELECT * FROM read_parquet('{ANNCSUSettingsManager.get_geofence_polygons_source()}')
+            WHERE COMUNE == '{municipality_data.nome}'
         """)
-        duckdb_conn.close()
+        feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
 
-        # remove temporary downloaded duckdb
-        os.remove(temp_duckdb_path)
+        # all done => close connection
+        duckdb_conn.close()
         feedback.setProgress(100)
 
         # generate and return scope data
