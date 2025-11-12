@@ -198,6 +198,10 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
             self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
             return
 
+        # load statial extension
+        scopedb.execute("INSTALL spatial;")
+        scopedb.execute("LOAD spatial;")
+
         # because source db could be changed, clear all tabs first
         self.geocoders_tabs.clear()
 
