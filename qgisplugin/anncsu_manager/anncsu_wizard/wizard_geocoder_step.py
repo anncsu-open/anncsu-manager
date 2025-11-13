@@ -24,7 +24,7 @@ from geopy.geocoders import get_geocoder_for_service
 # from whereabouts.Matcher import Matcher
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
-
+ANNCSU_TABLE_FIELDS = ("COMUNE", "PROVINCIA", "REGIONE", "CODICE_COMUNE", "CODICE_ISTAT", "PROGRESSIVO_NAZIONALE", "CODICE_COMUNALE", "ODONIMO", 'LOCALITA\'', "DIZIONE_LINGUA1", "DIZIONE_LINGUA2", "PROGRESSIVO_ACCESSO", "CODICE_COMUNALE_ACCESSO", "CIVICO", "ESPONENTE", "SPECIFICITA", "METRICO", "PROGRESSIVO_SNC", "COORD_X_COMUNE", "COORD_Y_COMUNE", "QUOTA", "METODO")
 
 FORM_CLASS: QWizardPage = load_ui("wizard_run_geocoders_page.ui")
 
@@ -81,6 +81,11 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
             self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
             return
 
+        # load statial extension
+        scopedb.execute("INSTALL spatial;")
+        scopedb.execute("LOAD spatial;")
+
+        # do geocoding
         try:
             self.feedback.progress_bar.setVisible(True)
 
@@ -106,9 +111,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 # )
 
                 addresses_to_geocode = []
-                field_names = ("COMUNE", "PROVINCIA", "REGIONE", "CODICE_COMUNE", "CODICE_ISTAT", "PROGRESSIVO_NAZIONALE", "CODICE_COMUNALE", "ODONIMO", 'LOCALITA\'', "DIZIONE_LINGUA1", "DIZIONE_LINGUA2", "PROGRESSIVO_ACCESSO", "CODICE_COMUNALE_ACCESSO", "CIVICO", "ESPONENTE", "SPECIFICITA", "METRICO", "PROGRESSIVO_SNC", "COORD_X_COMUNE", "COORD_Y_COMUNE", "QUOTA", "METODO")
                 for to_geocode in scopedb.execute("SELECT * FROM anncsu").fetchall():
-                    to_geocode_dict = dict(zip(field_names, to_geocode))
+                    to_geocode_dict = dict(zip(ANNCSU_TABLE_FIELDS, to_geocode))
                     address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["COMUNE"].strip("'")} ({to_geocode_dict["PROVINCIA"].strip("'")}), Italia"""
                     addresses_to_geocode.append(address_to_geocode)
 
@@ -122,10 +126,6 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 geocoded = geocoder.geocode(addresses=addresses_to_geocode)
                 end = time.time()
                 self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
-
-                # add spatial extension to duckdb
-                scopedb.execute("INSTALL spatial;")
-                scopedb.execute("LOAD spatial;")
 
                 # save results in a result table where result table is related with geocoder name
                 result_table_name = f"geocoding_results_{geocoder_name}"
