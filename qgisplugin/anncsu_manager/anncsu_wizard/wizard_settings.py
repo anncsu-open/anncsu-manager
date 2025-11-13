@@ -1,4 +1,3 @@
-import sys
 import json
 from pathlib import Path
 from typing import Optional
@@ -7,8 +6,7 @@ import importlib
 import duckdb
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
-from qgis.gui import QgsMessageBar
-from qgis.core import Qgis
+from qgis.core import QgsTask, QgsApplication
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -56,6 +54,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             progress_bar=self.progressBar,
         )
         self.feedback.progress_signal.connect(self.update_feedback_progress)
+        self.create_new_session_task: Optional[QgsTask] = None  # necessary to track task state
 
         # binding var to UI elements
         self.anncsu_base_url: QLineEdit
@@ -355,26 +354,28 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             else:
                 # proceed to create new session
                 self.feedback.progress_bar.show()
-                mew_scope_id, new_scope = ANNCSUSettingsManager.create_new_session(
+                self.feedback.progress_bar.setMinimum(0)
+                self.feedback.progress_bar.setMaximum(0)
+
+                # launch a new session creation with QgsTask to avoid GUI blocking
+                if self.create_new_session_task is not None:
+                    # avoid multiple task creation
+                    ANNCSUMessageManager().show_message(
+                        "Task di creazione nuova sessione già in esecuzione.",
+                        "warning",
+                    )
+                    return
+                self.create_new_session_task = QgsTask.fromFunction(
+                    f"Creazione nuova per comune {municipality_data.anncsu_id}",
+                    ANNCSUSettingsManager.create_new_session,
                     source_db=self.anncsu_base_url.text(),
                     municipality_data=municipality_data,
                     feedback=self.feedback,
-                )
-                self.feedback.progress_bar.hide()
-
-                # then add new session to combobox and set it as current
-                self.current_session.addItem(mew_scope_id, new_scope)
-                self.current_session.setCurrentIndex(
-                    self.current_session.findText(mew_scope_id)
+                    on_finished=self.on_finished_create_new_session,
                 )
 
-        ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
-        self.registerGeocoders()
-        ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-        ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
-        ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-        ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
-
+                # run create new settion sime spending task
+                QgsApplication.taskManager().addTask(self.create_new_session_task)
 
     def reset_settings_to_default(self):
         """Set selections to defaults. Does not save."""
@@ -382,3 +383,31 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.set_settings_gui()
         self.manageSessionChange()
         ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings reset.", "info")
+
+    def on_finished_create_new_session(self, exception, result=None):
+        """Callback when finished creating a new session."""
+        self.create_new_session_task = None  # reset task reference
+        self.feedback.progress_bar.hide()
+
+        if exception is not None:
+            ANNCSUMessageManager().show_message(
+                f"Errore durante la creazione della nuova sessione: {str(exception)}",
+                "error",
+            )
+            return
+
+        # save new sesstion data
+        mew_scope_id, new_scope = result
+        print(f"New session created: {mew_scope_id} -> {new_scope} ---- {result}")
+        self.current_session.addItem(mew_scope_id, new_scope)
+        self.current_session.setCurrentIndex(
+            self.current_session.findText(mew_scope_id)
+        )
+
+        municipality_data: MunicipalityData = self.comune_cb.currentData()
+        ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
+        self.registerGeocoders()
+        ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
+        ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
+        ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+        ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")

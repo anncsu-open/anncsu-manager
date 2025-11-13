@@ -4,8 +4,6 @@ import requests
 from typing import Optional, Dict, Tuple
 from pathlib import Path
 from pydantic.dataclasses import dataclass
-from pydantic import BaseModel, FilePath, ValidationError
-from pydantic.types import PathType
 from pydantic import AnyUrl
 from typing_extensions import Annotated
 from datetime import datetime
@@ -13,11 +11,10 @@ from datetime import datetime
 import duckdb
 
 from qgis.core import (
-    # QgsProject,
-    # QgsRasterLayer,
     QgsSettings,
+    QgsMessageLog,
+    Qgis
 )
-# from qgis.PyQt.QtCore import pyqtSignal, QObject
 
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
@@ -67,28 +64,6 @@ class ScopeData:
     
     def toJson(self) -> str:
         return json.dumps(self.to_dict())
-
-
-# class SessionData(QObject):
-#     """Container class to manage session changes using pyqt framework
-#     """
-#     modified = pyqtSignal()
-#     scope_id: Annotated[str, "Current active scope id"]
-#     scope: Optional[Annotated[ScopeData, "Current active scope data"]]
-
-#     def __init__(self, scope_id: str, scope: Optional[ScopeData]):
-#         super().__init__()
-#         self.scope_id = scope_id
-#         self.scope = scope
-
-#     def to_dict(self):
-#         return {
-#             "scope_id": self.scope_id,
-#             "scope": self.scope.to_dict() if self.scope else None,
-#         }
-
-#     def toJson(self) -> str:
-#         return json.dumps(self.to_dict())
 
 
 class ANNCSUSettingsManager:
@@ -420,6 +395,7 @@ class ANNCSUSettingsManager:
     @classmethod
     def create_new_session(
         cls,
+        task,
         source_db: AnyUrl,
         municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback,
@@ -431,6 +407,9 @@ class ANNCSUSettingsManager:
             municipality_code (str): Municipality code associated with this scope.
         Returns:
             scope: ScopeData"""
+        QgsMessageLog.logMessage(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {source_db}...", level=Qgis.Info)
+        # print(f"Creating new session task: {task.name() if task else 'No Task'} for municipality {municipality_data.anncsu_id} from source db {source_db}...")
+
         now = datetime.now()
         scope_name = f"{municipality_data.anncsu_id}_{now.strftime('%Y%m%d_%H%M%S')}"
         duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / f"{scope_name}.duckdb"
@@ -441,7 +420,7 @@ class ANNCSUSettingsManager:
             raise Exception("Could not create local duckdb database.")
         
         # depending if source_db is remote or local file path
-        feedback.setProgress(10)
+        # feedback.setProgress(10)
         if 'agenziaentrate.gov.it' in str(source_db):
             # load extension to parse zip content
             duckdb_conn.execute("INSTALL zipfs FROM community;")
@@ -468,19 +447,20 @@ class ANNCSUSettingsManager:
             downloaded_size = 0
 
             chunk_number = 0
-            feedback.setProgress(chunk_number)
+            # feedback.setProgress(chunk_number)
+            QgsMessageLog.logMessage(f"Downloading source duckdb from {source_db} to {temp_duckdb_path}...", level=Qgis.Info)
             print(f"Downloading source duckdb from {source_db} to {temp_duckdb_path}...")
             with open(temp_duckdb_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
                     downloaded_size += len(chunk)
                     progress = int(90 * (chunk_number / number_of_chunks))
-                    feedback.setProgress(progress)
+                    # feedback.setProgress(progress)
                     file.write(chunk)
                     chunk_number += 1
 
             # duckdb_conn.execute(f"SELEC * '{str(temp_duckdb_path)}' AS source_db;")
             # create local duckdb with only data for selected municipality_code
-            feedback.setProgress(95)
+            # feedback.setProgress(95)
             force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'VARCHAR'}"
             duckdb_conn.execute(f"""
                 CREATE TABLE anncsu AS
@@ -505,7 +485,9 @@ class ANNCSUSettingsManager:
         else:
             if not str(source_db).endswith(".duckdb"):
                 raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (shoudl end with .duckdb).")
-            feedback.pushInfo(f"Source duckdb is remote at {source_db}...")
+
+            QgsMessageLog.logMessage(f"Source duckdb is local at {source_db}...", level=Qgis.Info)
+            # feedback.pushInfo(f"Source duckdb is remote at {source_db}...")
 
             # query from a remote duckdb
             duckdb_conn.execute(f"ATTACH DATABASE '{str(source_db)}' AS indirizzarioItalia;")
@@ -524,18 +506,20 @@ class ANNCSUSettingsManager:
             duckdb_conn.execute("DETACH DATABASE indirizzarioItalia;")
 
         # now create geofence polygon table related to the current scope municipality
-        feedback.setProgress(97)
-        feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
+        # feedback.setProgress(97)
+        QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
+        # feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
         duckdb_conn.execute(f"""
             CREATE OR REPLACE TABLE geofence_polygon AS
                 SELECT * FROM read_parquet('{ANNCSUSettingsManager.get_geofence_polygons_source()}')
-            WHERE COMUNE == '{municipality_data.nome}'
+                WHERE COMUNE == '{municipality_data.nome}'
         """)
-        feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
+        QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
+        # feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
 
         # all done => close connection
         duckdb_conn.close()
-        feedback.setProgress(100)
+        # feedback.setProgress(100)
 
         # generate and return scope data
         scope = ScopeData(
