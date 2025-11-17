@@ -158,8 +158,8 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 tab.failsLayer = load_dataframe_as_layer(
                     dataframe=tab.fails,
                     layer_name=layer_name_fails,
-                    geometry_column=None,  # no geometry for fails
-                    crs_epsg=None
+                    geometry_column="geometry",  # BEAWARE could contain None geometries
+                    crs_epsg=4326  # assuming WGS84, adjust as needed
                 )
 
             # load out_of_geofence layer
