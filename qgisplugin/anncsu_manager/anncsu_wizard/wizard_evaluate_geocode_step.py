@@ -49,6 +49,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
         self.statistics_num_of_out_of_geofence: QLabel
 
         # load results
+        self.geofence_polygon = geopandas.GeoDataFrame
         self.results: geopandas.GeoDataFrame
         self.success: geopandas.GeoDataFrame
         self.fails: geopandas.GeoDataFrame
@@ -72,7 +73,24 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             model = DataFrameModel(self.results)
             self.geocodes_tv.setModel(model)
 
-            # Display statistics
+            # get  geofence polygon
+            geofence_df = self.scopedb.execute(f"""
+                SELECT
+                    ST_AsText(geometry) as geometry
+                FROM
+                    geofence_polygon
+                LIMIT 1;
+            """).df()
+            geofence_df['geometry'] = geopandas.GeoSeries.from_wkt(geofence_df['geometry'])
+            self.geofence_polygon = geopandas.GeoDataFrame(geofence_df, geometry='geometry', crs="EPSG:4326")
+
+            # mark as out_of_geofence all records that are outside geofence_polygon layer if defined
+            if not self.geofence_polygon.empty:
+                geofence_geom = self.geofence_polygon.iloc[0].geometry
+                outside_geofence_mask = ~self.results.within(geofence_geom)
+                self.results.loc[outside_geofence_mask, 'score'] = -1  # mark score as -1 for out_of_geofence
+
+            # calculate and display statistics
             success_score_threshold = self.geocoder_config.get("threshold", 0.88)
 
             total_records = len(self.results)
@@ -80,7 +98,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             num_of_success = len(self.success)
             self.fails = self.results.query(f"geometry == None or score < {success_score_threshold}", inplace=False)
             num_of_fails = len(self.fails)
-            self.out_of_geofence = self.results.query("score == 'out_of_geofence'", inplace=False)
+            self.out_of_geofence = self.results.query("score == -1", inplace=False)
             num_of_out_of_geofence = len(self.out_of_geofence)
 
             self.statistics_num_of_records.setText(str(total_records))
@@ -134,6 +152,18 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
             layer_name_success = f"{geocoder_name}_geocoded_success"
             layer_name_fails = f"{geocoder_name}_geocoded_fails"
             layer_name_out_of_geofence = f"{geocoder_name}_geocoded_out_of_geofence"
+            layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
+
+            # load geofence polygon layer as first layer to avoid to cover other layers
+            if not tab.geofence_polygon.empty:
+                ANNCSUMessageManager().show_message(f"Loading layer: {layer_geofence_polygon}", level="info", duration=5)
+                remove_layer_by_name(layer_geofence_polygon)
+                tab.geofenceLayer = load_dataframe_as_layer(
+                    dataframe=tab.geofence_polygon,
+                    layer_name=layer_geofence_polygon,
+                    geometry_column="geometry",
+                    crs_epsg=4326  # assuming WGS84, adjust as needed
+                )
 
             # load success layer
             if tab.success is not None and not tab.success.empty:
@@ -169,8 +199,8 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 tab.outOfGeofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.out_of_geofence,
                     layer_name=layer_name_out_of_geofence,
-                    geometry_column=None,  # no geometry for out_of_geofence
-                    crs_epsg=None
+                    geometry_column="geometry",  # BEAWARE could contain None geometries
+                    crs_epsg=4326  # assuming WGS84, adjust as needed
                 )
 
 
