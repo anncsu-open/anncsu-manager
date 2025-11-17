@@ -418,7 +418,11 @@ class ANNCSUSettingsManager:
         duckdb_conn = duckdb.connect(database=duckdb_path, read_only=False)
         if duckdb_conn is None:
             raise Exception("Could not create local duckdb database.")
-        
+
+        # load spatial extension
+        duckdb_conn.execute("INSTALL spatial;")
+        duckdb_conn.execute("LOAD spatial;")
+
         # depending if source_db is remote or local file path
         # feedback.setProgress(10)
         if 'agenziaentrate.gov.it' in str(source_db):
@@ -506,13 +510,25 @@ class ANNCSUSettingsManager:
             duckdb_conn.execute("DETACH DATABASE indirizzarioItalia;")
 
         # now create geofence polygon table related to the current scope municipality
+        # note that geofence source is in 32632 and anncsu data is in wgs84 and
+        # x,y coorinates are inverted
         # feedback.setProgress(97)
         QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
         # feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
         duckdb_conn.execute(f"""
-            CREATE OR REPLACE TABLE geofence_polygon AS
-                SELECT * FROM read_parquet('{ANNCSUSettingsManager.get_geofence_polygons_source()}')
-                WHERE COMUNE == '{municipality_data.nome}'
+            CREATE OR REPLACE TABLE geofence_polygon AS (
+                SELECT
+                    ST_Transform(
+                        geometry,
+                        'EPSG:32632',
+                        'EPSG:4326',
+                        always_xy := true
+                    ) as geometry
+                FROM
+                    read_parquet('{ANNCSUSettingsManager.get_geofence_polygons_source()}')
+                WHERE
+                    COMUNE == '{municipality_data.nome}'
+            );
         """)
         QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
         # feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
