@@ -376,6 +376,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
                 # run create new settion sime spending task
                 QgsApplication.taskManager().addTask(self.create_new_session_task)
+        else:
+            # no session change, just save current settings
+            ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
+            self.registerGeocoders()
+            ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
+            ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
+            ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+            ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
 
     def reset_settings_to_default(self):
         """Set selections to defaults. Does not save."""
