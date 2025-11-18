@@ -149,9 +149,9 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
         for i in range(self.geocoders_tabs.count()):
             tab: ANNCUGeocodeResultTab = self.geocoders_tabs.widget(i)
             geocoder_name = self.geocoders_tabs.tabText(i)
-            layer_name_success = f"{geocoder_name}_geocoded_success"
-            layer_name_fails = f"{geocoder_name}_geocoded_fails"
-            layer_name_out_of_geofence = f"{geocoder_name}_geocoded_out_of_geofence"
+            layer_name_success = f"{geocoder_name}_success"
+            layer_name_fails = f"{geocoder_name}_fails"
+            layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
             layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
 
             # load geofence polygon layer as first layer to avoid to cover other layers
