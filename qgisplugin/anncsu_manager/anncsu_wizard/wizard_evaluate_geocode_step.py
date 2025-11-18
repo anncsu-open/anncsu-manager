@@ -96,7 +96,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             total_records = len(self.results)
             self.success = self.results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
             num_of_success = len(self.success)
-            self.fails = self.results.query(f"geometry == None or score < {success_score_threshold}", inplace=False)
+            self.fails = self.results.query(f"geometry == None or (score >= 0 and score < {success_score_threshold})", inplace=False)
             num_of_fails = len(self.fails)
             self.out_of_geofence = self.results.query("score == -1", inplace=False)
             num_of_out_of_geofence = len(self.out_of_geofence)
