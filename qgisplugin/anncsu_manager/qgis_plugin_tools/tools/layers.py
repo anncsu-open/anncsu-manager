@@ -4,9 +4,13 @@ __email__ = "info@geobeyond.it"
 __revision__ = "$Format:%H$"
 
 from typing import Optional
+from pathlib import Path
 import geopandas
+
 from qgis.core import QgsVectorLayer, QgsProject, QgsCoordinateReferenceSystem, QgsField, QgsFeature
 from qgis.PyQt.QtCore import QVariant
+
+from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 
 def remove_layer_by_name(layer_name: str) -> None:
     """Remove a layer from QGIS by its name.
@@ -63,4 +67,13 @@ def load_dataframe_as_layer(
             provider.addFeature(feat)
 
     QgsProject.instance().addMapLayer(vl)
+
+    # apply related style if exists
+    named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / f"{layer_name}_style.qml"
+    vl.updateExtents()
+    if named_style_path.exists():
+        vl.loadNamedStyle(str(named_style_path))
+    else:
+        print(f"Style file not found: {named_style_path}")
+
     return vl
