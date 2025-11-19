@@ -63,7 +63,7 @@
               <item row="0" column="0">
                <widget class="QLabel" name="label">
                 <property name="text">
-                 <string>DB</string>
+                 <string>DB:</string>
                 </property>
                </widget>
               </item>
@@ -86,7 +86,7 @@
               <item row="1" column="0">
                <widget class="QLabel" name="label_6">
                 <property name="text">
-                 <string>Comune</string>
+                 <string>Comune:</string>
                 </property>
                </widget>
               </item>
@@ -148,6 +148,9 @@
                 <property name="text">
                  <string>Geocoders</string>
                 </property>
+                <property name="textInteractionFlags">
+                 <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+                </property>
                </widget>
               </item>
               <item row="0" column="2">
@@ -162,41 +165,6 @@
                  </size>
                 </property>
                </spacer>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBox_3">
-             <property name="title">
-              <string>Interfaccia</string>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_3">
-              <item row="0" column="0">
-               <widget class="QCheckBox" name="dock_wizard_selection">
-                <property name="text">
-                 <string>TDO WIP</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBox_4">
-             <property name="title">
-              <string>Other</string>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_4">
-              <item row="0" column="0">
-               <widget class="QCheckBox" name="todo_wip">
-                <property name="toolTip">
-                 <string>If output layers from proxy processing and modeling should be automatically placed under named layer groups in QGIS layer tree. Layer groups are created on the fly if not found.</string>
-                </property>
-                <property name="text">
-                 <string>TODO WIP</string>
-                </property>
-               </widget>
               </item>
              </layout>
             </widget>
