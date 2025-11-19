@@ -8,8 +8,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
     QLabel,
     QTableView,
-    QPushButton
+    QPushButton,
 )
+from qgis.PyQt.QtCore import QSortFilterProxyModel
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
@@ -17,7 +18,7 @@ from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
-from anncsu_manager.qgis_plugin_tools.tools.models import DataFrameModel
+from anncsu_manager.qgis_plugin_tools.tools.models import GeocodeResultDataFrameModel
 from anncsu_manager.qgis_plugin_tools.tools.layers import load_dataframe_as_layer, remove_layer_by_name
 
 import duckdb
@@ -62,6 +63,9 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
     def load_results(self):
         """Load geocoding results from the database and display them in the text edit."""
         try:
+            # display results basing on configured threshold
+            success_score_threshold = self.geocoder_config.get("threshold", 0.88)
+
             # get geocoded result as GeoDataFrame and to do this have to convert internal spatial format to WKT
             results_df = self.scopedb.execute(f"SELECT *, ST_AsText(geometry) as newgeom FROM {self.result_table_name};").df()
             results_df.drop(columns=["geometry"], inplace=True)
@@ -70,8 +74,16 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             self.results = geopandas.GeoDataFrame(results_df, geometry='geometry', crs="EPSG:4326")
 
             # show results in table view
-            model = DataFrameModel(self.results)
-            self.geocodes_tv.setModel(model)
+            # passed threshold will be use dot set background color for score values
+            model = GeocodeResultDataFrameModel(self.results, score_threshold=success_score_threshold)
+
+            # enable sort of the table view
+            proxyModel = QSortFilterProxyModel()
+            proxyModel.setSourceModel(model)
+            proxyModel.setSortRole(GeocodeResultDataFrameModel.SortRole)
+
+            # show the table
+            self.geocodes_tv.setModel(proxyModel)
 
             # get  geofence polygon
             geofence_df = self.scopedb.execute(f"""
@@ -91,8 +103,6 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                 self.results.loc[outside_geofence_mask, 'score'] = -1  # mark score as -1 for out_of_geofence
 
             # calculate and display statistics
-            success_score_threshold = self.geocoder_config.get("threshold", 0.88)
-
             total_records = len(self.results)
             self.success = self.results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
             num_of_success = len(self.success)
