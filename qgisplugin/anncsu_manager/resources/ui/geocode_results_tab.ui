@@ -137,7 +137,11 @@
     </widget>
    </item>
    <item>
-    <widget class="QTableView" name="geocodes_tv"/>
+    <widget class="QTableView" name="geocodes_tv">
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
