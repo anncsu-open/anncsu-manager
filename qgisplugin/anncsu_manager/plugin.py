@@ -2,9 +2,9 @@ import os
 import sys
 from typing import Callable, List, Optional
 
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, Qgis
 from qgis.gui import QgisInterface
-from qgis.utils import iface
+from qgis.utils import iface, plugins, active_plugins
 from qgis.PyQt.QtCore import QCoreApplication, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
@@ -13,6 +13,7 @@ from anncsu_manager.qgis_plugin_tools.tools.custom_logging import setup_logger, 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 
 from .anncsu_wizard.wizard_main import ANNCSUWizardDialog
+from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from .qgis_plugin_tools.tools.i18n import setup_translation
 
 # Ensure plugin path is in sys.path for imports submodules
@@ -48,6 +49,9 @@ class Plugin:
             self.translator = QTranslator()
             self.translator.load(qmPath)
             QCoreApplication.installTranslator(self.translator)
+
+        # check for Mergin plugin
+        self.check_mergin()
 
     def add_action(
         self,
@@ -143,3 +147,16 @@ class Plugin:
         self.wizard = ANNCSUWizardDialog()
         self.wizard.show()
         self.wizard.content.menu_widget.setCurrentRow(page)
+
+    def check_mergin(self):
+        """Check that Mergin plugin is installed and active.
+        Otherwise notify the user of the dependency"""
+
+        mergin_plugin = plugins["Mergin"] if "Mergin" in plugins else None
+        if not mergin_plugin or not "Mergin" in active_plugins:
+            iface.messageBar().pushMessage(
+                text="Mergin plugin is not installed or not active. Please install and activate the Mergin plugin to use all features of ANNCSU Manager.",
+                level=Qgis.MessageLevel.Critical,
+                duration=-1,
+            )
+            raise QgsPluginException("Mergin plugin is not installed or not active.")
