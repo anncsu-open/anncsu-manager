@@ -111,8 +111,11 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 # )
 
                 addresses_to_geocode = []
+                anncsu_addresses = []
                 for to_geocode in scopedb.execute("SELECT * FROM anncsu").fetchall():
                     to_geocode_dict = dict(zip(ANNCSU_TABLE_FIELDS, to_geocode))
+                    anncsu_addresses.append(to_geocode_dict)
+
                     address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["COMUNE"].strip("'")} ({to_geocode_dict["PROVINCIA"].strip("'")}), Italia"""
                     addresses_to_geocode.append(address_to_geocode)
 
@@ -127,11 +130,18 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 end = time.time()
                 self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
 
+                # combine geocoded results with anncsu addresses to mantain relation with
+                # anncsu unique identifications
+                for idx, result in enumerate(geocoded):
+                    result["address_id"] = anncsu_addresses[idx].get("PROGRESSIVO_ACCESSO", idx)
+                    result["road_id"] = anncsu_addresses[idx].get("PROGRESSIVO_NAZIONALE", idx)
+
                 # save results in a result table where result table is related with geocoder name
                 result_table_name = f"geocoding_results_{geocoder_name}"
                 scopedb.execute(f"""
                     CREATE OR REPLACE TABLE {result_table_name} (
                         address_id INTEGER,
+                        road_id INTEGER,
                         input_address TEXT,
                         address_matched TEXT,
                         suburb TEXT,
@@ -150,6 +160,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         scopedb.execute(f"""
                                 INSERT INTO {result_table_name} (
                                     address_id,
+                                    road_id,
                                     input_address,
                                     address_matched,
                                     suburb,
@@ -158,9 +169,10 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                                     longitude,
                                     score,
                                     geometry
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
                             """, (
                                 result.get("address_id", idx),
+                                result.get("road_id", idx),
                                 result.get("address", ""),
                                 result.get("address_matched", ""),
                                 result.get("suburb", ""),
