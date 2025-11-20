@@ -50,8 +50,10 @@ class Plugin:
             self.translator.load(qmPath)
             QCoreApplication.installTranslator(self.translator)
 
-        # check for Mergin plugin
-        self.check_mergin()
+        # check for Mergin plugin only after loaded qgis
+        # to avoid to load this plugin before mergin is loaded
+        # and available
+        self.iface.initializationCompleted.connect(self.check_mergin)
 
     def add_action(
         self,
