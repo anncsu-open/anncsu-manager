@@ -6,7 +6,7 @@ import importlib
 import duckdb
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
-from qgis.core import QgsTask, QgsApplication
+from qgis.core import QgsTask, QgsApplication, QgsProject
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -70,7 +70,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.comune_cb: QComboBox
         self.geocodersTreeView: QTreeView
         self.session_url: QLabel
-        self.mergin_project_cb: QComboBox
+        self.mergin_project_l: QLabel
         # this comobobox store current session data
         # based on session name and scope id
         self.current_session: QComboBox
@@ -292,10 +292,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
     def set_mergin_projects(self):
         """Populate Mergin projects combobox."""
-        self.mergin_project_cb.blockSignals(True)
-
-        self.mergin_project_cb.clear()
-        # self.mergin_project_cb.addItem("Select Mergin project", "")
         mergin_projects = mergin_utils.get_local_mergin_projects_info()
 
         # if not mergin_projects then ask to setting up one before to proceed
@@ -305,22 +301,23 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 "error",
             )
 
-            # block the complete plugin interface. the user can only close it!
-            self.parent.setDisabled(True)
+        # infer what is the current mergin project reading the current loaded project
+        # and checking if it is among local mergin projects
+        # then setup current configured project
+        # if no match than ask to open a Mergin project
+        cur_project = QgsProject.instance()
 
-        # populate combobox
+        # check if project is among local mergin projects
+        self.mergin_project_l.setText("N/A")
         for path, workspace, project_name, project_server in mergin_projects:
-            self.mergin_project_cb.addItem(project_name, mergin_projects)
-
-        # then setup current configured project if any
-        current_mergin_project_name = ANNCSUSettingsManager.get_mergin_project_name()
-        index = self.mergin_project_cb.findText(current_mergin_project_name)
-        if index != -1:
-            self.mergin_project_cb.setCurrentIndex(index)
-        else:
-            self.mergin_project_cb.setCurrentIndex(0)
-
-        self.mergin_project_cb.blockSignals(False)
+            if project_name == cur_project.baseName():
+                self.mergin_project_l.setText(project_name)
+                break
+        if self.mergin_project_l.text() == "N/A":
+            ANNCSUMessageManager().show_message(
+                "Nessun progetto Mergin aperto. Aprirne uno prima di procedere.",
+                "error",
+            )
 
     def registerGeocoders(self):
         """Register geocoder builders in GeocoderFactory based on geocoders.json configuration."""
@@ -462,7 +459,4 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
         ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-        ANNCSUSettingsManager.set_mergin_project_name(
-            self.mergin_project_cb.currentText()
-        )
         ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")

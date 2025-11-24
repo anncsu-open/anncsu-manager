@@ -1,5 +1,6 @@
 import geopandas
 from qgis.utils import iface
+from qgis.core import QgsProject
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QTabWidget,
@@ -153,8 +154,8 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
         self.populate_geocoders_tabs()
 
         # change name of load layyer button basing on current Mergin project
-        mergin_project = ANNCSUSettingsManager.get_mergin_project_name()
-        self.load_all_layers.setText(f'Load into Mergin project [{mergin_project}]')
+        cur_project = QgsProject.instance()
+        self.load_all_layers.setText(f'Load into Mergin project [{cur_project.baseName()}]')
 
     def load_geocodings_into_qgis(self):
         """Load all geocoded results as layers into QGIS.
