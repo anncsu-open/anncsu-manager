@@ -78,6 +78,7 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
+    DEFAULT_MERGIN_PROJECT_NAME = ""
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
@@ -174,6 +175,7 @@ class ANNCSUSettingsManager:
     # }
     SCOPES = {}
 
+    MERGIN_PROJECT_NAME_KEY = "anncsu_manager/mergin_project_name"
     GEOFENCE_POLYGONS_SOURCE_KEY = 'anncsu_manager/geofence_polygons_source'
     SCOPES_KEY = "anncsu_manager/geocoders_json_path"
     GEOCODERS_JSON_PATH_KEY = "anncsu_manager/geocoders_json_path"
@@ -185,6 +187,7 @@ class ANNCSUSettingsManager:
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
     DEFAULTS = {
+        MERGIN_PROJECT_NAME_KEY: DEFAULT_MERGIN_PROJECT_NAME,
         GEOFENCE_POLYGONS_SOURCE_KEY: DEFAULT_GEOFENCE_POLYGONS_SOURCE,
         GEOCODERS_JSON_PATH_KEY: str(DEFAULT_GEOCODERS_JSON_PATH),
         ANNCSU_REPO_URL_KEY: DEFAULT_ANNCSU_REPO_URL,
@@ -197,6 +200,11 @@ class ANNCSUSettingsManager:
     }
 
     # GETTERS
+    @classmethod
+    def get_mergin_project_name(cls) -> str:
+        key = cls.MERGIN_PROJECT_NAME_KEY
+        return QgsSettings().value(key, cls.DEFAULTS[key])
+
     @classmethod
     def get_geofence_polygons_source(cls) -> str:
         key = cls.GEOFENCE_POLYGONS_SOURCE_KEY
@@ -291,6 +299,10 @@ class ANNCSUSettingsManager:
 
     # SETTERS
     @classmethod
+    def set_mergin_project_name(cls, project_name: str):
+        QgsSettings().setValue(cls.MERGIN_PROJECT_NAME_KEY, project_name)
+
+    @classmethod
     def set_geofence_polygons_source(cls, source: str):
         QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, source)
 
@@ -343,6 +355,10 @@ class ANNCSUSettingsManager:
 
     # RESETS
     @classmethod
+    def reset_mergin_project_name(cls):
+        QgsSettings().setValue(cls.MERGIN_PROJECT_NAME_KEY, cls.DEFAULTS[cls.MERGIN_PROJECT_NAME_KEY])
+
+    @classmethod
     def reset_geofence_polygons_source(cls):
         QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, cls.DEFAULTS[cls.GEOFENCE_POLYGONS_SOURCE_KEY])
 
@@ -369,6 +385,7 @@ class ANNCSUSettingsManager:
 
     @classmethod
     def reset_all(cls):
+        cls.reset_mergin_project_name()
         cls.reset_geofence_polygons_source()
         cls.reset_anncsu_repo()
         cls.reset_municipality()

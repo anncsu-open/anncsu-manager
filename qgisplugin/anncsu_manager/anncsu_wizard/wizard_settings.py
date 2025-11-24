@@ -94,7 +94,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             QDialogButtonBox.RestoreDefaults
         ).clicked.connect(self.reset_settings_to_default)
         self.settings_button_box.button(QDialogButtonBox.RestoreDefaults).setAutoDefault(False)
-        self.settings_button_box.button(QDialogButtonBox.Save).clicked.connect(self.save_settings)
+        self.settings_button_box.button(QDialogButtonBox.Save).clicked.connect(self.check_if_new_session_needed_and_save)
 
         # Initialize
         # current configured repo and codice_comune to check if changed and
@@ -126,7 +126,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.registerGeocoders()
 
         # populate mergin projects combobox
-        self.populate_mergin_projects()
+        self.set_mergin_projects()
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
@@ -290,7 +290,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         #     remote_duckdb_url = "N/A"
         # self.session_url.setText(remote_duckdb_url)
 
-    def populate_mergin_projects(self):
+    def set_mergin_projects(self):
         """Populate Mergin projects combobox."""
         self.mergin_project_cb.blockSignals(True)
 
@@ -311,6 +311,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # populate combobox
         for path, workspace, project_name, project_server in mergin_projects:
             self.mergin_project_cb.addItem(project_name, mergin_projects)
+
+        # then setup current configured project if any
+        current_mergin_project_name = ANNCSUSettingsManager.get_mergin_project_name()
+        index = self.mergin_project_cb.findText(current_mergin_project_name)
+        if index != -1:
+            self.mergin_project_cb.setCurrentIndex(index)
+        else:
+            self.mergin_project_cb.setCurrentIndex(0)
 
         self.mergin_project_cb.blockSignals(False)
 
@@ -348,7 +356,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             except (ImportError, AttributeError) as e:
                 ANNCSUMessageManager().show_message(f"Could not register geocoder '{geocoder_name}': {e}", "error")
 
-    def save_settings(self):
+    def check_if_new_session_needed_and_save(self):
         """Save current selections.
         If codice_comune or anncsu repo changed, warning the user that a new session will be created.
         If user accepts, a new session will be created and settings saved."""
@@ -415,12 +423,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 QgsApplication.taskManager().addTask(self.create_new_session_task)
         else:
             # no session change, just save current settings
-            ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
-            self.registerGeocoders()
-            ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-            ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
-            ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-            ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+            self.save_all_settings()
 
     def reset_settings_to_default(self):
         """Set selections to defaults. Does not save."""
@@ -449,10 +452,17 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.current_session.findText(mew_scope_id)
         )
 
+        self.save_all_settings()
+    
+    def save_all_settings(self):
+        """Save all settings without checking for changes."""
         municipality_data: MunicipalityData = self.comune_cb.currentData()
         ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
         self.registerGeocoders()
         ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
         ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+        ANNCSUSettingsManager.set_mergin_project_name(
+            self.mergin_project_cb.currentText()
+        )
         ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
