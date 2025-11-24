@@ -31,6 +31,14 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
+# add Mergin dependcies but do not  trigger error if Mergin is not installed
+# the reason is to allow to check Mergin installed during plugin loading in a
+# controlled way
+try:
+    from Mergin import utils as mergin_utils
+except ImportError:
+    pass
+
 FORM_CLASS: QDialog = load_ui("wizard_settings.ui")
 
 CODICE_CATASTRO_DB_PATH = Path(PLUGIN_PATH) / "resources" / "data" / "Elenco-comuni-italiani.csv"
@@ -47,6 +55,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # self.settings_tabs: QTabWidget
 
         # set progress bar and feedback manager for long operations
+        self.parent = parent
         self.progressBar: QProgressBar = progress_bar if progress_bar is not None else QProgressBar()
         self.progressBar.setVisible(False)
         self.feedback: ANNCSUProcessingFeedback = ANNCSUProcessingFeedback(
@@ -61,6 +70,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.comune_cb: QComboBox
         self.geocodersTreeView: QTreeView
         self.session_url: QLabel
+        self.mergin_project_cb: QComboBox
         # this comobobox store current session data
         # based on session name and scope id
         self.current_session: QComboBox
@@ -114,6 +124,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
         # register geocoders in factory
         self.registerGeocoders()
+
+        # populate mergin projects combobox
+        self.populate_mergin_projects()
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
@@ -276,6 +289,30 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         #     # e.g. if None or empty string
         #     remote_duckdb_url = "N/A"
         # self.session_url.setText(remote_duckdb_url)
+
+    def populate_mergin_projects(self):
+        """Populate Mergin projects combobox."""
+        self.mergin_project_cb.blockSignals(True)
+
+        self.mergin_project_cb.clear()
+        # self.mergin_project_cb.addItem("Select Mergin project", "")
+        mergin_projects = mergin_utils.get_local_mergin_projects_info()
+
+        # if not mergin_projects then ask to setting up one before to proceed
+        if not mergin_projects:
+            ANNCSUMessageManager().show_message(
+                "Nessun progetto Mergin locale trovato. Configurare Mergin prima di procedere.",
+                "error",
+            )
+
+            # block the complete plugin interface. the user can only close it!
+            self.parent.setDisabled(True)
+
+        # populate combobox
+        for path, workspace, project_name, project_server in mergin_projects:
+            self.mergin_project_cb.addItem(project_name, mergin_projects)
+
+        self.mergin_project_cb.blockSignals(False)
 
     def registerGeocoders(self):
         """Register geocoder builders in GeocoderFactory based on geocoders.json configuration."""
