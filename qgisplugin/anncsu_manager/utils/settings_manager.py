@@ -1,6 +1,8 @@
 import json
 import os
 import requests
+import shutil
+from git import Repo
 from typing import Optional, Dict, Tuple
 from pathlib import Path
 from pydantic.dataclasses import dataclass
@@ -42,7 +44,7 @@ class MunicipalityData:
 @dataclass
 class ScopeData:
     duckdb_path: Annotated[Path, "Path to local duckdb file"]
-    remote_duckdb_url: Annotated[Optional[AnyUrl], "URL to remote duckdb file"]
+    remote_git_repo: Annotated[Optional[AnyUrl], "URL to remote git repo where store session"]
     syncked: Annotated[bool, "Whether the local duckdb is syncked with remote"]
     municipality_data: Annotated[MunicipalityData, "Municipality data associated with this scope"]
     source_db: Annotated[Optional[AnyUrl], "Source URL from where the duckdb has been extracted"]
@@ -53,7 +55,7 @@ class ScopeData:
     def to_dict(self):
         return {
             "duckdb_path": str(self.duckdb_path),
-            "remote_duckdb_url": str(self.remote_duckdb_url) if self.remote_duckdb_url else None,
+            "remote_git_repo": str(self.remote_git_repo) if self.remote_git_repo else None,
             "syncked": self.syncked,
             "municipality_data": self.municipality_data.to_dict(),
             "source_db": str(self.source_db) if self.source_db else None,
@@ -78,6 +80,7 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
+    DEFAULT_SESSION_REPO_URL = "https://github.com/luipir/ANNCSU_{nome}_{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
@@ -165,7 +168,7 @@ class ANNCSUSettingsManager:
     #     "OOOOOO_20251008": {
     #         "duckdb_path": "https://geodata.civictech.it/anncsu/OOOOOO_20251008.duckdb",
     #         "temporary_duckdb_path": "OOOOOO_20251008.duckdb",
-    #         "remote_duckdb_url": "https://geodata.civictech.it/anncsu/OOOOOO_20251008.duckdb",
+    #         "remote_git_repo": "https://www.github.com/geobeyond/ANNCSU_NomeComune_OOOOOO.git",
     #         "municipality_code": "0000000",
     #         "creation_date": "2025-10-08",
     #         "update_date": "2025-10-08",
@@ -174,6 +177,7 @@ class ANNCSUSettingsManager:
     # }
     SCOPES = {}
 
+    DEFAULT_SESSION_REPO_URL_KEY = 'anncsu_manager/default_session_repo_url'
     GEOFENCE_POLYGONS_SOURCE_KEY = 'anncsu_manager/geofence_polygons_source'
     SCOPES_KEY = "anncsu_manager/geocoders_json_path"
     GEOCODERS_JSON_PATH_KEY = "anncsu_manager/geocoders_json_path"
@@ -185,6 +189,7 @@ class ANNCSUSettingsManager:
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
     DEFAULTS = {
+        DEFAULT_SESSION_REPO_URL_KEY: DEFAULT_SESSION_REPO_URL,
         GEOFENCE_POLYGONS_SOURCE_KEY: DEFAULT_GEOFENCE_POLYGONS_SOURCE,
         GEOCODERS_JSON_PATH_KEY: str(DEFAULT_GEOCODERS_JSON_PATH),
         ANNCSU_REPO_URL_KEY: DEFAULT_ANNCSU_REPO_URL,
@@ -197,6 +202,11 @@ class ANNCSUSettingsManager:
     }
 
     # GETTERS
+    @classmethod
+    def get_default_session_repo_url(cls) -> str:
+        key = cls.DEFAULT_SESSION_REPO_URL_KEY
+        return QgsSettings().value(key, cls.DEFAULTS[key])
+
     @classmethod
     def get_geofence_polygons_source(cls) -> str:
         key = cls.GEOFENCE_POLYGONS_SOURCE_KEY
@@ -260,7 +270,7 @@ class ANNCSUSettingsManager:
             scopes = {}
             for scope_id, scope_data in scopes_dict.items():
                 # manage if ScopeData has been changed and discard old structures
-                if not all(k in scope_data for k in ("duckdb_path", "remote_duckdb_url", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
+                if not all(k in scope_data for k in ("duckdb_path", "remote_git_repo", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
                     continue
 
                 # parse dates
@@ -268,7 +278,7 @@ class ANNCSUSettingsManager:
                 update_date = datetime.fromisoformat(scope_data["update_date"]) if scope_data["update_date"] else None
                 scopes[scope_id] = ScopeData(
                     duckdb_path=Path(scope_data["duckdb_path"]),
-                    remote_duckdb_url=scope_data["remote_duckdb_url"],
+                    remote_git_repo=scope_data["remote_git_repo"],
                     syncked=scope_data["syncked"],
                     municipality_data=MunicipalityData(**scope_data["municipality_data"]),
                     source_db=scope_data["source_db"],
@@ -290,6 +300,10 @@ class ANNCSUSettingsManager:
         return scopes
 
     # SETTERS
+    @classmethod
+    def set_default_session_repo_url(cls, url: str):
+        QgsSettings().setValue(cls.DEFAULT_SESSION_REPO_URL_KEY, url)
+
     @classmethod
     def set_geofence_polygons_source(cls, source: str):
         QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, source)
@@ -343,6 +357,10 @@ class ANNCSUSettingsManager:
 
     # RESETS
     @classmethod
+    def reset_default_session_repo_url(cls):
+        QgsSettings().setValue(cls.DEFAULT_SESSION_REPO_URL_KEY, cls.DEFAULTS[cls.DEFAULT_SESSION_REPO_URL_KEY])
+
+    @classmethod
     def reset_geofence_polygons_source(cls):
         QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, cls.DEFAULTS[cls.GEOFENCE_POLYGONS_SOURCE_KEY])
 
@@ -369,6 +387,7 @@ class ANNCSUSettingsManager:
 
     @classmethod
     def reset_all(cls):
+        cls.reset_default_session_repo_url()
         cls.reset_geofence_polygons_source()
         cls.reset_anncsu_repo()
         cls.reset_municipality()
@@ -383,7 +402,10 @@ class ANNCSUSettingsManager:
             scope = scopes[scope_id]
             # remove local duckdb file
             if scope.duckdb_path.exists():
-                os.remove(scope.duckdb_path)
+                session_folder = scope.duckdb_path.parent
+                if session_folder.exists() and session_folder.is_dir():
+                    shutil.rmtree(session_folder, ignore_errors=True)
+
             # remove from settings
             del scopes[scope_id]
             ANNCSUSettingsManager.set_scopes(scopes)
@@ -399,22 +421,47 @@ class ANNCSUSettingsManager:
         source_db: AnyUrl,
         municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback,
-    ) -> Tuple[str, ScopeData]:
+    ) -> Tuple[Optional[str], Optional[ScopeData]]:
         """Create a new session and add it to SCOPES.
 
         Args:
             source_db (Optional[AnyUrl]): Source URL from where the duckdb has been extracted.
-            municipality_code (str): Municipality code associated with this scope.
+            municipality_data (MunicipalityData): Municipality data associated with this scope.
         Returns:
             scope: ScopeData"""
         QgsMessageLog.logMessage(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {source_db}...", level=Qgis.Info)
-        # print(f"Creating new session task: {task.name() if task else 'No Task'} for municipality {municipality_data.anncsu_id} from source db {source_db}...")
+        print(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {str(source_db)}...")
 
+        # create remote repo url where to save session make it's name a correct url
+        remote_repo_url = cls.get_default_session_repo_url().format(**municipality_data.to_dict())
+        remote_repo_url = remote_repo_url.replace(" ", "_").replace("-", "_")
+        repo_name = os.path.basename(remote_repo_url).replace(".git", "")
+        local_path =cls.PLUGIN_PATH / "resources" / "data" / repo_name
+
+        # create unique duckdb path for the scope
         now = datetime.now()
         scope_name = f"{municipality_data.anncsu_id}_{now.strftime('%Y%m%d_%H%M%S')}"
-        duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / f"{scope_name}.duckdb"
+        duckdb_path = local_path / f"{scope_name}.duckdb"
+
+        # clone remote_repo_url locally
+        try:
+            if local_path.exists():
+                # QgsMessageLog.logMessage(f"Local repository {local_path} already exists. Pulling latest changes...", level=Qgis.Info)
+                repo = Repo(local_path)
+                origin = repo.remotes.origin
+                # NOTE: repo need to have at least 1 file otherwise git pull do not fetch any ref
+                # and trigger error
+                origin.pull()
+            else:
+                repo = Repo.clone_from(remote_repo_url, local_path)
+        except Exception as e:
+            # QgsMessageLog.logMessage(f"Error cloning git repository from {remote_repo_url}: {e}", level=Qgis.Critical)
+            print(f"Error cloning git repository from {remote_repo_url}: {e}")
+            return None, None
+        QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_repo_url} into {local_path}", level=Qgis.Info)
 
         # populate scope session with subset of municipality data get from source_db
+        # QgsMessageLog.logMessage(f"Creating local duckdb at {duckdb_path}...", level=Qgis.Info)
         duckdb_conn = duckdb.connect(database=duckdb_path, read_only=False)
         if duckdb_conn is None:
             raise Exception("Could not create local duckdb database.")
@@ -490,7 +537,7 @@ class ANNCSUSettingsManager:
             if not str(source_db).endswith(".duckdb"):
                 raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (shoudl end with .duckdb).")
 
-            QgsMessageLog.logMessage(f"Source duckdb is local at {source_db}...", level=Qgis.Info)
+            # QgsMessageLog.logMessage(f"Source duckdb is local at {source_db}...", level=Qgis.Info)
             # feedback.pushInfo(f"Source duckdb is remote at {source_db}...")
 
             # query from a remote duckdb
@@ -513,7 +560,7 @@ class ANNCSUSettingsManager:
         # note that geofence source is in 32632 and anncsu data is in wgs84 and
         # x,y coorinates are inverted
         # feedback.setProgress(97)
-        QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
+        # QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
         # feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
         duckdb_conn.execute(f"""
             CREATE OR REPLACE TABLE geofence_polygon AS (
@@ -530,7 +577,7 @@ class ANNCSUSettingsManager:
                     COMUNE == '{municipality_data.nome}'
             );
         """)
-        QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
+        # QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
         # feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
 
         # all done => close connection
@@ -540,7 +587,7 @@ class ANNCSUSettingsManager:
         # generate and return scope data
         scope = ScopeData(
             duckdb_path=duckdb_path,
-            remote_duckdb_url=None,
+            remote_git_repo=AnyUrl(remote_repo_url),
             syncked=False,
             municipality_data=municipality_data,
             source_db=source_db,

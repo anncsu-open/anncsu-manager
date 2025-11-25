@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Optional
 import importlib
+from pydantic import AnyUrl
 
 import duckdb
 
@@ -197,11 +198,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 "warning",
             )
 
-        remote_duckdb_url = scope_dict.get("remote_duckdb_url", None)
-        if not remote_duckdb_url:
+        remote_git_repo = scope_dict.get("remote_git_repo", None)
+        if not remote_git_repo:
             # e.g. if None or empty string
-            remote_duckdb_url = "N/A"
-        self.session_url.setText(remote_duckdb_url)
+            remote_git_repo = "N/A"
+        self.session_url.setText(remote_git_repo)
 
     def set_settings_gui(self):
         """Load settings and set selections accordingly."""
@@ -271,11 +272,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         #     self.current_session.setCurrentIndex(0)
         self.current_session.blockSignals(False)
 
-        # remote_duckdb_url = self.current_scope.to_dict().get("remote_duckdb_url", None)
-        # if not remote_duckdb_url:
+        # remote_git_repo = self.current_scope.to_dict().get("remote_git_repo", None)
+        # if not remote_git_repo:
         #     # e.g. if None or empty string
-        #     remote_duckdb_url = "N/A"
-        # self.session_url.setText(remote_duckdb_url)
+        #     remote_git_repo = "N/A"
+        # self.session_url.setText(remote_git_repo)
 
     def registerGeocoders(self):
         """Register geocoder builders in GeocoderFactory based on geocoders.json configuration."""
@@ -365,10 +366,20 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                         "warning",
                     )
                     return
+
+                # prepare location where to store session that have to
+                # be synced to/from remote repo
+                # session_path, remote_repo = ANNCSUSettingsManager.clone_or_pull_remote_repo(
+                #     base_path=Path(PLUGIN_PATH) / "resources" / "data",
+                #     municipality_data=municipality_data,
+                #     feedback=self.feedback,
+                # )
+
+                # create the session (time consuming) task
                 self.create_new_session_task = QgsTask.fromFunction(
-                    f"Creazione nuova per comune {municipality_data.anncsu_id}",
+                    f"Creazione nuova sessione per comune {municipality_data.anncsu_id}",
                     ANNCSUSettingsManager.create_new_session,
-                    source_db=self.anncsu_base_url.text(),
+                    source_db=AnyUrl(self.anncsu_base_url.text()),
                     municipality_data=municipality_data,
                     feedback=self.feedback,
                     on_finished=self.on_finished_create_new_session,
@@ -405,12 +416,19 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             return
 
         # save new sesstion data
-        mew_scope_id, new_scope = result
+        mew_scope_id, new_scope = result if result is not None else (None, None)
+        if mew_scope_id is None or new_scope is None:
+            ANNCSUMessageManager().show_message(
+                "Errore durante la creazione della nuova sessione: dati sessione non validi.",
+                "error",
+            )
+            return
         print(f"New session created: {mew_scope_id} -> {new_scope} ---- {result}")
         self.current_session.addItem(mew_scope_id, new_scope)
         self.current_session.setCurrentIndex(
             self.current_session.findText(mew_scope_id)
         )
+        self.session_url.setText(new_scope.source_db)
 
         municipality_data: MunicipalityData = self.comune_cb.currentData()
         ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
