@@ -175,13 +175,10 @@
               <string>Mergin project</string>
              </property>
              <layout class="QFormLayout" name="formLayout">
-              <item row="1" column="1">
-               <widget class="QComboBox" name="mergin_project_cb"/>
-              </item>
               <item row="1" column="0">
                <widget class="QLabel" name="label_3">
                 <property name="text">
-                 <string>Workspace</string>
+                 <string>Workspace:</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -198,6 +195,13 @@
                 </property>
                 <property name="textInteractionFlags">
                  <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLabel" name="mergin_project_l">
+                <property name="text">
+                 <string>TextLabel</string>
                 </property>
                </widget>
               </item>
