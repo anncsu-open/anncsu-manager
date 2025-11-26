@@ -265,7 +265,7 @@ class ANNCSUSettingsManager:
         key = cls.SCOPES_KEY
         # Deserialize
         try:
-            serialised = QgsSettings().value(key, cls.DEFAULTS[key])
+            serialised = str(QgsSettings().value(key, cls.DEFAULTS[key]))
             scopes_dict = json.loads(serialised)
             scopes = {}
             for scope_id, scope_data in scopes_dict.items():
