@@ -415,6 +415,21 @@ class ANNCSUSettingsManager:
                 ANNCSUSettingsManager.set_current_scope_id("")
 
     @classmethod
+    def get_session_repo_local_path(cls) -> Optional[Path]:
+        scope_id = cls.get_current_scope_id()
+        scopes = cls.get_scopes()
+
+        if not scope_id or (scope_id not in scopes):
+            return None
+
+        scope = scopes[scope_id]
+        if scope.duckdb_path is None:
+            return None
+
+        local_path = Path(scope.duckdb_path).parent
+        return local_path
+
+    @classmethod
     def create_new_session(
         cls,
         task,
