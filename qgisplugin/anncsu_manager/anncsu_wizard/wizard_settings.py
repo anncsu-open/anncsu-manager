@@ -169,6 +169,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             current_scope_id = self.current_scope_id # get from configured settings
             current_scope = self.scopes.get(current_scope_id, None)
             
+            print(f"Setting session for {current_scope_id} with scope {current_scope}")
             # set current_session dropbox pointing to current scope id
             index = self.current_session.findText(current_scope_id)
             if index != -1:
@@ -424,12 +425,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
             return
         print(f"New session created: {mew_scope_id} -> {new_scope} ---- {result}")
+
+        # add new session to combobox and set it as current
         self.current_session.addItem(mew_scope_id, new_scope)
         self.current_session.setCurrentIndex(
             self.current_session.findText(mew_scope_id)
         )
-        self.session_url.setText(new_scope.source_db)
 
+        # save settings
         municipality_data: MunicipalityData = self.comune_cb.currentData()
         ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
         self.registerGeocoders()
