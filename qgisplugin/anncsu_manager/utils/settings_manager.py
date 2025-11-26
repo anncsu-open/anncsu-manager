@@ -627,4 +627,5 @@ class ANNCSUSettingsManager:
         scopes = cls.get_scopes()
         scopes[scope_name] = scope
         cls.set_scopes(scopes)
+        cls.set_current_scope_id(scope_name)
         return scope_name, scope
