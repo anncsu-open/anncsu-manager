@@ -7,7 +7,14 @@ from typing import Optional
 from pathlib import Path
 import geopandas
 
-from qgis.core import QgsVectorLayer, QgsProject, QgsCoordinateReferenceSystem, QgsField, QgsFeature
+from qgis.core import (
+    QgsVectorLayer,
+    QgsProject,
+    QgsCoordinateReferenceSystem,
+    QgsField,
+    QgsFeature,
+    QgsVectorFileWriter
+)
 from qgis.PyQt.QtCore import QVariant
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
@@ -70,7 +77,7 @@ def load_dataframe_as_layer(
 
     # save layer to the current Mergin project as parquet file if requested
     if materialize:
-        session_folder = ANNCSUSettingsManager.get_current_session_folder()
+        session_folder = ANNCSUSettingsManager.get_session_repo_local_path()
         if session_folder is None:
             raise ValueError("No active session found. Please select a session before materializing the layer.")
 
