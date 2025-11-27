@@ -36,7 +36,7 @@ def load_dataframe_as_layer(
         layer_name: str,
         geometry_column: str = "geometry",
         crs_epsg: int = 4326,
-        materialize: bool = True) -> QgsVectorLayer:
+        out_path: Optional[Path] = None) -> QgsVectorLayer:
     """Load a DataFrame as a QGIS vector layer.
 
     Args:
@@ -76,12 +76,11 @@ def load_dataframe_as_layer(
             provider.addFeature(feat)
 
     # save layer to the current Mergin project as parquet file if requested
-    if materialize:
-        session_folder = ANNCSUSettingsManager.get_session_repo_local_path()
-        if session_folder is None:
-            raise ValueError("No active session found. Please select a session before materializing the layer.")
-
-        output_file_path = session_folder / f"{layer_name}.gpkg"
+    if out_path is not None:
+        # session_folder = ANNCSUSettingsManager.get_session_repo_local_path()
+        # if session_folder is None:
+        #     raise ValueError("No active session found. Please select a session before materializing the layer.")
+        output_file_path = out_path / f"{layer_name}.gpkg"
 
         # Materialize layer as Parquet file
         options = QgsVectorFileWriter.SaveVectorOptions()
