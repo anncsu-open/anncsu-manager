@@ -173,7 +173,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                     layer_name=layer_geofence_polygon,
                     geometry_column="geometry",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
-                    materialize=False
+                    out_path=None  # mantain layer in memory
                 )
 
             # load success layer
@@ -185,7 +185,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                     layer_name=layer_name_success,
                     geometry_column="geometry",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
-                    materialize=False
+                    out_path=None  # mantain layer in memory
                 )
 
                 # zoom to the layer extent
@@ -202,7 +202,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                     layer_name=layer_name_fails,
                     geometry_column="geometry",  # BEAWARE could contain None geometries
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
-                    materialize=False
+                    out_path=None  # mantain layer in memory
                 )
 
             # load out_of_geofence layer
@@ -214,7 +214,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                     layer_name=layer_name_out_of_geofence,
                     geometry_column="geometry",  # BEAWARE could contain None geometries
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
-                    materialize=False
+                    out_path=None  # mantain layer in memory
                 )
 
 
