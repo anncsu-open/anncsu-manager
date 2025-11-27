@@ -15,6 +15,7 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 # wizard pages
 from anncsu_manager.anncsu_wizard.wizard_geocoder_step import ANNCSUWizardRunGeocoders
 from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCSUWizardEvaluateGeocode
+from anncsu_manager.anncsu_wizard.wizard_generate_mergin_step import ANNCUWizardGenerateMerginStep
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
 
@@ -38,6 +39,10 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
         # add evaluate geocode wizard page
         self.evaluate_geocode_page = ANNCSUWizardEvaluateGeocode(parent=self, progress_bar=self.progressBar)
         self.evaluate_geocode_page_id = self.addPage(self.evaluate_geocode_page)
+
+        # add Mergin wizard page
+        self.generate_mergin_page = ANNCUWizardGenerateMerginStep(parent=self, progress_bar=self.progressBar)
+        self.generate_mergin_page_id = self.addPage(self.generate_mergin_page)
 
         # activate first page to allow enable it's events
         self.setStartId(self.run_geocoders_page_id);
