@@ -76,128 +76,128 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
             self.feedback.reportError("No DuckDB database path found in the current scope settings.")
             return
 
-        scopedb = duckdb.connect(duck_db_source)
-        if scopedb is None:
-            self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
-            return
+        with duckdb.connect(duck_db_source) as scopedb:
+            if scopedb is None:
+                self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
+                return
 
-        # load statial extension
-        scopedb.execute("INSTALL spatial;")
-        scopedb.execute("LOAD spatial;")
+            # load statial extension
+            scopedb.execute("INSTALL spatial;")
+            scopedb.execute("LOAD spatial;")
 
-        # do geocoding
-        try:
-            self.feedback.progress_bar.setVisible(True)
+            # do geocoding
+            try:
+                self.feedback.progress_bar.setVisible(True)
 
-            # for eache enabled goecoder, run the process
-            for geocoder_name, geocoder_config in geocoders_configs.items():
-                # skip geocoder if not active
-                if geocoder_config.get("active", False) in [False, "False", "false"]:
-                    self.feedback.pushInfo(f"Skiping inactive geocoder {geocoder_name}...")
-                    continue
+                # for eache enabled goecoder, run the process
+                for geocoder_name, geocoder_config in geocoders_configs.items():
+                    # skip geocoder if not active
+                    if geocoder_config.get("active", False) in [False, "False", "false"]:
+                        self.feedback.pushInfo(f"Skiping inactive geocoder {geocoder_name}...")
+                        continue
 
-                # isntanciate geocoder
-                geocoder = GeocoderFactory().get_geocoder(
-                    geocoder_name,
-                    **geocoder_config
-                )
-                if geocoder is None:
-                    self.feedback.reportError(f"Could not instantiate geocoder '{geocoder_name}'.")
-                    continue
-                # geocoder = Matcher(
-                #     db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
-                #     how=geocoder_config.get("how", ["standard"]),
-                #     threshold=geocoder_config.get("threshold", 0.5),
-                # )
-
-                addresses_to_geocode = []
-                anncsu_addresses = []
-                for to_geocode in scopedb.execute("SELECT * FROM anncsu").fetchall():
-                    to_geocode_dict = dict(zip(ANNCSU_TABLE_FIELDS, to_geocode))
-                    anncsu_addresses.append(to_geocode_dict)
-
-                    address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["COMUNE"].strip("'")} ({to_geocode_dict["PROVINCIA"].strip("'")}), Italia"""
-                    addresses_to_geocode.append(address_to_geocode)
-
-                self.feedback.progress_signal.emit(0)
-                self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
-                self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} addresses using {geocoder_name}...")
-
-                # do bulk geocode using WhereAbouts to do it faster
-                self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} bulk addresses to speedup process. ")
-                start = time.time()
-                geocoded = geocoder.geocode(addresses=addresses_to_geocode)
-                end = time.time()
-                self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
-
-                # combine geocoded results with anncsu addresses to mantain relation with
-                # anncsu unique identifications
-                for idx, result in enumerate(geocoded):
-                    result["address_id"] = anncsu_addresses[idx].get("PROGRESSIVO_ACCESSO", idx)
-                    result["road_id"] = anncsu_addresses[idx].get("PROGRESSIVO_NAZIONALE", idx)
-
-                # save results in a result table where result table is related with geocoder name
-                result_table_name = f"geocoding_results_{geocoder_name}"
-                scopedb.execute(f"""
-                    CREATE OR REPLACE TABLE {result_table_name} (
-                        address_id INTEGER,
-                        road_id INTEGER,
-                        input_address TEXT,
-                        address_matched TEXT,
-                        suburb TEXT,
-                        postcode TEXT,
-                        latitude DOUBLE,
-                        longitude DOUBLE,
-                        score DOUBLE,
-                        geometry GEOMETRY
+                    # isntanciate geocoder
+                    geocoder = GeocoderFactory().get_geocoder(
+                        geocoder_name,
+                        **geocoder_config
                     )
-                """)
+                    if geocoder is None:
+                        self.feedback.reportError(f"Could not instantiate geocoder '{geocoder_name}'.")
+                        continue
+                    # geocoder = Matcher(
+                    #     db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
+                    #     how=geocoder_config.get("how", ["standard"]),
+                    #     threshold=geocoder_config.get("threshold", 0.5),
+                    # )
 
-                self.feedback.pushInfo(f"Saving geocoding results into table {result_table_name}...")
-                for idx, result in enumerate(geocoded):
-                    self.feedback.progress_signal.emit(idx + 1)
-                    if result:
-                        scopedb.execute(f"""
-                                INSERT INTO {result_table_name} (
-                                    address_id,
-                                    road_id,
-                                    input_address,
-                                    address_matched,
-                                    suburb,
-                                    postcode,
-                                    latitude,
-                                    longitude,
-                                    score,
-                                    geometry
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
-                            """, (
-                                result.get("address_id", idx),
-                                result.get("road_id", idx),
-                                result.get("address", ""),
-                                result.get("address_matched", ""),
-                                result.get("suburb", ""),
-                                result.get("postcode", ""),
-                                result.get("latitude", None),
-                                result.get("longitude", None),
-                                result.get("similarity", 0.0),
-                                result.get("longitude", 0.0),
-                                result.get("latitude", 0.0),
-                            )
+                    addresses_to_geocode = []
+                    anncsu_addresses = []
+                    for to_geocode in scopedb.execute("SELECT * FROM anncsu").fetchall():
+                        to_geocode_dict = dict(zip(ANNCSU_TABLE_FIELDS, to_geocode))
+                        anncsu_addresses.append(to_geocode_dict)
+
+                        address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["COMUNE"].strip("'")} ({to_geocode_dict["PROVINCIA"].strip("'")}), Italia"""
+                        addresses_to_geocode.append(address_to_geocode)
+
+                    self.feedback.progress_signal.emit(0)
+                    self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
+                    self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} addresses using {geocoder_name}...")
+
+                    # do bulk geocode using WhereAbouts to do it faster
+                    self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} bulk addresses to speedup process. ")
+                    start = time.time()
+                    geocoded = geocoder.geocode(addresses=addresses_to_geocode)
+                    end = time.time()
+                    self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
+
+                    # combine geocoded results with anncsu addresses to mantain relation with
+                    # anncsu unique identifications
+                    for idx, result in enumerate(geocoded):
+                        result["address_id"] = anncsu_addresses[idx].get("PROGRESSIVO_ACCESSO", idx)
+                        result["road_id"] = anncsu_addresses[idx].get("PROGRESSIVO_NAZIONALE", idx)
+
+                    # save results in a result table where result table is related with geocoder name
+                    result_table_name = f"geocoding_results_{geocoder_name}"
+                    scopedb.execute(f"""
+                        CREATE OR REPLACE TABLE {result_table_name} (
+                            address_id INTEGER,
+                            road_id INTEGER,
+                            input_address TEXT,
+                            address_matched TEXT,
+                            suburb TEXT,
+                            postcode TEXT,
+                            latitude DOUBLE,
+                            longitude DOUBLE,
+                            score DOUBLE,
+                            geometry GEOMETRY
                         )
+                    """)
 
-                        if self.show_details_cb.isChecked():
-                            message = f"Geocoded {result.get('address_id', idx)}: '{result.get('address', '')}' to: ({result.get('latitude', None)}, {result.get('longitude', None)}) score: {result.get('similarity', 0.0)}"
-                            self.feedback.pushInfo(message)
+                    self.feedback.pushInfo(f"Saving geocoding results into table {result_table_name}...")
+                    for idx, result in enumerate(geocoded):
+                        self.feedback.progress_signal.emit(idx + 1)
+                        if result:
+                            scopedb.execute(f"""
+                                    INSERT INTO {result_table_name} (
+                                        address_id,
+                                        road_id,
+                                        input_address,
+                                        address_matched,
+                                        suburb,
+                                        postcode,
+                                        latitude,
+                                        longitude,
+                                        score,
+                                        geometry
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
+                                """, (
+                                    result.get("address_id", idx),
+                                    result.get("road_id", idx),
+                                    result.get("address", ""),
+                                    result.get("address_matched", ""),
+                                    result.get("suburb", ""),
+                                    result.get("postcode", ""),
+                                    result.get("latitude", None),
+                                    result.get("longitude", None),
+                                    result.get("similarity", 0.0),
+                                    result.get("longitude", 0.0),
+                                    result.get("latitude", 0.0),
+                                )
+                            )
 
-                self.feedback.pushInfo(f"Geocoder '{geocoder_name}': Geocodings saved into table {result_table_name}.")
+                            if self.show_details_cb.isChecked():
+                                message = f"Geocoded {result.get('address_id', idx)}: '{result.get('address', '')}' to: ({result.get('latitude', None)}, {result.get('longitude', None)}) score: {result.get('similarity', 0.0)}"
+                                self.feedback.pushInfo(message)
 
-            self.feedback.progress_signal.emit(100)
-            self.feedback.pushInfo("All geocoding processes completed.")
+                    self.feedback.pushInfo(f"Geocoder '{geocoder_name}': Geocodings saved into table {result_table_name}.")
 
-        except QgsPluginException as e:
-            self.feedback.reportError(f"An error occurred: {str(e)}")
-        finally:
-            self.feedback.progress_bar.setVisible(False)
+                self.feedback.progress_signal.emit(100)
+                self.feedback.pushInfo("All geocoding processes completed.")
+
+            except QgsPluginException as e:
+                self.feedback.reportError(f"An error occurred: {str(e)}")
+            finally:
+                self.feedback.progress_bar.setVisible(False)
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
