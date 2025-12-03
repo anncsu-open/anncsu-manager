@@ -66,6 +66,28 @@ class ScopeData:
     
     def toJson(self) -> str:
         return json.dumps(self.to_dict())
+    
+    def sync(self):
+        """Sync duckdb with remote git repo using git library."""
+        if self.remote_git_repo is None:
+            raise Exception("Cannot sync scope without remote git repo.")
+
+        # do nothing is already syncked and notify
+        if self.syncked:
+            QgsMessageLog.logMessage(f"Scope at {self.duckdb_path} is already syncked with remote repo {self.remote_git_repo}.", level=Qgis.Info)
+            return
+
+        local_path = Path(self.duckdb_path).parent
+        try:
+            repo = Repo(local_path)
+            origin = repo.remotes.origin
+            origin.pull()
+            repo.index.add([str(self.duckdb_path)])
+            repo.index.commit(f"Sync duckdb at {datetime.now().isoformat()}")
+            origin.push()
+            self.syncked = True
+        except Exception as e:
+            raise Exception(f"Error syncing git repository at {local_path}: {e}")
 
 
 class ANNCSUSettingsManager:
@@ -147,10 +169,8 @@ class ANNCSUSettingsManager:
             "active": "True",
             "builder": "WhereaboutsGeocoderBuilder",
             "builder_module": "whereabouts_geocoder",
-            "how": [
-                "standard",
-                "trigram"
-            ],
+            # Possible values for "standard", "trigram"
+            "how": "trigram",
             "matcher_db": "italia_whereabouts",
             "threshold": 0.8
         }
