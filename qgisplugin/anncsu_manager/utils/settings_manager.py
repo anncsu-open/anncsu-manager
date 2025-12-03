@@ -462,9 +462,9 @@ class ANNCSUSettingsManager:
         print(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {str(source_db)}...")
 
         # create remote repo url where to save session make it's name a correct url
-        remote_repo_url = cls.get_default_session_repo_url().format(**municipality_data.to_dict())
-        remote_repo_url = remote_repo_url.replace(" ", "_").replace("-", "_")
-        repo_name = os.path.basename(remote_repo_url).replace(".git", "")
+        remote_git_repo = cls.get_default_session_repo_url().format(**municipality_data.to_dict())
+        remote_git_repo = remote_git_repo.replace(" ", "_").replace("-", "_")
+        repo_name = os.path.basename(remote_git_repo).replace(".git", "")
         local_path =cls.PLUGIN_PATH / "resources" / "data" / repo_name
 
         # create unique duckdb path for the scope
@@ -472,7 +472,7 @@ class ANNCSUSettingsManager:
         scope_name = f"{municipality_data.anncsu_id}_{now.strftime('%Y%m%d_%H%M%S')}"
         duckdb_path = local_path / f"{scope_name}.duckdb"
 
-        # clone remote_repo_url locally
+        # clone remote_git_repo locally
         try:
             if local_path.exists():
                 # QgsMessageLog.logMessage(f"Local repository {local_path} already exists. Pulling latest changes...", level=Qgis.Info)
@@ -482,12 +482,12 @@ class ANNCSUSettingsManager:
                 # and trigger error
                 origin.pull()
             else:
-                repo = Repo.clone_from(remote_repo_url, local_path)
+                repo = Repo.clone_from(remote_git_repo, local_path)
         except Exception as e:
-            # QgsMessageLog.logMessage(f"Error cloning git repository from {remote_repo_url}: {e}", level=Qgis.Critical)
-            print(f"Error cloning git repository from {remote_repo_url}: {e}")
+            # QgsMessageLog.logMessage(f"Error cloning git repository from {remote_git_repo}: {e}", level=Qgis.Critical)
+            print(f"Error cloning git repository from {remote_git_repo}: {e}")
             return None, None
-        QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_repo_url} into {local_path}", level=Qgis.Info)
+        QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_git_repo} into {local_path}", level=Qgis.Info)
 
         # populate scope session with subset of municipality data get from source_db
         # QgsMessageLog.logMessage(f"Creating local duckdb at {duckdb_path}...", level=Qgis.Info)
@@ -616,7 +616,7 @@ class ANNCSUSettingsManager:
         # generate and return scope data
         scope = ScopeData(
             duckdb_path=duckdb_path,
-            remote_git_repo=AnyUrl(remote_repo_url),
+            remote_git_repo=AnyUrl(remote_git_repo),
             syncked=False,
             municipality_data=municipality_data,
             source_db=source_db,
