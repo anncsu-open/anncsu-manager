@@ -66,7 +66,7 @@ class ScopeData:
     
     def toJson(self) -> str:
         return json.dumps(self.to_dict())
-    
+
     def sync(self):
         """Sync duckdb with remote git repo using git library."""
         if self.remote_git_repo is None:
@@ -102,7 +102,7 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
-    DEFAULT_SESSION_REPO_URL = "https://github.com/luipir/ANNCSU_{nome}_{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
+    DEFAULT_SESSION_REPO_URL = "https://github.com/geobeyond/anncsu_{nome}_{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
@@ -482,7 +482,7 @@ class ANNCSUSettingsManager:
         print(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {str(source_db)}...")
 
         # create remote repo url where to save session make it's name a correct url
-        remote_git_repo = cls.get_default_session_repo_url().format(**municipality_data.to_dict())
+        remote_git_repo = str.lower(cls.get_default_session_repo_url().format(**municipality_data.to_dict()))
         remote_git_repo = remote_git_repo.replace(" ", "_").replace("-", "_")
         repo_name = os.path.basename(remote_git_repo).replace(".git", "")
         local_path =cls.PLUGIN_PATH / "resources" / "data" / repo_name
