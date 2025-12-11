@@ -3,12 +3,14 @@ import os
 import requests
 import shutil
 from git import Repo
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union
 from pathlib import Path
 from pydantic.dataclasses import dataclass
 from pydantic import AnyUrl
 from typing_extensions import Annotated
 from datetime import datetime
+import urllib.parse
+from dotenv import load_dotenv
 
 import duckdb
 
@@ -20,6 +22,11 @@ from qgis.core import (
 
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
+from anncsu_manager.utils.misc_utils import EventSource
+
+
+load_dotenv()
+
 
 @dataclass
 class MunicipalityData:
@@ -43,8 +50,11 @@ class MunicipalityData:
 
 @dataclass
 class ScopeData:
+
+    sync_changed = EventSource()
+
     duckdb_path: Annotated[Path, "Path to local duckdb file"]
-    remote_git_repo: Annotated[Optional[AnyUrl], "URL to remote git repo where store session"]
+    remote_git_repo: Annotated[Optional[str], "URL or git ssh string to remote git repo where store session"]
     syncked: Annotated[bool, "Whether the local duckdb is syncked with remote"]
     municipality_data: Annotated[MunicipalityData, "Municipality data associated with this scope"]
     source_db: Annotated[Optional[AnyUrl], "Source URL from where the duckdb has been extracted"]
@@ -79,14 +89,56 @@ class ScopeData:
 
         local_path = Path(self.duckdb_path).parent
         try:
+            print(f"Syncing git repository at {local_path}...")
             repo = Repo(local_path)
             origin = repo.remotes.origin
-            origin.pull()
-            repo.index.add([str(self.duckdb_path)])
-            repo.index.commit(f"Sync duckdb at {datetime.now().isoformat()}")
-            origin.push()
-            self.syncked = True
+
+            # Credential helpers: read from QGIS settings via ANNCSUSettingsManager
+            git_user = ANNCSUSettingsManager.get_git_user()
+            git_password = ANNCSUSettingsManager.get_git_password()
+            git_token = ANNCSUSettingsManager.get_git_token()
+            ssh_key = ANNCSUSettingsManager.get_git_ssh_key()
+
+            original_url = origin.url
+            temp_url_changed = False
+            old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
+
+            try:
+                # If SSH key provided, instruct git to use it for this process.
+                if ssh_key:
+                    os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
+                # If HTTPS credentials present, inject them into remote URL temporarily.
+                elif git_token or (git_user and git_password):
+                    creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
+                    parsed = urllib.parse.urlsplit(origin.url)
+                    if parsed.scheme in ("http", "https"):
+                        netloc = f"{creds}@{parsed.netloc}"
+                        auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+                        origin.set_url(auth_url)
+                        temp_url_changed = True
+
+                origin.pull()
+                repo.index.add([str(self.duckdb_path)])
+                repo.index.commit(f"Sync duckdb at {datetime.now().isoformat()}")
+                origin.push()
+                self.syncked = True
+            finally:
+                # restore original remote url and environment
+                if temp_url_changed:
+                    try:
+                        origin.set_url(original_url)
+                    except Exception:
+                        pass
+                if ssh_key:
+                    if old_git_ssh is None:
+                        os.environ.pop("GIT_SSH_COMMAND", None)
+                    else:
+                        os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+
+            self.sync_changed.emit()
+
         except Exception as e:
+            self.syncked = False
             raise Exception(f"Error syncing git repository at {local_path}: {e}")
 
 
@@ -102,7 +154,7 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
-    DEFAULT_SESSION_REPO_URL = "https://github.com/geobeyond/anncsu_{nome}_{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
+    DEFAULT_SESSION_REPO_URL = "https://github.com/geobeyond/anncsu-{nome}-{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
@@ -222,6 +274,13 @@ class ANNCSUSettingsManager:
     SCOPES_KEY = "anncsu_manager/scopes"
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
+    # Git credential keys (stored in QGIS settings)
+    GIT_TOKEN_KEY = "anncsu_manager/git_token"
+    GIT_USER_KEY = "anncsu_manager/git_user"
+    GIT_PASSWORD_KEY = "anncsu_manager/git_password"
+    GIT_SSH_KEY_KEY = "anncsu_manager/git_ssh_key"
+
+    # add defaults for credentials
     DEFAULTS = {
         DEFAULT_SESSION_REPO_URL_KEY: DEFAULT_SESSION_REPO_URL,
         GEOFENCE_POLYGONS_SOURCE_KEY: DEFAULT_GEOFENCE_POLYGONS_SOURCE,
@@ -234,6 +293,14 @@ class ANNCSUSettingsManager:
         # A scope id has the following format: "<codice_municipio>_YYYYMMDD_HHMMSS"
         SCOPE_ID_KEY: "",
     }
+
+    # set credential defaults
+    DEFAULTS.update({
+        GIT_TOKEN_KEY: "",
+        GIT_USER_KEY: "",
+        GIT_PASSWORD_KEY: "",
+        GIT_SSH_KEY_KEY: "",
+    })
 
     # GETTERS
     @classmethod
@@ -333,7 +400,109 @@ class ANNCSUSettingsManager:
 
         return scopes
 
-    # SETTERS
+    # Environment-backed credential getters/setters (preferred)
+    @staticmethod
+    def get_git_token_env() -> str:
+        """Return ANNCSU_GIT_TOKEN from environment if set, else empty string."""
+        return os.environ.get("ANNCSU_GIT_TOKEN", "")
+
+    @staticmethod
+    def set_git_token_env(token: str):
+        """Set ANNCSU_GIT_TOKEN in environment (use None or empty to unset)."""
+        if not token:
+            os.environ.pop("ANNCSU_GIT_TOKEN", None)
+        else:
+            os.environ["ANNCSU_GIT_TOKEN"] = token
+
+    @staticmethod
+    def get_git_user_env() -> str:
+        return os.environ.get("ANNCSU_GIT_USER", "")
+
+    @staticmethod
+    def set_git_user_env(user: str):
+        if not user:
+            os.environ.pop("ANNCSU_GIT_USER", None)
+        else:
+            os.environ["ANNCSU_GIT_USER"] = user
+
+    @staticmethod
+    def get_git_password_env() -> str:
+        return os.environ.get("ANNCSU_GIT_PASSWORD", "")
+
+    @staticmethod
+    def set_git_password_env(password: str):
+        if not password:
+            os.environ.pop("ANNCSU_GIT_PASSWORD", None)
+        else:
+            os.environ["ANNCSU_GIT_PASSWORD"] = password
+
+    @staticmethod
+    def get_git_ssh_key_env() -> str:
+        return os.environ.get("ANNCSU_SSH_KEY", "")
+
+    @staticmethod
+    def set_git_ssh_key_env(ssh_key_path: str):
+        if not ssh_key_path:
+            os.environ.pop("ANNCSU_SSH_KEY", None)
+        else:
+            os.environ["ANNCSU_SSH_KEY"] = ssh_key_path
+
+    # Backwards-compatible getters/setters that prefer env vars, fall back to QGIS settings
+    @classmethod
+    def get_git_token(cls) -> str:
+        token = cls.get_git_token_env()
+        if token:
+            return token
+        return QgsSettings().value(cls.GIT_TOKEN_KEY, cls.DEFAULTS.get(cls.GIT_TOKEN_KEY, ""))
+
+    @classmethod
+    def set_git_token(cls, token: str):
+        # Persist both in env (preferred) and in QgsSettings for persistence if needed
+        cls.set_git_token_env(token)
+        QgsSettings().setValue(cls.GIT_TOKEN_KEY, token)
+
+    @classmethod
+    def get_git_user(cls) -> str:
+        user = cls.get_git_user_env()
+        if user:
+            return user
+        return QgsSettings().value(cls.GIT_USER_KEY, cls.DEFAULTS.get(cls.GIT_USER_KEY, ""))
+
+    @classmethod
+    def set_git_user(cls, user: str):
+        cls.set_git_user_env(user)
+        QgsSettings().setValue(cls.GIT_USER_KEY, user)
+
+    @classmethod
+    def get_git_password(cls) -> str:
+        pwd = cls.get_git_password_env()
+        if pwd:
+            return pwd
+        return QgsSettings().value(cls.GIT_PASSWORD_KEY, cls.DEFAULTS.get(cls.GIT_PASSWORD_KEY, ""))
+
+    @classmethod
+    def set_git_password(cls, password: str):
+        cls.set_git_password_env(password)
+        QgsSettings().setValue(cls.GIT_PASSWORD_KEY, password)
+
+    @classmethod
+    def get_git_ssh_key(cls) -> str:
+        """get ssh key path file
+
+        Returns:
+            str: path of the key file
+        """
+        key = cls.get_git_ssh_key_env()
+        if key:
+            return key
+        return QgsSettings().value(cls.GIT_SSH_KEY_KEY, cls.DEFAULTS.get(cls.GIT_SSH_KEY_KEY, ""))
+
+    @classmethod
+    def set_git_ssh_key(cls, ssh_key_path: str):
+        cls.set_git_ssh_key_env(ssh_key_path)
+        QgsSettings().setValue(cls.GIT_SSH_KEY_KEY, ssh_key_path)
+
+# SETTERS
     @classmethod
     def set_default_session_repo_url(cls, url: str):
         QgsSettings().setValue(cls.DEFAULT_SESSION_REPO_URL_KEY, url)
@@ -483,9 +652,25 @@ class ANNCSUSettingsManager:
 
         # create remote repo url where to save session make it's name a correct url
         remote_git_repo = str.lower(cls.get_default_session_repo_url().format(**municipality_data.to_dict()))
-        remote_git_repo = remote_git_repo.replace(" ", "_").replace("-", "_")
         repo_name = os.path.basename(remote_git_repo).replace(".git", "")
         local_path =cls.PLUGIN_PATH / "resources" / "data" / repo_name
+        print(f"Using remote git repo URL: {remote_git_repo}")
+
+        # check correctness of the url
+        try:
+            AnyUrl(remote_git_repo)
+        except Exception as e:
+            QgsMessageLog.logMessage(f"Invalid remote HTTP(S) git repo URL: {remote_git_repo} check if SSH. Error: {e}", level=Qgis.Critical)
+            parsed = urllib.parse.urlparse(remote_git_repo)
+            if parsed.path == remote_git_repo and (parsed.scheme == "" or parsed.scheme is None):
+                # possibly a git ssh url
+                if "@" in remote_git_repo and ":" in remote_git_repo:
+                    print(f"Assuming remote git repo is SSH URL: {remote_git_repo}")
+                else:
+                    QgsMessageLog.logMessage(f"Invalid remote git repo URL: {remote_git_repo}", level=Qgis.Critical)
+                    return None, None
+            else:
+                return None, None
 
         # create unique duckdb path for the scope
         now = datetime.now()
@@ -494,19 +679,84 @@ class ANNCSUSettingsManager:
 
         # clone remote_git_repo locally
         try:
+            # Use credentials stored in QGIS settings (if any)
+            git_user = cls.get_git_user()
+            git_password = cls.get_git_password()
+            git_token = cls.get_git_token()
+            ssh_key = cls.get_git_ssh_key()
+
             if local_path.exists():
-                # QgsMessageLog.logMessage(f"Local repository {local_path} already exists. Pulling latest changes...", level=Qgis.Info)
                 repo = Repo(local_path)
                 origin = repo.remotes.origin
-                # NOTE: repo need to have at least 1 file otherwise git pull do not fetch any ref
-                # and trigger error
-                origin.pull()
+                original_url = origin.url
+                temp_url_changed = False
+                old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
+                try:
+                    if ssh_key:
+                        os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
+                    elif git_token or (git_user and git_password):
+                        creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
+                        parsed = urllib.parse.urlsplit(origin.url)
+                        if parsed.scheme in ("http", "https"):
+                            netloc = f"{creds}@{parsed.netloc}"
+                            auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+                            origin.set_url(auth_url)
+                            temp_url_changed = True
+
+                    # NOTE: repo need to have at least 1 file otherwise git pull do not fetch any ref
+                    print(f"Pulling latest changes from git repository at {origin.url   }...")
+                    origin.pull()
+                finally:
+                    if temp_url_changed:
+                        try:
+                            origin.set_url(original_url)
+                        except Exception:
+                            pass
+                    if ssh_key:
+                        if old_git_ssh is None:
+                            os.environ.pop("GIT_SSH_COMMAND", None)
+                        else:
+                            os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+
+                print(f"Repository already exists at {local_path}, pulled latest changes.")
+
             else:
-                repo = Repo.clone_from(remote_git_repo, local_path)
+                # prepare a temporary URL with credentials or GIT_SSH_COMMAND for cloning
+                temp_url = remote_git_repo
+                temp_changed = False
+                old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
+                try:
+                    if ssh_key:
+                        os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
+                    elif git_token or (git_user and git_password):
+                        creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
+                        parsed = urllib.parse.urlsplit(remote_git_repo)
+                        if parsed.scheme in ("http", "https"):
+                            netloc = f"{creds}@{parsed.netloc}"
+                            temp_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+                            temp_changed = True
+
+                    repo = Repo.clone_from(temp_url, local_path)
+                except Exception as e:
+                    print(f"Error cloning git repository from {remote_git_repo}: {e}")
+                    return None, None
+                finally:
+                    if temp_changed:
+                        try:
+                            origin = repo.remotes.origin
+                            origin.set_url(remote_git_repo)
+                        except Exception:
+                            pass
+                    if ssh_key:
+                        if old_git_ssh is None:
+                            os.environ.pop("GIT_SSH_COMMAND", None)
+                        else:
+                            os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+
         except Exception as e:
-            # QgsMessageLog.logMessage(f"Error cloning git repository from {remote_git_repo}: {e}", level=Qgis.Critical)
-            print(f"Error cloning git repository from {remote_git_repo}: {e}")
-            return None, None
+             # QgsMessageLog.logMessage(f"Error cloning git repository from {remote_git_repo}: {e}", level=Qgis.Critical)
+             print(f"Error cloning git repository from {remote_git_repo}: {e}")
+             return None, None
         QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_git_repo} into {local_path}", level=Qgis.Info)
 
         # populate scope session with subset of municipality data get from source_db
@@ -636,8 +886,8 @@ class ANNCSUSettingsManager:
         # generate and return scope data
         scope = ScopeData(
             duckdb_path=duckdb_path,
-            remote_git_repo=AnyUrl(remote_git_repo),
-            syncked=False,
+            remote_git_repo=remote_git_repo,
+            syncked=True,
             municipality_data=municipality_data,
             source_db=source_db,
             creation_date=now,

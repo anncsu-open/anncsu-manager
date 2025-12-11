@@ -20,8 +20,9 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QLabel,
-    QPushButton
+    QPushButton,
 )
+from qgis.PyQt.QtGui import QIcon
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
@@ -62,6 +63,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.comune_cb: QComboBox
         self.geocodersTreeView: QTreeView
         self.session_url: QLabel
+
+        self.sync_pb: QPushButton
+        self.sync_pb.clicked.connect(lambda: self.sync_session())
+        self.sync_pb.setStyleSheet("QPushButton { color: orange; }")
+
         # this comobobox store current session data
         # based on session name and scope id
         self.current_session: QComboBox
@@ -98,15 +104,10 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.fallout_codice_comune = ANNCSUSettingsManager.get_municipality_code()
         self.scopes = ANNCSUSettingsManager.get_scopes()
         self.current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
-        # current_scope = self.scopes.get(current_scope_id, None)
-        # self.current_session = SessionData(
-        #     scope_id=current_scope_id,
-        #     scope=current_scope,
-        # )
-        # # session modification evetn have to be explicitly emitted when changing current_scope_id
-        # self.current_session.modified.connect(
-        #     lambda: self.manageSessionChange()
-        # )
+
+        # for each sope register event to track sync changes
+        for scope in self.scopes.values():
+            scope.sync_changed.connect(self.update_sync_button_color)
 
         self.set_settings_gui()  # Initialize UI from settings
 
@@ -121,6 +122,42 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
     # def update_feedback_text(self, text: str):
     #     self.feedback.text_edit.append(text)
+
+    def sync_session(self):
+        """Sync current session with remote git repo."""
+        current_scope: Optional[ScopeData] = self.current_session.currentData()
+        if current_scope is None:
+            ANNCSUMessageManager().show_message(
+                "Nessuna sessione selezionata da sincronizzare.",
+                "warning",
+            )
+            return
+
+        self.feedback.progress_bar.show()
+        self.feedback.progress_bar.setMinimum(0)
+        self.feedback.progress_bar.setMaximum(0)
+
+        try:
+            current_scope.sync()
+
+            # save again in combobox data because sync flag has been changed
+            self.current_session.setItemData(
+                self.current_session.currentIndex(),
+                current_scope,
+            )
+            self.save_settings()  # save settings to persist sync flag
+
+            ANNCSUMessageManager().show_message(
+                f"Sessione '{self.current_session.currentText()}' sincronizzata con il repository remoto.",
+                "success",
+            )
+        except Exception as e:
+            ANNCSUMessageManager().show_message(
+                f"Errore durante la sincronizzazione della sessione '{self.current_session.currentText()}': {str(e)}",
+                "error",
+            )
+        finally:
+            self.feedback.progress_bar.hide()
 
     def manageDeleteSession(self):
         """Manage deletion of current session."""
@@ -205,6 +242,20 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             remote_git_repo = "N/A"
         self.session_url.setText(remote_git_repo)
 
+        # depending on sync flag into current session
+        # set color of sync_pb button
+        self.update_sync_button_color()
+
+    def update_sync_button_color(self):
+        """Update sync button color based on current session sync status."""
+        if self.current_session.currentData() is not None:
+            if self.current_session.currentData().syncked:
+                # if synched then text color is green
+                self.sync_pb.setStyleSheet("QPushButton { color: green; }")
+            else:
+                # if not synched then text color is red
+                self.sync_pb.setStyleSheet("QPushButton { color: red; }")
+
     def set_settings_gui(self):
         """Load settings and set selections accordingly."""
         # get geocodes configs
@@ -217,9 +268,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             document = json.load(file)
             model.load(document)
         
-        # get source of ANNCSU data
-        # self.anncsu_base_url.setText(self.current_anncsu_repo)
-
         # populate codice_comune combobox
         # before populate need to suspend envnts to avoid triggering currentIndexChanged signal
         self.comune_cb.blockSignals(True)
@@ -251,33 +299,15 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.comune_cb.addItem(f"{nome} -- {anncsu_id}", municipality_data)
         self.comune_cb.blockSignals(False)
         
-        # set configure codice_comune in combobox
-        # index = self.comune_cb.findData(self.current_codice_comune)
-        # if index != -1:
-        #     self.comune_cb.setCurrentIndex(index)
-        # else:
-        #     self.comune_cb.setCurrentIndex(0)
-
         # populate current_session combobox
         self.current_session.blockSignals(True)
         self.current_session.clear()
         self.current_session.addItem("Seleziona sessione", None)
         for scope_id, scope in self.scopes.items():
             self.current_session.addItem(scope_id, scope)
-
-        # set current scope id and related repo
-        # index = self.current_session.findText(self.current_session.current_scope_id)
-        # if index != -1:
-        #     self.current_session.setCurrentIndex(index)
-        # else:
-        #     self.current_session.setCurrentIndex(0)
         self.current_session.blockSignals(False)
 
-        # remote_git_repo = self.current_scope.to_dict().get("remote_git_repo", None)
-        # if not remote_git_repo:
-        #     # e.g. if None or empty string
-        #     remote_git_repo = "N/A"
-        # self.session_url.setText(remote_git_repo)
+        self.update_sync_button_color()
 
     def registerGeocoders(self):
         """Register geocoder builders in GeocoderFactory based on geocoders.json configuration."""
@@ -394,6 +424,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.registerGeocoders()
             ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
             ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
+            scopes = ANNCSUSettingsManager.get_scopes()
+            scopes[self.current_session.currentText()] = current_scope
+            ANNCSUSettingsManager.set_scopes(scopes)
             ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
             ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
 
@@ -427,6 +460,8 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         print(f"New session created: {mew_scope_id} -> {new_scope} ---- {result}")
 
         # add new session to combobox and set it as current
+        new_scope.sync_changed.connect(self.update_sync_button_color)
+        new_scope.sync_changed.emit()  # initial sync status
         self.current_session.addItem(mew_scope_id, new_scope)
         self.current_session.setCurrentIndex(
             self.current_session.findText(mew_scope_id)
