@@ -100,7 +100,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             if not self.geofence_polygon.empty:
                 geofence_geom = self.geofence_polygon.iloc[0].geometry
                 outside_geofence_mask = ~self.results.within(geofence_geom)
-                self.results.loc[outside_geofence_mask, 'score'] = -1  # mark score as -1 for out_of_geofence
+                self.results.loc[outside_geofence_mask, 'score'] = -1 * self.results.loc[outside_geofence_mask, 'score']  # mark score as negative for out of geofence
 
             # calculate and display statistics
             total_records = len(self.results)
@@ -108,7 +108,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             num_of_success = len(self.success)
             self.fails = self.results.query(f"geometry == None or (score >= 0 and score < {success_score_threshold})", inplace=False)
             num_of_fails = len(self.fails)
-            self.out_of_geofence = self.results.query("score == -1", inplace=False)
+            self.out_of_geofence = self.results.query("score < 0", inplace=False)
             num_of_out_of_geofence = len(self.out_of_geofence)
 
             self.statistics_num_of_records.setText(str(total_records))
