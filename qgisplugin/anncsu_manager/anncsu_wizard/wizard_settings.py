@@ -255,6 +255,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             else:
                 # if not synched then text color is red
                 self.sync_pb.setStyleSheet("QPushButton { color: red; }")
+        else:
+            # no session selected, orange color
+            self.sync_pb.setStyleSheet("QPushButton { color: orange; }")
 
     def set_settings_gui(self):
         """Load settings and set selections accordingly."""
