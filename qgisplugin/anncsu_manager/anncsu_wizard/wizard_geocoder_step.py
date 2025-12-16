@@ -5,7 +5,8 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QTextEdit,
     QCheckBox,
-    QProgressBar
+    QProgressBar,
+    QLabel
 )
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
