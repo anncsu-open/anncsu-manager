@@ -1,8 +1,5 @@
-import importlib
-import sys
 from datetime import datetime
 import time
-from pathlib import Path
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QPushButton,
