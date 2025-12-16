@@ -65,7 +65,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
         # get current scope
         current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
         scopes = ANNCSUSettingsManager.get_scopes()
-        current_scope = scopes.get(current_scope_id, {})
+        current_scope = scopes[current_scope_id] if current_scope_id in scopes else None
         self.feedback.pushInfo(f"Using scope: {current_scope_id}")
         if not current_scope:
             self.feedback.reportError("No scope is currently selected. Please select a scope in the settings before running geocoders.")
@@ -193,6 +193,14 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
                 self.feedback.progress_signal.emit(100)
                 self.feedback.pushInfo("All geocoding processes completed.")
+
+                # because of new results mark scope as ditry that need synchronization
+                current_scope.syncked = False
+                current_scope.sync_changed.emit()
+
+                # then save scope in settings to remember modifications
+                scopes[current_scope_id] = current_scope
+                ANNCSUSettingsManager.set_scopes(scopes)
 
             except QgsPluginException as e:
                 self.feedback.reportError(f"An error occurred: {str(e)}")
