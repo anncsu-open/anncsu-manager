@@ -1,5 +1,6 @@
 import importlib
 import sys
+from datetime import datetime
 import time
 from pathlib import Path
 from qgis.PyQt.QtWidgets import (
@@ -198,6 +199,9 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 current_scope.syncked = False
                 current_scope.sync_changed.emit()
                 self.feedback.pushInfo("warning: Scope repo locally updated need to be synched to remote repo.")
+
+                # update scope modification data
+                current_scope.update_date = datetime.now()
 
                 # then save scope in settings to remember modifications
                 scopes[current_scope_id] = current_scope
