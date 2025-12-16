@@ -261,7 +261,8 @@ class ANNCSUSettingsManager:
     #         "description": "Italy - National (2025-10-08)",
     #     }
     # }
-    SCOPES = {}
+    DEFAULT_SCOPES: Dict[str, ScopeData] = {}
+    SCOPES: Dict[str, ScopeData] = {}
 
     DEFAULT_SESSION_REPO_URL_KEY = 'anncsu_manager/default_session_repo_url'
     GEOFENCE_POLYGONS_SOURCE_KEY = 'anncsu_manager/geofence_polygons_source'
@@ -289,7 +290,7 @@ class ANNCSUSettingsManager:
         MUNICIPALITY_KEY: DEFAULT_MUNICIPALITY,
         MUNICIPALITY_CODE_KEY: DEFAULT_MUNICIPALITY_CODE,
         GEOCODERS_CONFIGS_KEY: DEFAULT_GEOCODERS_CONFIGS,
-        SCOPES_KEY: SCOPES,
+        SCOPES_KEY: DEFAULT_SCOPES,
         # A scope id has the following format: "<codice_municipio>_YYYYMMDD_HHMMSS"
         SCOPE_ID_KEY: "",
     }
@@ -363,42 +364,49 @@ class ANNCSUSettingsManager:
 
     @classmethod
     def get_scopes(cls) -> Dict[str, ScopeData]:
-        key = cls.SCOPES_KEY
-        # Deserialize
-        try:
-            serialised = str(QgsSettings().value(key, cls.DEFAULTS[key]))
-            scopes_dict = json.loads(serialised)
-            scopes = {}
-            for scope_id, scope_data in scopes_dict.items():
-                # manage if ScopeData has been changed and discard old structures
-                if not all(k in scope_data for k in ("duckdb_path", "remote_git_repo", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
-                    continue
+        """Returns the scopes saved in QGIS settings.
+        maintain a static/singleton image of scopes in memory
+        to allow modifications and signals.
+        In this way events generate by a scope can be listened by all the
+        parts of the plugin that have access to settings manager."""
 
-                # parse dates
-                creation_date = datetime.fromisoformat(scope_data["creation_date"])
-                update_date = datetime.fromisoformat(scope_data["update_date"]) if scope_data["update_date"] else None
-                scopes[scope_id] = ScopeData(
-                    duckdb_path=Path(scope_data["duckdb_path"]),
-                    remote_git_repo=scope_data["remote_git_repo"],
-                    syncked=scope_data["syncked"],
-                    municipality_data=MunicipalityData(**scope_data["municipality_data"]),
-                    source_db=scope_data["source_db"],
-                    creation_date=creation_date,
-                    update_date=update_date,
-                    description=scope_data.get("description"),
-                )
-            return scopes
+        if cls.SCOPES is None or len(cls.SCOPES) == 0:
+            key = cls.SCOPES_KEY
+            # Deserialize
+            try:
+                serialised = str(QgsSettings().value(key, cls.DEFAULTS[key]))
+                scopes_dict = json.loads(serialised)
+                scopes = {}
+                for scope_id, scope_data in scopes_dict.items():
+                    # manage if ScopeData has been changed and discard old structures
+                    if not all(k in scope_data for k in ("duckdb_path", "remote_git_repo", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
+                        continue
+
+                    # parse dates
+                    creation_date = datetime.fromisoformat(scope_data["creation_date"])
+                    update_date = datetime.fromisoformat(scope_data["update_date"]) if scope_data["update_date"] else None
+                    scopes[scope_id] = ScopeData(
+                        duckdb_path=Path(scope_data["duckdb_path"]),
+                        remote_git_repo=scope_data["remote_git_repo"],
+                        syncked=scope_data["syncked"],
+                        municipality_data=MunicipalityData(**scope_data["municipality_data"]),
+                        source_db=scope_data["source_db"],
+                        creation_date=creation_date,
+                        update_date=update_date,
+                        description=scope_data.get("description"),
+                    )
+                cls.SCOPES = scopes
         
-        # If error, reset
-        except (TypeError, json.JSONDecodeError) as e:
-            ANNCSUMessageManager().show_message(
-                f"Failed to load default scopes. Reset to default values. {e}",
-                "error"
-            )
-            cls.reset_scopes()
-            scopes = cls.get_scopes()
+            # If error, reset
+            except (TypeError, json.JSONDecodeError) as e:
+                ANNCSUMessageManager().show_message(
+                    f"Failed to load default scopes. Reset to default values. {e}",
+                    "error"
+                )
+                cls.reset_scopes()
+                cls.SCOPES = cls.get_scopes()
 
-        return scopes
+        return cls.SCOPES
 
     # Environment-backed credential getters/setters (preferred)
     @staticmethod
@@ -557,6 +565,7 @@ class ANNCSUSettingsManager:
 
         encoded_value = json.dumps(scopes, cls=jsonEncoder)
         QgsSettings().setValue(cls.SCOPES_KEY, encoded_value)
+        cls.SCOPES = scopes
 
     # RESETS
     @classmethod
