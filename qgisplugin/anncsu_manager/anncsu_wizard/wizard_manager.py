@@ -16,7 +16,7 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.anncsu_wizard.wizard_geocoder_step import ANNCSUWizardRunGeocoders
 from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCSUWizardEvaluateGeocode
 from anncsu_manager.anncsu_wizard.wizard_generate_mergin_step import ANNCUWizardGenerateMerginStep
-from anncsu_manager.anncsu_wizard.wizard_materialise_layers import ANNCUWizardMaterialiseLayersStep
+# from anncsu_manager.anncsu_wizard.wizard_materialise_layers import ANNCUWizardMaterialiseLayersStep
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
 
@@ -42,8 +42,8 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
         self.evaluate_geocode_page_id = self.addPage(self.evaluate_geocode_page)
 
         # add materialize layers wizard page
-        self.materialize_layers_page = ANNCUWizardMaterialiseLayersStep(parent=self, progress_bar=self.progressBar)
-        self.materialize_layers_page_id = self.addPage(self.materialize_layers_page)
+        # self.materialize_layers_page = ANNCUWizardMaterialiseLayersStep(parent=self, progress_bar=self.progressBar)
+        # self.materialize_layers_page_id = self.addPage(self.materialize_layers_page)
 
         # add Mergin wizard page
         self.generate_mergin_page = ANNCUWizardGenerateMerginStep(parent=self, progress_bar=self.progressBar)
