@@ -73,12 +73,32 @@ class ScopeData:
             "update_date": self.update_date.isoformat() if self.update_date else None,
             "description": self.description,
         }
-    
+
     def toJson(self) -> str:
         return json.dumps(self.to_dict())
 
-    def sync(self):
-        """Sync duckdb with remote git repo using git library."""
+    def get_local_repo_path(self) -> Optional[Path]:
+        """Get local git repo path where the duckdb is stored.
+
+        Returns:
+            Optional[Path]: Path to local git repo folder or None if not found.
+        """
+        if self.remote_git_repo is None:
+            return None
+
+        local_path = Path(self.duckdb_path).parent
+        if local_path.exists() and (local_path / ".git").exists():
+            return local_path.resolve()
+        return None
+
+    def sync(self, files_to_sync: Optional[Union[Path, list[Path]]] = None):
+        """Sync duckdb (by default) with remote git repo using git library.
+        If files_to_sync is provided, sync only those files.
+        Inputs:
+            files_to_sync (Optional[Union[str, Path, list[Union[str, Path]]]], optional): Files to sync. Defaults to None. If none DuckDB file is synced.
+        Raises:
+            Exception: If sync fails.
+        """
         if self.remote_git_repo is None:
             raise Exception("Cannot sync scope without remote git repo.")
 
@@ -87,7 +107,17 @@ class ScopeData:
             QgsMessageLog.logMessage(f"Scope at {self.duckdb_path} is already syncked with remote repo {self.remote_git_repo}.", level=Qgis.Info)
             return
 
-        local_path = Path(self.duckdb_path).parent
+        local_path = self.get_local_repo_path()
+        if local_path is None:
+            raise Exception(f"Local git repo path for scope at {self.duckdb_path} not found.")
+
+        # manage input files to commit and sync
+        if files_to_sync is None:
+            files_to_sync = [self.duckdb_path]
+        elif isinstance(files_to_sync, (str, Path)):
+            files_to_sync = [files_to_sync]
+
+        # do commit and push e.g. sync
         try:
             print(f"Syncing git repository at {local_path}...")
             repo = Repo(local_path)
@@ -118,8 +148,8 @@ class ScopeData:
                         temp_url_changed = True
 
                 origin.pull()
-                repo.index.add([str(self.duckdb_path)])
-                repo.index.commit(f"Sync duckdb at {datetime.now().isoformat()}")
+                repo.index.add( [str(f) for f in files_to_sync] )
+                repo.index.commit(f"Sync at {datetime.now().isoformat()}")
                 origin.push()
                 self.syncked = True
             finally:
