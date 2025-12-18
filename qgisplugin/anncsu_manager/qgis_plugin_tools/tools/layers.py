@@ -30,6 +30,70 @@ def remove_layer_by_name(layer_name: str) -> None:
     for layer in layers:
         QgsProject.instance().removeMapLayer(layer.id())
 
+def convert_layer_to_geopandas(layer: QgsVectorLayer) -> geopandas.GeoDataFrame:
+    """Convert a QGIS vector layer to a GeoPandas GeoDataFrame.
+
+    Args:
+        layer: The QGIS vector layer to convert.
+
+    Returns:
+        A GeoPandas GeoDataFrame representing the layer's data.
+    """
+    # option 1
+    # Export the layer to a temporary GeoJSON file
+    # temp_geojson_path = Path(ANNCSUSettingsManager.get_temp_folder()) / f"{layer.name()}_temp.geojson"
+    # options = QgsVectorFileWriter.SaveVectorOptions()
+    # options.driverName = "GeoJSON"
+    # options.fileEncoding = 'UTF-8'
+    # options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+
+    # write_result, error_message, new_file, new_layer = QgsVectorFileWriter.writeAsVectorFormatV3(
+    #             layer,
+    #             str(temp_geojson_path),
+    #             QgsProject.instance().transformContext(),
+    #             options)
+    # if write_result != QgsVectorFileWriter.NoError:
+    #     raise IOError(f"Error exporting layer '{layer.name()}' to GeoJSON: {error_message}")
+
+    # # Read the GeoJSON file into a GeoPandas GeoDataFrame
+    # gdf = geopandas.read_file(temp_geojson_path)
+
+    # # Optionally, remove the temporary file
+    # try:
+    #     temp_geojson_path.unlink()
+    # except Exception as e:
+    #     print(f"Warning: Could not delete temporary file '{temp_geojson_path}': {e}")
+
+    # return gdf
+
+    # option 2
+    # Directly convert layer to GeoDataFrame using QgsVectorLayer's data provider
+    # features = layer.getFeatures()
+    # records = []
+    # for feature in features:
+    #     record = feature.attributes()
+    #     geom = feature.geometry()
+    #     record.append(geom.asWkt() if geom else None)
+    #     records.append(record)
+    # columns = [field.name() for field in layer.fields()] + ['geometry']
+    # gdf = geopandas.GeoDataFrame(records, columns=columns)
+    # if layer.crs().isValid():
+    #     gdf.set_crs(layer.crs().authid(), inplace=True)
+    # return gdf
+
+    # option 3
+    # gdf = geopandas.GeoDataFrame(
+    #     [feat.attributes() for feat in layer.getFeatures()],
+    #     columns=[field.name() for field in layer.fields()],
+    #     geometry=[feat.geometry() for feat in layer.getFeatures()]
+    # )
+
+    # option 4 (need layer as file-based layer)
+    gdf = geopandas.read_file(layer.source())
+    return gdf
+
+
+
 
 def load_dataframe_as_layer(
         dataframe: geopandas.GeoDataFrame,
