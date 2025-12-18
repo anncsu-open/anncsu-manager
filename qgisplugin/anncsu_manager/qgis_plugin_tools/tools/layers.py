@@ -62,7 +62,7 @@ def convert_layer_to_geopandas(layer: QgsVectorLayer) -> geopandas.GeoDataFrame:
     # try:
     #     temp_geojson_path.unlink()
     # except Exception as e:
-    #     print(f"Warning: Could not delete temporary file '{temp_geojson_path}': {e}")
+    #     print(f"warning: Could not delete temporary file '{temp_geojson_path}': {e}")
 
     # return gdf
 

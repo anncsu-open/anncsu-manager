@@ -75,7 +75,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         for mergin_project in mergin_projects:
             path, workspace, project_name, project_server = mergin_project
             self.mergin_project_cb.addItem(project_name, mergin_project)
-            self.feedback.pushInfo(f"Info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.")
+            self.feedback.pushInfo(f"info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.")
 
     def set_mergin_project(self):
         """Populate Mergin projects combobox."""
@@ -98,7 +98,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             if project_name == cur_project.baseName():
                 index = self.mergin_project_cb.findText(project_name)
                 if index != -1:
-                    self.feedback.pushInfo(f"Info: Current QGIS project '{cur_project.baseName()}' matches Mergin project '{project_name}'.")
+                    self.feedback.pushInfo(f"info: Current QGIS project '{cur_project.baseName()}' matches Mergin project '{project_name}'.")
                     self.mergin_project_cb.setCurrentIndex(index)
                 else:
                     self.mergin_project_cb.setCurrentIndex(0)
@@ -150,8 +150,8 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
 
             # add before layer_geofence_polygon to remain under the other layers
-            self.feedback.pushInfo(f"Info: Preparing to add geocoding results for '{geocoder_name}' to Mergin project '{project_name}'.")
-            self.feedback.pushInfo(f"Info: Adding results into folder: {out_path}.")
+            self.feedback.pushInfo(f"info: Preparing to add geocoding results for '{geocoder_name}' to Mergin project '{project_name}'.")
+            self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
 
             if self.include_geofence_ckb.isChecked():
                 ANNCSUMessageManager().show_message(f"Loading: {layer_geofence_polygon}", level="info", duration=5)
@@ -163,7 +163,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"Info: Geofence polygon layer '{layer_geofence_polygon}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(f"info: Geofence polygon layer '{layer_geofence_polygon}' added to Mergin project '{project_name}'.")
 
             if self.include_fails_ckb.isChecked():
                 ANNCSUMessageManager().show_message(f"Loading: {layer_name_fails}", level="info", duration=5)
@@ -175,7 +175,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"Info: Fails layer '{layer_name_fails}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(f"info: Fails layer '{layer_name_fails}' added to Mergin project '{project_name}'.")
 
             if self.include_out_of_geofence_ckb.isChecked():
                 ANNCSUMessageManager().show_message(f"Loading: {layer_name_out_of_geofence}", level="info", duration=5)
@@ -187,7 +187,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"Info: Out of geofence layer '{layer_name_out_of_geofence}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(f"info: Out of geofence layer '{layer_name_out_of_geofence}' added to Mergin project '{project_name}'.")
 
             if self.include_success_ckb.isChecked():
                 ANNCSUMessageManager().show_message(f"Loading: {layer_name_success}", level="info", duration=5)
@@ -199,7 +199,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"Info: Success layer '{layer_name_success}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(f"info: Success layer '{layer_name_success}' added to Mergin project '{project_name}'.")
             
             ANNCSUMessageManager().show_message(
                 f"Added results for geocoder '{geocoder_name}' into Mergin project '{project_name}'.",
@@ -213,13 +213,13 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
     def update_feedback_text(self, text: str):
         if "success: " in text.lower():
             ANNCSUMessageManager().show_message(text, level="success", duration=5)
-        elif "info: " in text.lower():
+        elif "info:" in text.lower():
             pass
-        elif "warning: " in text.lower():
+        elif "warning:" in text.lower():
             ANNCSUMessageManager().show_message(text, level="warning", duration=5)
         elif "invalid: " in text.lower():
             ANNCSUMessageManager().show_message(text, level="invalid", duration=10)
-        elif "error: " in text.lower():
+        elif "error:" in text.lower():
             ANNCSUMessageManager().show_message(text, level="error", duration=0)
 
         if self.feedback.text_edit is not None:

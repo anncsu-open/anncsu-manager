@@ -196,7 +196,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 # because of new results mark scope as ditry that need synchronization
                 current_scope.syncked = False
                 current_scope.sync_changed.emit()
-                self.feedback.pushInfo("warning: Scope repo locally updated need to be synched to remote repo.")
+                self.feedback.pushInfo("warning:  Scope repo locally updated need to be synched to remote repo.")
 
                 # update scope modification data
                 current_scope.update_date = datetime.now()
@@ -216,13 +216,13 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
     def update_feedback_text(self, text: str):
         if "success: " in text.lower():
             ANNCSUMessageManager().show_message(text, level="success", duration=5)
-        elif "info: " in text.lower():
+        elif "info:" in text.lower():
             pass
-        elif "warning: " in text.lower():
+        elif "warning:" in text.lower():
             ANNCSUMessageManager().show_message(text, level="warning", duration=5)
         elif "invalid: " in text.lower():
             ANNCSUMessageManager().show_message(text, level="invalid", duration=10)
-        elif "error: " in text.lower():
+        elif "error:" in text.lower():
             ANNCSUMessageManager().show_message(text, level="error", duration=0)
 
         if self.feedback.text_edit is not None:

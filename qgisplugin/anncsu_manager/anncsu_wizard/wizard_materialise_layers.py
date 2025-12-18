@@ -89,8 +89,8 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
             layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
 
             # add before layer_geofence_polygon to remain under the other layers
-            self.feedback.pushInfo(f"Info: Preparing to add geocoding results for '{geocoder_name}' to local scope folder.")
-            self.feedback.pushInfo(f"Info: Adding results into folder: {out_path}.")
+            self.feedback.pushInfo(f"info: Preparing to add geocoding results for '{geocoder_name}' to local scope folder.")
+            self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
 
             if self.include_geofence_ckb.isChecked():
                 ANNCSUMessageManager().show_message(f"Loading: {layer_geofence_polygon}", level="info", duration=5)
@@ -102,7 +102,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"Info: Geofence polygon layer '{layer_geofence_polygon}' added to local git repo.")
+                self.feedback.pushInfo(f"info: Geofence polygon layer '{layer_geofence_polygon}' added to local git repo.")
 
                 # add geofence polygon file to the list of files to sync
                 geofence_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -118,7 +118,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"Info: Fails layer '{layer_name_fails}' added to local git repo.")
+                self.feedback.pushInfo(f"info: Fails layer '{layer_name_fails}' added to local git repo.")
 
                 # add fails file to the list of files to sync
                 fails_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -134,7 +134,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"Info: Out of geofence layer '{layer_name_out_of_geofence}' added to local git repo.")
+                self.feedback.pushInfo(f"info: Out of geofence layer '{layer_name_out_of_geofence}' added to local git repo.")
 
                 # add out_of_geofence file to the list of files to sync
                 out_of_geofence_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -150,7 +150,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"Info: Success layer '{layer_name_success}' added to local git repo.")
+                self.feedback.pushInfo(f"info: Success layer '{layer_name_success}' added to local git repo.")
 
                 # add success file to the list of files to sync
                 success_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -158,7 +158,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
 
             # sync all added files to the remote git repo of the current scope
             try:
-                self.feedback.pushInfo(f"Info: Commit and push layers into git repo'.")
+                self.feedback.pushInfo(f"info: Commit and push layers into git repo'.")
                 current_scope.sync(files_to_sync=files_to_sync)
             except Exception as e:
                 raise QgsPluginException(f"Failed to sync geocoding results for geocoder '{geocoder_name}' to remote repo: {str(e)}") from e
@@ -175,13 +175,13 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
     def update_feedback_text(self, text: str):
         if "success: " in text.lower():
             ANNCSUMessageManager().show_message(text, level="success", duration=5)
-        elif "info: " in text.lower():
+        elif "info:" in text.lower():
             pass
-        elif "warning: " in text.lower():
+        elif "warning:" in text.lower():
             ANNCSUMessageManager().show_message(text, level="warning", duration=5)
         elif "invalid: " in text.lower():
             ANNCSUMessageManager().show_message(text, level="invalid", duration=10)
-        elif "error: " in text.lower():
+        elif "error:" in text.lower():
             ANNCSUMessageManager().show_message(text, level="error", duration=0)
 
         if self.feedback.text_edit is not None:

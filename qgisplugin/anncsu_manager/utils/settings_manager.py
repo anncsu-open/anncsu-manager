@@ -703,7 +703,7 @@ class ANNCSUSettingsManager:
         try:
             AnyUrl(remote_git_repo)
         except Exception as e:
-            QgsMessageLog.logMessage(f"Invalid remote HTTP(S) git repo URL: {remote_git_repo} check if SSH. Error: {e}", level=Qgis.Critical)
+            QgsMessageLog.logMessage(f"Invalid remote HTTP(S) git repo URL: {remote_git_repo} check if SSH. error: {e}", level=Qgis.Critical)
             parsed = urllib.parse.urlparse(remote_git_repo)
             if parsed.path == remote_git_repo and (parsed.scheme == "" or parsed.scheme is None):
                 # possibly a git ssh url
