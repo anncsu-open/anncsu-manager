@@ -123,6 +123,10 @@ class ScopeData:
             repo = Repo(local_path)
             origin = repo.remotes.origin
 
+            # make files to sync relative to repo root
+            files_to_sync = [f.resolve() if isinstance(f, Path) else Path(f).resolve() for f in files_to_sync]
+            files_to_sync = [f.relative_to(local_path) for f in files_to_sync]
+
             # Credential helpers: read from QGIS settings via ANNCSUSettingsManager
             git_user = ANNCSUSettingsManager.get_git_user()
             git_password = ANNCSUSettingsManager.get_git_password()
