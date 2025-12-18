@@ -202,10 +202,6 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                     scopedb.execute(f"ALTER TABLE {table_name} DROP COLUMN id;")
                     self.feedback.pushInfo(f"Info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {len(gdf)} records.")
 
-        # open and close it again to unlock the duckdb file
-        with duckdb.connect(duck_db_source) as scopedb:
-            scopedb.close()
-
         self.feedback.pushInfo("Info: Update from Mergin completed successfully.")
 
         # notify to sync the scope folder to push changes to server
