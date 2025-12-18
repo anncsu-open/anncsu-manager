@@ -165,7 +165,11 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
             scopedb.sql("CALL register_geoarrow_extensions()")
 
             geocoders_configs = ANNCSUSettingsManager.get_geocoders_configs()
-            for geocoder_name, _ in geocoders_configs.items():
+            for geocoder_name, geocoder_config in geocoders_configs.items():
+                # skip geocoder tables if not acitve
+                if geocoder_config.get("active", False) in [False, "False", "false"]:
+                    self.feedback.pushInfo(f"info: Skipping inactive geocoder '{geocoder_name}'.")
+                    continue
 
                 # set default layer names for a specific geocoder
                 layer_name_success = f"{geocoder_name}_success"
@@ -175,22 +179,23 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                 # for all mergin layers
                 layer_names = [layer_name_success, layer_name_fails, layer_name_out_of_geofence]
                 for layer_name in layer_names:
+                    self.feedback.pushInfo(f"info: Processing layer '{layer_name}' for geocoder '{geocoder_name}'.")
                
                     # get layer file related to layer name
                     layers = QgsProject.instance().mapLayersByName(layer_name)
                     if not layers or len(layers) == 0:
                         if not get_from_mergin_folder:
-                            self.feedback.pushWarning(f"warning: Layer '{layer_name}' not found in the project. Skipping.")
+                            self.feedback.pushInfo(f"warning: Layer '{layer_name}' not found in the project. Skipping.")
                             continue
                         else:
                             # try to load layer from mergin project folder
-                            layer_path = out_path / workspace / f"{layer_name}.gpkg"
+                            layer_path = out_path / f"{layer_name}.gpkg"
                             if not layer_path.exists():
-                                self.feedback.pushWarning(f"warning: Layer file '{layer_path}' not found in Mergin project folder. Skipping.")
+                                self.feedback.pushInfo(f"warning: Layer file '{layer_path}' not found in Mergin project folder. Skipping.")
                                 continue
                             layer = QgsVectorLayer(str(layer_path), layer_name, "ogr")
                             if layer is None:
-                                self.feedback.pushWarning(f"warning: Could not load layer from file '{layer_path}'. Skipping.")
+                                self.feedback.pushInfo(f"warning: Could not load layer from file '{layer_path}'. Skipping.")
                                 continue
                             layers = [layer]
                             self.feedback.pushInfo(f"info: Loaded layer '{layer_name}' from Mergin project folder.")
