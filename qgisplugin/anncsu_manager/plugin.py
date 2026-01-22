@@ -127,7 +127,7 @@ class Plugin:
             add_to_menu=True,
         )
 
-    def onClosePlugin(self) -> None:  # noqa N802
+    def onClosePlugin(self, event) -> None:  # noqa N802
         """Cleanup necessary items here when plugin dockwidget is closed"""
         if self.wizard:
             self.wizard.deleteLater()
