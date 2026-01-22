@@ -105,9 +105,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.scopes = ANNCSUSettingsManager.get_scopes()
         self.current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
 
-        # for each sope register event to track sync changes
+        # for each scope register event to track sync changes
+        # and register unlinked when class is destroyed
         for scope in self.scopes.values():
             scope.sync_changed.connect(self.update_sync_button_color)
+        self.destroyed.connect(lambda: self.unlink_scopes_listeners())
 
         self.set_settings_gui()  # Initialize UI from settings
 
@@ -117,11 +119,17 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # register geocoders in factory
         self.registerGeocoders()
 
+    def unlink_scopes_listeners(self) -> None:
+        # because self.scopes hold references to ScopeData singleton instances
+        # linked signals have to be unlinked to avoid memory leaks
+        # NOTE: do not delete scopes as they are used also in main wizard
+        # and refer to cls instances of ScopeData singletones
+        if self.scopes:
+            for scope in self.scopes.values():
+                scope.sync_changed.disconnect(self.update_sync_button_color)
+
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
-
-    # def update_feedback_text(self, text: str):
-    #     self.feedback.text_edit.append(text)
 
     def sync_session(self):
         """Sync current session with remote git repo."""
