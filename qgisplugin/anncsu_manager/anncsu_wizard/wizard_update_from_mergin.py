@@ -153,6 +153,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
             return
 
         with duckdb.connect(duck_db_source) as scopedb:
+            self.feedback.pushInfo(f"Updating DuckDB database at {duck_db_source} from Mergin project '{project_name}'.")
             if scopedb is None:
                 self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
                 return
@@ -224,12 +225,11 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                     scopedb.execute(f"ALTER TABLE {table_name} DROP COLUMN id;")
                     self.feedback.pushInfo(f"info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {len(gdf)} records.")
 
-            # checkpoint after each table dump
-            scopedb.execute("PRAGMA enable_checkpoint_on_shutdown;")
+        # reopen duckdb to consolidate changes
+        with duckdb.connect(duck_db_source) as scopedb:
+            self.feedback.pushInfo("info: Reopened DuckDB database to consolidate changes.")
             scopedb.execute("PRAGMA force_checkpoint;")
-            # final checkpoint to ensure all is saved
             scopedb.execute("CHECKPOINT;")
-
 
         self.feedback.pushInfo("info:Update from Mergin completed successfully.")
 
