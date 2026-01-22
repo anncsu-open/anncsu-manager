@@ -21,9 +21,17 @@ class EventSource:
         self.listeners.append(listener)
         return self
 
+    def disconnect(self, listener):
+        if listener in self.listeners:
+            self.listeners.remove(listener)
+        return self
+
     def emit(self, *args, **kwargs):
         for listener in self.listeners:
-            listener(*args, **kwargs)
+            try:
+                listener(*args, **kwargs)
+            except Exception as e:
+                print(f"Error in event listener: {e}")
 
 def get_output_path(file_widget: QgsFileWidget) -> str:
     fp = file_widget.filePath()
