@@ -1,3 +1,4 @@
+import geopandas
 import json
 import os
 import requests
@@ -854,19 +855,21 @@ class ANNCSUSettingsManager:
             # duckdb_conn.execute(f"SELEC * '{str(temp_duckdb_path)}' AS source_db;")
             # create local duckdb with only data for selected municipality_code
             # feedback.setProgress(95)
-            force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'VARCHAR'}"
+            force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'FLOAT', 'COORD_X_COMUNE': 'FLOAT', 'COORD_Y_COMUNE': 'FLOAT'}"
             duckdb_conn.execute(f"""
                 CREATE TABLE anncsu AS
                 SELECT
-                    $tag$'{municipality_data.nome}'$tag$ as COMUNE,
-                    $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
-                    $tag$'{municipality_data.regione}'$tag$ as REGIONE,
+                    $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
+                    $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
+                    $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
                     *
                 FROM
                     READ_CSV_AUTO(
                         'zip://{str(temp_duckdb_path)}',
                         header = true,
                         delim=';',
+                        thousands='.',
+                        decimal_separator=',',
                         types={force_column_types}
                     )
                 WHERE codice_comune = '{municipality_data.anncsu_id}';
@@ -887,9 +890,9 @@ class ANNCSUSettingsManager:
             duckdb_conn.execute(f"""
                 CREATE TABLE anncsu AS
                 SELECT
-                    $tag$'{municipality_data.nome}'$tag$ as COMUNE,
-                    $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
-                    $tag$'{municipality_data.regione}'$tag$ as REGIONE,
+                    $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
+                    $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
+                    $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
                     *
                 FROM
                     indirizzarioItalia.anncsu_global
