@@ -23,7 +23,7 @@ from geopy.geocoders import get_geocoder_for_service
 # from whereabouts.Matcher import Matcher
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
-ANNCSU_TABLE_FIELDS = ("COMUNE", "PROVINCIA", "REGIONE", "CODICE_COMUNE", "CODICE_ISTAT", "PROGRESSIVO_NAZIONALE", "CODICE_COMUNALE", "ODONIMO", 'LOCALITA\'', "DIZIONE_LINGUA1", "DIZIONE_LINGUA2", "PROGRESSIVO_ACCESSO", "CODICE_COMUNALE_ACCESSO", "CIVICO", "ESPONENTE", "SPECIFICITA", "METRICO", "PROGRESSIVO_SNC", "COORD_X_COMUNE", "COORD_Y_COMUNE", "QUOTA", "METODO")
+ANNCSU_TABLE_FIELDS = ("PLUGIN_COMUNE", "PLUGIN_PROVINCIA", "PLUGIN_REGIONE", "CODICE_COMUNE", "CODICE_ISTAT", "PROGRESSIVO_NAZIONALE", "CODICE_COMUNALE", "ODONIMO", 'LOCALITA\'', "DIZIONE_LINGUA1", "DIZIONE_LINGUA2", "PROGRESSIVO_ACCESSO", "CODICE_COMUNALE_ACCESSO", "CIVICO", "ESPONENTE", "SPECIFICITA", "METRICO", "PROGRESSIVO_SNC", "COORD_X_COMUNE", "COORD_Y_COMUNE", "QUOTA", "METODO")
 
 FORM_CLASS: QWizardPage = load_ui("wizard_run_geocoders_page.ui")
 
@@ -115,7 +115,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         to_geocode_dict = dict(zip(ANNCSU_TABLE_FIELDS, to_geocode))
                         anncsu_addresses.append(to_geocode_dict)
 
-                        address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["COMUNE"].strip("'")} ({to_geocode_dict["PROVINCIA"].strip("'")}), Italia"""
+                        address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
                         addresses_to_geocode.append(address_to_geocode)
 
                     self.feedback.progress_signal.emit(0)
