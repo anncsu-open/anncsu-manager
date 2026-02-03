@@ -228,6 +228,28 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                         pass
                     self.feedback.pushInfo(f"info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {len(gdf)} records.")
 
+            # add geocoded_anncsu table from mergin project if exists
+            geocoded_anncsu_path = out_path / "geocoded_anncsu.gpkg"
+            if geocoded_anncsu_path.exists():
+                geocoded_anncsu_layer = QgsVectorLayer(str(geocoded_anncsu_path), "geocoded_anncsu", "ogr")
+                if geocoded_anncsu_layer is not None:
+                    gdf_geocoded_anncsu = convert_layer_to_geopandas(geocoded_anncsu_layer)
+                    if not gdf_geocoded_anncsu.empty:
+                        gdf_geocoded_anncsu_arrow = gdf_geocoded_anncsu.to_arrow()
+                        scopedb.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
+                        scopedb.execute("CREATE TABLE geocoded_anncsu AS SELECT * FROM gdf_geocoded_anncsu_arrow;")
+                        try:
+                            scopedb.execute("ALTER TABLE geocoded_anncsu DROP COLUMN id;")
+                        except Exception as e:
+                            pass
+                        self.feedback.pushInfo(f"info: Dumped 'geocoded_anncsu' layer into DuckDB table 'geocoded_anncsu' with {len(gdf_geocoded_anncsu)} records.")
+                    else:
+                        self.feedback.pushWarning("warning: 'geocoded_anncsu' layer is empty. Skipping.")
+                else:
+                    self.feedback.pushWarning("warning: Could not load 'geocoded_anncsu' layer. Skipping.")
+            else:
+                self.feedback.pushInfo("info: 'geocoded_anncsu.gpkg' file not found in Mergin project folder. Skipping.")
+
         # reopen duckdb to consolidate changes
         with duckdb.connect(duck_db_source) as scopedb:
             self.feedback.pushInfo("info: Reopened DuckDB database to consolidate changes.")
