@@ -161,10 +161,6 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
             layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
 
-            # extract each layer and join with anncsu table results
-            # to save them into mergin project folder following the anncsu table format
-            
-
             # add before layer_geofence_polygon to remain under the other layers
             self.feedback.pushInfo(f"info: Preparing to add geocoding results for '{geocoder_name}' to Mergin project '{project_name}'.")
             self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
@@ -253,6 +249,59 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 level="success",
                 duration=5
             )
+
+        # create a copy of anncsu_df to update with best geocode results
+        geocoded_anncsu_df = anncsu_df.copy()
+        geocoded_anncsu_df['PLUGIN_SCORE'] = None
+        geocoded_anncsu_df['PLUGIN_GEOCODER'] = None
+        geocoded_anncsu_df['geometry'] = None
+
+        # create a gocoded_anncsu table getting the geocode result from that with highest score for
+        # each record in anncsu table
+        for row in geocoded_anncsu_df.itertuples():
+            address_id = row.PROGRESSIVO_ACCESSO
+            road_id = row.PROGRESSIVO_NAZIONALE
+            # find best geocode result among all geocoders tabs
+            best_result = None
+            best_geocoder_name = None
+            best_score = -1
+            for i in range(geocode_page.geocoders_tabs.count()):
+                tab: ANNCUGeocodeResultTab = geocode_page.geocoders_tabs.widget(i)
+                geocoder_name = geocode_page.geocoders_tabs.tabText(i)
+
+                # get result only from success dataframe
+                success_df = tab.success
+                record = success_df[(success_df["address_id"] == address_id) & (success_df["road_id"] == road_id)]
+                if not record.empty:
+                    score = record.iloc[0]["score"]
+                    if score > best_score:
+                        best_score = score
+                        best_result = record.iloc[0]
+                        best_geocoder_name = geocoder_name
+
+            if best_result is not None:
+                # set geocode result from best_result to anncsu_df
+                index = geocoded_anncsu_df.index[geocoded_anncsu_df["PROGRESSIVO_ACCESSO"] == address_id].tolist()[0]
+                geocoded_anncsu_df.loc[index, 'COORD_X_COMUNE'] = best_result["longitude"]
+                geocoded_anncsu_df.loc[index, 'COORD_Y_COMUNE'] = best_result["latitude"]
+                geocoded_anncsu_df.loc[index, 'PLUGIN_SCORE'] = best_result["score"]
+                geocoded_anncsu_df.loc[index, 'PLUGIN_GEOCODER'] = best_geocoder_name
+                geocoded_anncsu_df.loc[index, 'geometry'] = best_result["geometry"]
+
+        # save geocoded_anncsu_df as GPKG file into mergin project folder
+        ANNCSUMessageManager().show_message(
+            f"Saving geocoded ANNCSU table into Mergin project '{project_name}'.",
+            level="info",
+            duration=5
+        )
+        remove_layer_by_name("geocoded_anncsu")
+        load_dataframe_as_layer(
+            dataframe=geocoded_anncsu_df,
+            layer_name="geocoded_anncsu",
+            geometry_column="geometry",
+            crs_epsg=4326,  # assuming WGS84, adjust as needed
+            out_path=out_path  # save in current Mergin local repo
+        )
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
