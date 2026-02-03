@@ -193,7 +193,8 @@ def load_dataframe_as_layer(
         feat.setFields(vl.fields())
         for col in dataframe.columns:
             if col == geometry_column:
-                feat.setGeometry(QgsGeometry.fromWkt(row_copy[col].wkt))
+                if row_copy[col] is not None:
+                    feat.setGeometry(QgsGeometry.fromWkt(row_copy[col].wkt))
             else:
                 feat.setAttribute(col, row_copy[col])
         feats.append(feat)
