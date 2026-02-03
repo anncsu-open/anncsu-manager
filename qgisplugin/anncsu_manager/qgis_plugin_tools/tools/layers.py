@@ -6,16 +6,18 @@ __revision__ = "$Format:%H$"
 from typing import Optional
 from pathlib import Path
 import geopandas
+from pandas import Float64Dtype, Int64Dtype
 
 from qgis.core import (
     QgsVectorLayer,
     QgsProject,
+    QgsGeometry,
     QgsCoordinateReferenceSystem,
     QgsField,
     QgsFeature,
     QgsVectorFileWriter
 )
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, QMetaType
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
@@ -111,33 +113,94 @@ def load_dataframe_as_layer(
     Returns:
         QgsVectorLayer: The created QGIS vector layer.
     """
-    if geometry_column and geometry_column in dataframe.columns:
-        # Convert the DataFrame to GeoJSON format
-        geojson_str = dataframe.to_json()
+    # if geometry_column and geometry_column in dataframe.columns:
+    #     # Convert the DataFrame to GeoJSON format
+    #     geojson_str = dataframe.to_json()
 
-        # Create a QGIS vector layer from the GeoJSON string
-        vl = QgsVectorLayer(geojson_str, layer_name, "ogr")
+    #     # Create a QGIS vector layer from the GeoJSON string
+    #     vl = QgsVectorLayer(geojson_str, layer_name, "ogr")
 
-        # Set the geometry column if specified
-        if crs_epsg:
-            vl.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{crs_epsg}"))
-    else:
-        # If no geometry column is provided, create a non-spatial layer
-        vl = QgsVectorLayer("None", layer_name, "memory")
-        provider = vl.dataProvider()
+    #     # Set the geometry column if specified
+    #     if crs_epsg:
+    #         vl.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{crs_epsg}"))
+    # else:
+    #     # If no geometry column is provided, create a non-spatial layer
+    #     vl = QgsVectorLayer("None", layer_name, "memory")
+    #     provider = vl.dataProvider()
 
-        # Add fields to the layer
-        fields = [QgsField(col, QVariant.String) for col in dataframe.columns]
-        provider.addAttributes(fields)
-        vl.updateFields()
+    #     # Add fields to the layer
+    #     fields = [QgsField(col, QVariant.String) for col in dataframe.columns]
+    #     provider.addAttributes(fields)
+    #     vl.updateFields()
 
-        # Add features to the layer
-        for _, row in dataframe.iterrows():
-            feat = QgsFeature()
-            feat.setFields(vl.fields())
-            for col in dataframe.columns:
-                feat.setAttribute(col, str(row[col]))
-            provider.addFeature(feat)
+    #     # Add features to the layer
+    #     for _, row in dataframe.iterrows():
+    #         feat = QgsFeature()
+    #         feat.setFields(vl.fields())
+    #         for col in dataframe.columns:
+    #             feat.setAttribute(col, str(row[col]))
+    #         provider.addFeature(feat)
+
+    # get geometry type from the first valid geometry
+    first_valid_geom = None
+    for geom in dataframe[geometry_column]:
+        if geom is not None and not geom.is_empty:
+            first_valid_geom = geom
+            break
+    if first_valid_geom is None:
+        raise ValueError("No valid geometries found in the specified geometry column.")
+    # geom_type = first_valid_geom.geom_type
+    # if geom_type == 0:
+    #     qgis_geom_type = "Point"
+    # elif geom_type == 1:
+    #     qgis_geom_type = "LineString"
+    # elif geom_type == 2:
+    #     qgis_geom_type = "Polygon"
+    # else:
+    #     raise ValueError(f"Unsupported geometry type. {geom_type}")
+
+    vl = QgsVectorLayer(f"{first_valid_geom.geom_type}?crs=epsg:{crs_epsg}", layer_name, "memory")
+    provider = vl.dataProvider()
+    if provider is None:
+        raise ValueError("Could not get data provider for the vector layer.")
+
+    # Add fields to the layer
+    for col in dataframe.columns:
+        if col == geometry_column:
+            continue
+        if col not in vl.fields().names():
+            # get type of the dataframe column
+            dataframe_col_type = dataframe[col].dtype
+            if dataframe_col_type in ['int64', 'int32', 'int16', 'Int8', Int64Dtype()]:
+                provider.addAttributes([QgsField(col, QMetaType.Int)])
+            elif dataframe_col_type in ['float64', 'float32', 'float16', 'double', 'decimal', Float64Dtype()]:
+                provider.addAttributes([QgsField(col, QMetaType.Double)])
+            elif dataframe_col_type == 'bool':  
+                provider.addAttributes([QgsField(col, QMetaType.Bool)])
+            else:
+                provider.addAttributes([QgsField(col, QMetaType.QString)])
+    vl.updateFields()
+
+    # Add features to the layer
+    feats = []
+    for _, row in dataframe.iterrows():
+        # convert <NA> to None otherwise feat.setAttribute will fail
+        row_copy = row.copy()
+        row_copy[row_copy.isna()] = None
+
+        # add feature to layer
+        feat = QgsFeature()
+        feat.setFields(vl.fields())
+        for col in dataframe.columns:
+            if col == geometry_column:
+                feat.setGeometry(QgsGeometry.fromWkt(row_copy[col].wkt))
+            else:
+                feat.setAttribute(col, row_copy[col])
+        feats.append(feat)
+
+    # add all features at once to improve performance
+    provider.addFeatures(feats)
+    vl.updateExtents()
 
     # save layer to the current Mergin project as parquet file if requested
     if out_path is not None:
