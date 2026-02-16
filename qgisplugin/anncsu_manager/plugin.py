@@ -4,8 +4,8 @@ from typing import Callable, List, Optional
 
 from qgis.core import QgsApplication, Qgis
 from qgis.gui import QgisInterface
-from qgis.utils import iface, plugins, active_plugins
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator
+from qgis.utils import iface
+from qgis.PyQt.QtCore import QCoreApplication, QTranslator, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
 
@@ -97,7 +97,6 @@ class Plugin:
             added to self.actions list.
         :rtype: QAction
         """
-
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
         # noinspection PyUnresolvedReferences
@@ -134,9 +133,11 @@ class Plugin:
             add_to_menu=True,
         )
 
-    def onClosePlugin(self) -> None:  # noqa N802
+    def onClosePlugin(self, event) -> None:  # noqa N802
         """Cleanup necessary items here when plugin dockwidget is closed"""
-        pass
+        if self.wizard:
+            self.wizard.deleteLater()
+        self.wizard = None
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -147,6 +148,11 @@ class Plugin:
 
     def open_wizard(self, page):
         self.wizard = ANNCSUWizardDialog()
+
+        # be sure to delete the widget on close and related C++ objects
+        self.wizard.setAttribute(Qt.WA_DeleteOnClose)
+        self.wizard.closeEvent = self.onClosePlugin
+
         self.wizard.show()
         self.wizard.content.menu_widget.setCurrentRow(page)
 

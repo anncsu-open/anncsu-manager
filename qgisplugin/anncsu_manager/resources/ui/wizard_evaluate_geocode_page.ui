@@ -26,7 +26,7 @@
    <item>
     <widget class="QPushButton" name="load_all_layers">
      <property name="text">
-      <string>Load to Mergin project</string>
+      <string>Load all (memory) layers</string>
      </property>
     </widget>
    </item>

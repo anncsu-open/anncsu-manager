@@ -114,22 +114,45 @@
                 </item>
                </layout>
               </item>
-              <item row="4" column="0">
+              <item row="6" column="0">
                <widget class="QLabel" name="label_5">
                 <property name="text">
                  <string>URL Sessione:</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="1">
-               <widget class="QLabel" name="session_url">
-                <property name="text">
-                 <string>url di sessione su github</string>
-                </property>
-                <property name="textInteractionFlags">
-                 <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-                </property>
-               </widget>
+              <item row="6" column="1">
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QLineEdit" name="session_url">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="toolTip">
+                   <string>session url on remote git repo</string>
+                  </property>
+                  <property name="readOnly">
+                   <bool>true</bool>
+                  </property>
+                  <property name="placeholderText">
+                   <string>session url on remote git repo</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="sync_pb">
+                  <property name="text">
+                   <string>Sync</string>
+                  </property>
+                  <property name="checked">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
              </layout>
             </widget>
@@ -140,9 +163,6 @@
               <string>Geocoders</string>
              </property>
              <layout class="QGridLayout" name="gridLayout">
-              <item row="0" column="1">
-               <widget class="QTreeView" name="geocodersTreeView"/>
-              </item>
               <item row="0" column="0">
                <widget class="QLabel" name="label_4">
                 <property name="text">
@@ -165,6 +185,9 @@
                  </size>
                 </property>
                </spacer>
+              </item>
+              <item row="0" column="1">
+               <widget class="QTreeView" name="geocodersTreeView"/>
               </item>
              </layout>
             </widget>
