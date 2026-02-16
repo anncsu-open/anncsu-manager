@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from typing import Optional
 import importlib
-from pydantic import AnyUrl
 
 import duckdb
 
@@ -20,9 +19,8 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QLabel,
-    QPushButton,
+    QPushButton
 )
-from qgis.PyQt.QtGui import QIcon
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
@@ -72,11 +70,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.comune_cb: QComboBox
         self.geocodersTreeView: QTreeView
         self.session_url: QLabel
-
-        self.sync_pb: QPushButton
-        self.sync_pb.clicked.connect(lambda: self.sync_session())
-        self.sync_pb.setStyleSheet("QPushButton { color: orange; }")
-
+        self.mergin_project_l: QLabel
         # this comobobox store current session data
         # based on session name and scope id
         self.current_session: QComboBox
@@ -113,12 +107,15 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.fallout_codice_comune = ANNCSUSettingsManager.get_municipality_code()
         self.scopes = ANNCSUSettingsManager.get_scopes()
         self.current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
-
-        # for each scope register event to track sync changes
-        # and register unlinked when class is destroyed
-        for scope in self.scopes.values():
-            scope.sync_changed.connect(self.update_sync_button_color)
-        self.destroyed.connect(lambda: self.unlink_scopes_listeners())
+        # current_scope = self.scopes.get(current_scope_id, None)
+        # self.current_session = SessionData(
+        #     scope_id=current_scope_id,
+        #     scope=current_scope,
+        # )
+        # # session modification evetn have to be explicitly emitted when changing current_scope_id
+        # self.current_session.modified.connect(
+        #     lambda: self.manageSessionChange()
+        # )
 
         self.set_settings_gui()  # Initialize UI from settings
 
@@ -128,53 +125,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # register geocoders in factory
         self.registerGeocoders()
 
-    def unlink_scopes_listeners(self) -> None:
-        # because self.scopes hold references to ScopeData singleton instances
-        # linked signals have to be unlinked to avoid memory leaks
-        # NOTE: do not delete scopes as they are used also in main wizard
-        # and refer to cls instances of ScopeData singletones
-        if self.scopes:
-            for scope in self.scopes.values():
-                scope.sync_changed.disconnect(self.update_sync_button_color)
+        # populate mergin projects combobox
+        self.set_mergin_projects()
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
 
-    def sync_session(self):
-        """Sync current session with remote git repo."""
-        current_scope: Optional[ScopeData] = self.current_session.currentData()
-        if current_scope is None:
-            ANNCSUMessageManager().show_message(
-                "Nessuna sessione selezionata da sincronizzare.",
-                "warning",
-            )
-            return
-
-        self.feedback.progress_bar.show()
-        self.feedback.progress_bar.setMinimum(0)
-        self.feedback.progress_bar.setMaximum(0)
-
-        try:
-            current_scope.sync()
-
-            # save again in combobox data because sync flag has been changed
-            self.current_session.setItemData(
-                self.current_session.currentIndex(),
-                current_scope,
-            )
-            self.save_settings()  # save settings to persist sync flag
-
-            ANNCSUMessageManager().show_message(
-                f"Sessione '{self.current_session.currentText()}' sincronizzata con il repository remoto.",
-                "success",
-            )
-        except Exception as e:
-            ANNCSUMessageManager().show_message(
-                f"Errore durante la sincronizzazione della sessione '{self.current_session.currentText()}': {str(e)}",
-                "error",
-            )
-        finally:
-            self.feedback.progress_bar.hide()
+    # def update_feedback_text(self, text: str):
+    #     self.feedback.text_edit.append(text)
 
     def manageDeleteSession(self):
         """Manage deletion of current session."""
@@ -223,7 +181,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             current_scope_id = self.current_scope_id # get from configured settings
             current_scope = self.scopes.get(current_scope_id, None)
             
-            print(f"Setting session for {current_scope_id} with scope {current_scope}")
             # set current_session dropbox pointing to current scope id
             index = self.current_session.findText(current_scope_id)
             if index != -1:
@@ -253,28 +210,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 "warning",
             )
 
-        remote_git_repo = scope_dict.get("remote_git_repo", None)
-        if not remote_git_repo:
+        remote_duckdb_url = scope_dict.get("remote_duckdb_url", None)
+        if not remote_duckdb_url:
             # e.g. if None or empty string
-            remote_git_repo = "N/A"
-        self.session_url.setText(remote_git_repo)
-
-        # depending on sync flag into current session
-        # set color of sync_pb button
-        self.update_sync_button_color()
-
-    def update_sync_button_color(self):
-        """Update sync button color based on current session sync status."""
-        if self.current_session.currentData() is not None:
-            if self.current_session.currentData().syncked:
-                # if synched then text color is green
-                self.sync_pb.setStyleSheet("QPushButton { color: green; }")
-            else:
-                # if not synched then text color is red
-                self.sync_pb.setStyleSheet("QPushButton { color: red; }")
-        else:
-            # no session selected, orange color
-            self.sync_pb.setStyleSheet("QPushButton { color: orange; }")
+            remote_duckdb_url = "N/A"
+        self.session_url.setText(remote_duckdb_url)
 
     def set_settings_gui(self):
         """Load settings and set selections accordingly."""
@@ -288,6 +228,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             document = json.load(file)
             model.load(document)
         
+        # get source of ANNCSU data
+        # self.anncsu_base_url.setText(self.current_anncsu_repo)
+
         # populate codice_comune combobox
         # before populate need to suspend envnts to avoid triggering currentIndexChanged signal
         self.comune_cb.blockSignals(True)
@@ -319,15 +262,33 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.comune_cb.addItem(f"{nome} -- {anncsu_id}", municipality_data)
         self.comune_cb.blockSignals(False)
         
+        # set configure codice_comune in combobox
+        # index = self.comune_cb.findData(self.current_codice_comune)
+        # if index != -1:
+        #     self.comune_cb.setCurrentIndex(index)
+        # else:
+        #     self.comune_cb.setCurrentIndex(0)
+
         # populate current_session combobox
         self.current_session.blockSignals(True)
         self.current_session.clear()
         self.current_session.addItem("Seleziona sessione", None)
         for scope_id, scope in self.scopes.items():
             self.current_session.addItem(scope_id, scope)
+
+        # set current scope id and related repo
+        # index = self.current_session.findText(self.current_session.current_scope_id)
+        # if index != -1:
+        #     self.current_session.setCurrentIndex(index)
+        # else:
+        #     self.current_session.setCurrentIndex(0)
         self.current_session.blockSignals(False)
 
-        self.update_sync_button_color()
+        # remote_duckdb_url = self.current_scope.to_dict().get("remote_duckdb_url", None)
+        # if not remote_duckdb_url:
+        #     # e.g. if None or empty string
+        #     remote_duckdb_url = "N/A"
+        # self.session_url.setText(remote_duckdb_url)
 
     def set_mergin_projects(self):
         """Populate Mergin projects combobox."""
@@ -446,20 +407,10 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                         "warning",
                     )
                     return
-
-                # prepare location where to store session that have to
-                # be synced to/from remote repo
-                # session_path, remote_repo = ANNCSUSettingsManager.clone_or_pull_remote_repo(
-                #     base_path=Path(PLUGIN_PATH) / "resources" / "data",
-                #     municipality_data=municipality_data,
-                #     feedback=self.feedback,
-                # )
-
-                # create the session (time consuming) task
                 self.create_new_session_task = QgsTask.fromFunction(
-                    f"Creazione nuova sessione per comune {municipality_data.anncsu_id}",
+                    f"Creazione nuova per comune {municipality_data.anncsu_id}",
                     ANNCSUSettingsManager.create_new_session,
-                    source_db=AnyUrl(self.anncsu_base_url.text()),
+                    source_db=self.anncsu_base_url.text(),
                     municipality_data=municipality_data,
                     feedback=self.feedback,
                     on_finished=self.on_finished_create_new_session,
@@ -469,15 +420,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 QgsApplication.taskManager().addTask(self.create_new_session_task)
         else:
             # no session change, just save current settings
-            ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
-            self.registerGeocoders()
-            ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-            ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
-            scopes = ANNCSUSettingsManager.get_scopes()
-            scopes[self.current_session.currentText()] = current_scope
-            ANNCSUSettingsManager.set_scopes(scopes)
-            ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-            ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+            self.save_all_settings()
 
     def reset_settings_to_default(self):
         """Set selections to defaults. Does not save."""
@@ -499,24 +442,17 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             return
 
         # save new sesstion data
-        mew_scope_id, new_scope = result if result is not None else (None, None)
-        if mew_scope_id is None or new_scope is None:
-            ANNCSUMessageManager().show_message(
-                "Errore durante la creazione della nuova sessione: dati sessione non validi.",
-                "error",
-            )
-            return
+        mew_scope_id, new_scope = result
         print(f"New session created: {mew_scope_id} -> {new_scope} ---- {result}")
-
-        # add new session to combobox and set it as current
-        new_scope.sync_changed.connect(self.update_sync_button_color)
-        new_scope.sync_changed.emit()  # initial sync status
         self.current_session.addItem(mew_scope_id, new_scope)
         self.current_session.setCurrentIndex(
             self.current_session.findText(mew_scope_id)
         )
 
-        # save settings
+        self.save_all_settings()
+    
+    def save_all_settings(self):
+        """Save all settings without checking for changes."""
         municipality_data: MunicipalityData = self.comune_cb.currentData()
         ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
         self.registerGeocoders()

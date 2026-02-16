@@ -47,7 +47,7 @@ class ANNCSUProcessingFeedback(QgsProcessingFeedback):
     def reportError(self, error, fatalError=False):
         if self.text_edit is not None:
             self.no_errors = False
-            self.text_signal.emit(f"error: {error}")
+            self.text_signal.emit(f"Error: {error}")
 
     def report_terminated_execution(self, msg = ""):
         if self.text_edit is not None:

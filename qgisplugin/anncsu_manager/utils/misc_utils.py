@@ -13,26 +13,6 @@ from anncsu_manager.qgis_plugin_tools.tools.resources import resources_path
 TEMPORARY_OUTPUT = 'TEMPORARY_OUTPUT'
 PLUGIN_PATH = os.path.dirname(os.path.dirname(__file__))
 
-class EventSource:
-    def __init__(self):
-        self.listeners = []
-
-    def connect(self, listener):
-        self.listeners.append(listener)
-        return self
-
-    def disconnect(self, listener):
-        if listener in self.listeners:
-            self.listeners.remove(listener)
-        return self
-
-    def emit(self, *args, **kwargs):
-        for listener in self.listeners:
-            try:
-                listener(*args, **kwargs)
-            except Exception as e:
-                print(f"Error in event listener: {e}")
-
 def get_output_path(file_widget: QgsFileWidget) -> str:
     fp = file_widget.filePath()
     return fp if fp != "" else TEMPORARY_OUTPUT

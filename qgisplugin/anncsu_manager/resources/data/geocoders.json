@@ -63,6 +63,6 @@
             "trigram"
         ],
         "matcher_db": "italia_whereabouts",
-        "threshold": 0.8
+        "threshold": 0.5
     }
 }

@@ -6,21 +6,27 @@ __revision__ = "$Format:%H$"
 from typing import Optional
 from pathlib import Path
 import geopandas
-from pandas import Float64Dtype, Int64Dtype
 
 from qgis.core import (
     QgsVectorLayer,
     QgsProject,
-    QgsGeometry,
     QgsCoordinateReferenceSystem,
     QgsField,
     QgsFeature,
-    QgsVectorFileWriter
+    QgsVectorFileWriter,
 )
-from qgis.PyQt.QtCore import QVariant, QMetaType
+from qgis.PyQt.QtCore import QVariant
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
+# add Mergin dependcies but do not  trigger error if Mergin is not installed
+# the reason is to allow to check Mergin installed during plugin loading in a
+# controlled way
+try:
+    from Mergin import utils as mergin_utils
+except ImportError:
+    pass
+
 
 def remove_layer_by_name(layer_name: str) -> None:
     """Remove a layer from QGIS by its name.
@@ -32,77 +38,13 @@ def remove_layer_by_name(layer_name: str) -> None:
     for layer in layers:
         QgsProject.instance().removeMapLayer(layer.id())
 
-def convert_layer_to_geopandas(layer: QgsVectorLayer) -> geopandas.GeoDataFrame:
-    """Convert a QGIS vector layer to a GeoPandas GeoDataFrame.
-
-    Args:
-        layer: The QGIS vector layer to convert.
-
-    Returns:
-        A GeoPandas GeoDataFrame representing the layer's data.
-    """
-    # option 1
-    # Export the layer to a temporary GeoJSON file
-    # temp_geojson_path = Path(ANNCSUSettingsManager.get_temp_folder()) / f"{layer.name()}_temp.geojson"
-    # options = QgsVectorFileWriter.SaveVectorOptions()
-    # options.driverName = "GeoJSON"
-    # options.fileEncoding = 'UTF-8'
-    # options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-
-    # write_result, error_message, new_file, new_layer = QgsVectorFileWriter.writeAsVectorFormatV3(
-    #             layer,
-    #             str(temp_geojson_path),
-    #             QgsProject.instance().transformContext(),
-    #             options)
-    # if write_result != QgsVectorFileWriter.NoError:
-    #     raise IOError(f"Error exporting layer '{layer.name()}' to GeoJSON: {error_message}")
-
-    # # Read the GeoJSON file into a GeoPandas GeoDataFrame
-    # gdf = geopandas.read_file(temp_geojson_path)
-
-    # # Optionally, remove the temporary file
-    # try:
-    #     temp_geojson_path.unlink()
-    # except Exception as e:
-    #     print(f"warning: Could not delete temporary file '{temp_geojson_path}': {e}")
-
-    # return gdf
-
-    # option 2
-    # Directly convert layer to GeoDataFrame using QgsVectorLayer's data provider
-    # features = layer.getFeatures()
-    # records = []
-    # for feature in features:
-    #     record = feature.attributes()
-    #     geom = feature.geometry()
-    #     record.append(geom.asWkt() if geom else None)
-    #     records.append(record)
-    # columns = [field.name() for field in layer.fields()] + ['geometry']
-    # gdf = geopandas.GeoDataFrame(records, columns=columns)
-    # if layer.crs().isValid():
-    #     gdf.set_crs(layer.crs().authid(), inplace=True)
-    # return gdf
-
-    # option 3
-    # gdf = geopandas.GeoDataFrame(
-    #     [feat.attributes() for feat in layer.getFeatures()],
-    #     columns=[field.name() for field in layer.fields()],
-    #     geometry=[feat.geometry() for feat in layer.getFeatures()]
-    # )
-
-    # option 4 (need layer as file-based layer)
-    gdf = geopandas.read_file(layer.source())
-    return gdf
-
-
-
 
 def load_dataframe_as_layer(
         dataframe: geopandas.GeoDataFrame,
         layer_name: str,
         geometry_column: str = "geometry",
         crs_epsg: int = 4326,
-        out_path: Optional[Path] = None) -> QgsVectorLayer:
+        materialize: bool = True) -> QgsVectorLayer:
     """Load a DataFrame as a QGIS vector layer.
 
     Args:
@@ -114,108 +56,55 @@ def load_dataframe_as_layer(
     Returns:
         QgsVectorLayer: The created QGIS vector layer.
     """
-    # if geometry_column and geometry_column in dataframe.columns:
-    #     # Convert the DataFrame to GeoJSON format
-    #     geojson_str = dataframe.to_json()
+    if geometry_column and geometry_column in dataframe.columns:
+        # Convert the DataFrame to GeoJSON format
+        geojson_str = dataframe.to_json()
 
-    #     # Create a QGIS vector layer from the GeoJSON string
-    #     vl = QgsVectorLayer(geojson_str, layer_name, "ogr")
+        # Create a QGIS vector layer from the GeoJSON string
+        vl = QgsVectorLayer(geojson_str, layer_name, "ogr")
 
-    #     # Set the geometry column if specified
-    #     if crs_epsg:
-    #         vl.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{crs_epsg}"))
-    # else:
-    #     # If no geometry column is provided, create a non-spatial layer
-    #     vl = QgsVectorLayer("None", layer_name, "memory")
-    #     provider = vl.dataProvider()
+        # Set the geometry column if specified
+        if crs_epsg:
+            vl.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{crs_epsg}"))
+    else:
+        # If no geometry column is provided, create a non-spatial layer
+        vl = QgsVectorLayer("None", layer_name, "memory")
+        provider = vl.dataProvider()
 
-    #     # Add fields to the layer
-    #     fields = [QgsField(col, QVariant.String) for col in dataframe.columns]
-    #     provider.addAttributes(fields)
-    #     vl.updateFields()
+        # Add fields to the layer
+        fields = [QgsField(col, QVariant.String) for col in dataframe.columns]
+        provider.addAttributes(fields)
+        vl.updateFields()
 
-    #     # Add features to the layer
-    #     for _, row in dataframe.iterrows():
-    #         feat = QgsFeature()
-    #         feat.setFields(vl.fields())
-    #         for col in dataframe.columns:
-    #             feat.setAttribute(col, str(row[col]))
-    #         provider.addFeature(feat)
-
-    # get geometry type from the first valid geometry
-    first_valid_geom = None
-    for geom in dataframe[geometry_column]:
-        if geom is not None and not geom.is_empty:
-            first_valid_geom = geom
-            break
-    if first_valid_geom is None:
-        raise ValueError("No valid geometries found in the specified geometry column.")
-    # geom_type = first_valid_geom.geom_type
-    # if geom_type == 0:
-    #     qgis_geom_type = "Point"
-    # elif geom_type == 1:
-    #     qgis_geom_type = "LineString"
-    # elif geom_type == 2:
-    #     qgis_geom_type = "Polygon"
-    # else:
-    #     raise ValueError(f"Unsupported geometry type. {geom_type}")
-
-    vl = QgsVectorLayer(f"{first_valid_geom.geom_type}?crs=epsg:{crs_epsg}", layer_name, "memory")
-    provider = vl.dataProvider()
-    if provider is None:
-        raise ValueError("Could not get data provider for the vector layer.")
-
-    # Add fields to the layer
-    for col in dataframe.columns:
-        if col == geometry_column:
-            continue
-        if col not in vl.fields().names():
-            # get type of the dataframe column
-            dataframe_col_type = dataframe[col].dtype
-            if dataframe_col_type in ['int64', 'int32', 'int16', 'Int8', Int64Dtype()]:
-                provider.addAttributes([QgsField(col, QMetaType.Int)])
-            elif dataframe_col_type in ['float64', 'float32', 'float16', 'double', 'decimal', Float64Dtype()]:
-                provider.addAttributes([QgsField(col, QMetaType.Double)])
-            elif dataframe_col_type == 'bool':  
-                provider.addAttributes([QgsField(col, QMetaType.Bool)])
-            else:
-                provider.addAttributes([QgsField(col, QMetaType.QString)])
-    vl.updateFields()
-
-    # Add features to the layer
-    feats = []
-    for _, row in dataframe.iterrows():
-        # convert <NA> to None otherwise feat.setAttribute will fail
-        row_copy = row.copy()
-        row_copy[row_copy.isna()] = None
-
-        # add feature to layer
-        feat = QgsFeature()
-        feat.setFields(vl.fields())
-        for col in dataframe.columns:
-            if col == geometry_column:
-                if row_copy[col] is not None:
-                    feat.setGeometry(QgsGeometry.fromWkt(row_copy[col].wkt))
-            else:
-                feat.setAttribute(col, row_copy[col])
-        feats.append(feat)
-
-    # add all features at once to improve performance
-    provider.addFeatures(feats)
-    vl.updateExtents()
+        # Add features to the layer
+        for _, row in dataframe.iterrows():
+            feat = QgsFeature()
+            feat.setFields(vl.fields())
+            for col in dataframe.columns:
+                feat.setAttribute(col, str(row[col]))
+            provider.addFeature(feat)
 
     # save layer to the current Mergin project as parquet file if requested
-    if out_path is not None:
-        # session_folder = ANNCSUSettingsManager.get_session_repo_local_path()
-        # if session_folder is None:
-        #     raise ValueError("No active session found. Please select a session before materializing the layer.")
-        output_file_path = out_path / f"{layer_name}.gpkg"
+    if materialize:
+        # get current Mergin configuration basing on selected project
+        mergin_projects = mergin_utils.get_local_mergin_projects_info()
+        mergin_project  = ANNCSUSettingsManager.get_mergin_project_name()
+        mergin_project_path: Optional[Path] = None
+        output_file_path: Optional[Path] = None
+        for path, workspace, project_name, project_server in mergin_projects:
+            if project_name == mergin_project:
+                mergin_project_path = path
+                break
+
+        if mergin_project_path is None:
+            raise ValueError(f"Mergin project '{mergin_project}' not found among local Mergin projects.")
+        output_file_path = Path(mergin_project_path) / f"{layer_name}.parquet"
 
         # Materialize layer as Parquet file
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.fileEncoding = 'UTF-8'
         options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-        options.driverName = 'GPKG'
+        options.driverName = 'Parquet'
         options.layerName = layer_name
         options.saveMetadata = True
         options.symbolExport = QgsVectorFileWriter.FeatureSymbology
@@ -226,7 +115,7 @@ def load_dataframe_as_layer(
                     QgsProject.instance().transformContext(),
                     options)
         if write_result != QgsVectorFileWriter.NoError:
-            raise IOError(f"Error saving layer '{layer_name}' to file '{output_file_path}': {error_message}")
+            raise IOError(f"Error saving layer '{layer_name}' to Parquet file '{output_file_path}': {error_message}")
         else:
             vl = QgsVectorLayer(str(output_file_path), layer_name, "ogr")
 
@@ -238,7 +127,7 @@ def load_dataframe_as_layer(
     else:
         print(f"Style file not found: {named_style_path}")
 
-    # show the layer in QGIS
+    # finally load the layer in QGIS project
     QgsProject.instance().addMapLayer(vl)
 
     return vl

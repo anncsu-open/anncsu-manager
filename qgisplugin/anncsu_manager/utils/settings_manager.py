@@ -1,18 +1,12 @@
-import geopandas
-import pandas
 import json
 import os
 import requests
-import shutil
-from git import Repo
-from typing import Optional, Dict, Tuple, Union
+from typing import Optional, Dict, Tuple
 from pathlib import Path
 from pydantic.dataclasses import dataclass
 from pydantic import AnyUrl
 from typing_extensions import Annotated
 from datetime import datetime
-import urllib.parse
-from dotenv import load_dotenv
 
 import duckdb
 
@@ -24,11 +18,6 @@ from qgis.core import (
 
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
-from anncsu_manager.utils.misc_utils import EventSource
-
-
-load_dotenv()
-
 
 @dataclass
 class MunicipalityData:
@@ -52,11 +41,8 @@ class MunicipalityData:
 
 @dataclass
 class ScopeData:
-
-    sync_changed = EventSource()
-
     duckdb_path: Annotated[Path, "Path to local duckdb file"]
-    remote_git_repo: Annotated[Optional[str], "URL or git ssh string to remote git repo where store session"]
+    remote_duckdb_url: Annotated[Optional[AnyUrl], "URL to remote duckdb file"]
     syncked: Annotated[bool, "Whether the local duckdb is syncked with remote"]
     municipality_data: Annotated[MunicipalityData, "Municipality data associated with this scope"]
     source_db: Annotated[Optional[AnyUrl], "Source URL from where the duckdb has been extracted"]
@@ -67,7 +53,7 @@ class ScopeData:
     def to_dict(self):
         return {
             "duckdb_path": str(self.duckdb_path),
-            "remote_git_repo": str(self.remote_git_repo) if self.remote_git_repo else None,
+            "remote_duckdb_url": str(self.remote_duckdb_url) if self.remote_duckdb_url else None,
             "syncked": self.syncked,
             "municipality_data": self.municipality_data.to_dict(),
             "source_db": str(self.source_db) if self.source_db else None,
@@ -75,107 +61,9 @@ class ScopeData:
             "update_date": self.update_date.isoformat() if self.update_date else None,
             "description": self.description,
         }
-
+    
     def toJson(self) -> str:
         return json.dumps(self.to_dict())
-
-    def get_local_repo_path(self) -> Optional[Path]:
-        """Get local git repo path where the duckdb is stored.
-
-        Returns:
-            Optional[Path]: Path to local git repo folder or None if not found.
-        """
-        if self.remote_git_repo is None:
-            return None
-
-        local_path = Path(self.duckdb_path).parent
-        if local_path.exists() and (local_path / ".git").exists():
-            return local_path.resolve()
-        return None
-
-    def sync(self, files_to_sync: Optional[Union[Path, list[Path]]] = None):
-        """Sync duckdb (by default) with remote git repo using git library.
-        If files_to_sync is provided, sync only those files.
-        Inputs:
-            files_to_sync (Optional[Union[str, Path, list[Union[str, Path]]]], optional): Files to sync. Defaults to None. If none DuckDB file is synced.
-        Raises:
-            Exception: If sync fails.
-        """
-        if self.remote_git_repo is None:
-            raise Exception("Cannot sync scope without remote git repo.")
-
-        # do nothing is already syncked and notify
-        if self.syncked:
-            QgsMessageLog.logMessage(f"Scope at {self.duckdb_path} is already syncked with remote repo {self.remote_git_repo}.", level=Qgis.Info)
-            return
-
-        local_path = self.get_local_repo_path()
-        if local_path is None:
-            raise Exception(f"Local git repo path for scope at {self.duckdb_path} not found.")
-
-        # manage input files to commit and sync
-        if files_to_sync is None:
-            files_to_sync = [self.duckdb_path]
-        elif isinstance(files_to_sync, (str, Path)):
-            files_to_sync = [files_to_sync]
-
-        # do commit and push e.g. sync
-        try:
-            print(f"Syncing git repository at {local_path}...")
-            repo = Repo(local_path)
-            origin = repo.remotes.origin
-
-            # make files to sync relative to repo root
-            files_to_sync = [f.resolve() if isinstance(f, Path) else Path(f).resolve() for f in files_to_sync]
-            files_to_sync = [f.relative_to(local_path) for f in files_to_sync]
-
-            # Credential helpers: read from QGIS settings via ANNCSUSettingsManager
-            git_user = ANNCSUSettingsManager.get_git_user()
-            git_password = ANNCSUSettingsManager.get_git_password()
-            git_token = ANNCSUSettingsManager.get_git_token()
-            ssh_key = ANNCSUSettingsManager.get_git_ssh_key()
-
-            original_url = origin.url
-            temp_url_changed = False
-            old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-
-            try:
-                # If SSH key provided, instruct git to use it for this process.
-                if ssh_key:
-                    os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                # If HTTPS credentials present, inject them into remote URL temporarily.
-                elif git_token or (git_user and git_password):
-                    creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                    parsed = urllib.parse.urlsplit(origin.url)
-                    if parsed.scheme in ("http", "https"):
-                        netloc = f"{creds}@{parsed.netloc}"
-                        auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                        origin.set_url(auth_url)
-                        temp_url_changed = True
-
-                origin.pull()
-                repo.index.add( [str(f) for f in files_to_sync] )
-                repo.index.commit(f"Sync at {datetime.now().isoformat()}")
-                origin.push()
-                self.syncked = True
-            finally:
-                # restore original remote url and environment
-                if temp_url_changed:
-                    try:
-                        origin.set_url(original_url)
-                    except Exception:
-                        pass
-                if ssh_key:
-                    if old_git_ssh is None:
-                        os.environ.pop("GIT_SSH_COMMAND", None)
-                    else:
-                        os.environ["GIT_SSH_COMMAND"] = old_git_ssh
-
-            self.sync_changed.emit()
-
-        except Exception as e:
-            self.syncked = False
-            raise Exception(f"Error syncing git repository at {local_path}: {e}")
 
 
 class ANNCSUSettingsManager:
@@ -190,7 +78,6 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
-    DEFAULT_SESSION_REPO_URL = "https://github.com/geobeyond/anncsu-{nome}-{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
@@ -198,70 +85,58 @@ class ANNCSUSettingsManager:
     DEFAULT_MUNICIPALITY = "NoName"
     DEFAULT_MUNICIPALITY_CODE = "0000000"
     DEFAULT_GEOCODERS_CONFIGS = {
-        "Nominatim": {
-            "active": "False",
-            "addressdetails": "True",
-            "bounded": "False",
-            "builder": "NominatimGeocoderBuilder",
-            "country_codes": "",
-            "dedupe": "True",
-            "email": "",
-            "extratags": "False",
-            "language": "en",
-            "limit": 1,
-            "max_results": 5,
-            "min_score": 0,
-            "namedetails": "False",
-            "polygon_geojson": "False",
-            "polygon_kml": "False",
-            "rate_limit": 1.0,
-            "timeout": 5,
-            "url": "https://nominatim.openstreetmap.org/",
-            "user_agent": "ANNCSU Geocode QGIS Plugin",
-            "viewbox": ""
-        },
-        "Pelias": {
-            "active": "False",
-            "api_key": "",
-            "boundary.circle.lat": "",
-            "boundary.circle.lon": "",
-            "boundary.circle.radius": "",
-            "boundary.country": "",
-            "boundary.rect.max_lat": "",
-            "boundary.rect.max_lon": "",
-            "boundary.rect.min_lat": "",
-            "boundary.rect.min_lon": "",
-            "builder": "PeliasGeocoderBuilder",
-            "dedupe": "True",
-            "focus.point.lat": "",
-            "focus.point.lon": "",
-            "lang": "en",
-            "layers": "",
-            "max_results": 5,
-            "min_score": 0,
-            "size": 10,
-            "sources": "",
-            "url": "https://search.geocode.earth/v1/"
-        },
-        "Photon": {
-            "active": "False",
-            "builder": "PhotonGeocoderBuilder",
-            "dedupe": "True",
-            "lang": "en",
-            "limit": 10,
-            "max_results": 5,
-            "min_score": 0,
-            "url": "https://photon.komoot.io/api/"
-        },
-        "WhereAbouts": {
-            "active": "True",
-            "builder": "WhereaboutsGeocoderBuilder",
-            "builder_module": "whereabouts_geocoder",
-            # Possible values for "standard", "trigram"
-            "how": "trigram",
-            "matcher_db": "italia_whereabouts",
-            "threshold": 0.8
-        }
+            "Nominatim": {
+                "active": "True",
+                "addressdetails": "True",
+                "bounded": "False",
+                "country_codes": "",
+                "dedupe": "True",
+                "email": "",
+                "extratags": "False",
+                "language": "en",
+                "limit": 1,
+                "max_results": 5,
+                "min_score": 0,
+                "namedetails": "False",
+                "polygon_geojson": "False",
+                "polygon_kml": "False",
+                "rate_limit": 1.0,
+                "timeout": 5,
+                "url": "https://nominatim.openstreetmap.org/",
+                "user_agent": "ANNCSU Geocode QGIS Plugin",
+                "viewbox": ""
+            },
+            "Pelias": {
+                "active": "True",
+                "api_key": "",
+                "boundary.circle.lat": "",
+                "boundary.circle.lon": "",
+                "boundary.circle.radius": "",
+                "boundary.country": "",
+                "boundary.rect.max_lat": "",
+                "boundary.rect.max_lon": "",
+                "boundary.rect.min_lat": "",
+                "boundary.rect.min_lon": "",
+                "dedupe": "True",
+                "focus.point.lat": "",
+                "focus.point.lon": "",
+                "lang": "en",
+                "layers": "",
+                "max_results": 5,
+                "min_score": 0,
+                "size": 10,
+                "sources": "",
+                "url": "https://search.geocode.earth/v1/"
+            },
+            "Photon": {
+                "active": "True",
+                "dedupe": "True",
+                "lang": "en",
+                "limit": 10,
+                "max_results": 5,
+                "min_score": 0,
+                "url": "https://photon.komoot.io/api/"
+            }
         # "OpenCage",
         # "LocationIQ",
         # "Geoapify",
@@ -290,17 +165,15 @@ class ANNCSUSettingsManager:
     #     "OOOOOO_20251008": {
     #         "duckdb_path": "https://geodata.civictech.it/anncsu/OOOOOO_20251008.duckdb",
     #         "temporary_duckdb_path": "OOOOOO_20251008.duckdb",
-    #         "remote_git_repo": "https://www.github.com/geobeyond/ANNCSU_NomeComune_OOOOOO.git",
+    #         "remote_duckdb_url": "https://geodata.civictech.it/anncsu/OOOOOO_20251008.duckdb",
     #         "municipality_code": "0000000",
     #         "creation_date": "2025-10-08",
     #         "update_date": "2025-10-08",
     #         "description": "Italy - National (2025-10-08)",
     #     }
     # }
-    DEFAULT_SCOPES: Dict[str, ScopeData] = {}
-    SCOPES: Dict[str, ScopeData] = {}
+    SCOPES = {}
 
-    DEFAULT_SESSION_REPO_URL_KEY = 'anncsu_manager/default_session_repo_url'
     GEOFENCE_POLYGONS_SOURCE_KEY = 'anncsu_manager/geofence_polygons_source'
     SCOPES_KEY = "anncsu_manager/geocoders_json_path"
     GEOCODERS_JSON_PATH_KEY = "anncsu_manager/geocoders_json_path"
@@ -311,40 +184,19 @@ class ANNCSUSettingsManager:
     SCOPES_KEY = "anncsu_manager/scopes"
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
-    # Git credential keys (stored in QGIS settings)
-    GIT_TOKEN_KEY = "anncsu_manager/git_token"
-    GIT_USER_KEY = "anncsu_manager/git_user"
-    GIT_PASSWORD_KEY = "anncsu_manager/git_password"
-    GIT_SSH_KEY_KEY = "anncsu_manager/git_ssh_key"
-
-    # add defaults for credentials
     DEFAULTS = {
-        DEFAULT_SESSION_REPO_URL_KEY: DEFAULT_SESSION_REPO_URL,
         GEOFENCE_POLYGONS_SOURCE_KEY: DEFAULT_GEOFENCE_POLYGONS_SOURCE,
         GEOCODERS_JSON_PATH_KEY: str(DEFAULT_GEOCODERS_JSON_PATH),
         ANNCSU_REPO_URL_KEY: DEFAULT_ANNCSU_REPO_URL,
         MUNICIPALITY_KEY: DEFAULT_MUNICIPALITY,
         MUNICIPALITY_CODE_KEY: DEFAULT_MUNICIPALITY_CODE,
         GEOCODERS_CONFIGS_KEY: DEFAULT_GEOCODERS_CONFIGS,
-        SCOPES_KEY: DEFAULT_SCOPES,
+        SCOPES_KEY: SCOPES,
         # A scope id has the following format: "<codice_municipio>_YYYYMMDD_HHMMSS"
         SCOPE_ID_KEY: "",
     }
 
-    # set credential defaults
-    DEFAULTS.update({
-        GIT_TOKEN_KEY: "",
-        GIT_USER_KEY: "",
-        GIT_PASSWORD_KEY: "",
-        GIT_SSH_KEY_KEY: "",
-    })
-
     # GETTERS
-    @classmethod
-    def get_default_session_repo_url(cls) -> str:
-        key = cls.DEFAULT_SESSION_REPO_URL_KEY
-        return QgsSettings().value(key, cls.DEFAULTS[key])
-
     @classmethod
     def get_geofence_polygons_source(cls) -> str:
         key = cls.GEOFENCE_POLYGONS_SOURCE_KEY
@@ -400,157 +252,44 @@ class ANNCSUSettingsManager:
 
     @classmethod
     def get_scopes(cls) -> Dict[str, ScopeData]:
-        """Returns the scopes saved in QGIS settings.
-        maintain a static/singleton image of scopes in memory
-        to allow modifications and signals.
-        In this way events generate by a scope can be listened by all the
-        parts of the plugin that have access to settings manager."""
+        key = cls.SCOPES_KEY
+        # Deserialize
+        try:
+            serialised = QgsSettings().value(key, cls.DEFAULTS[key])
+            scopes_dict = json.loads(serialised)
+            scopes = {}
+            for scope_id, scope_data in scopes_dict.items():
+                # manage if ScopeData has been changed and discard old structures
+                if not all(k in scope_data for k in ("duckdb_path", "remote_duckdb_url", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
+                    continue
 
-        if cls.SCOPES is None or len(cls.SCOPES) == 0:
-            key = cls.SCOPES_KEY
-            # Deserialize
-            try:
-                serialised = str(QgsSettings().value(key, cls.DEFAULTS[key]))
-                scopes_dict = json.loads(serialised)
-                scopes = {}
-                for scope_id, scope_data in scopes_dict.items():
-                    # manage if ScopeData has been changed and discard old structures
-                    if not all(k in scope_data for k in ("duckdb_path", "remote_git_repo", "syncked", "municipality_data", "source_db", "creation_date", "update_date")):
-                        continue
-
-                    # parse dates
-                    creation_date = datetime.fromisoformat(scope_data["creation_date"])
-                    update_date = datetime.fromisoformat(scope_data["update_date"]) if scope_data["update_date"] else None
-                    scopes[scope_id] = ScopeData(
-                        duckdb_path=Path(scope_data["duckdb_path"]),
-                        remote_git_repo=scope_data["remote_git_repo"],
-                        syncked=scope_data["syncked"],
-                        municipality_data=MunicipalityData(**scope_data["municipality_data"]),
-                        source_db=scope_data["source_db"],
-                        creation_date=creation_date,
-                        update_date=update_date,
-                        description=scope_data.get("description"),
-                    )
-                cls.SCOPES = scopes
-        
-            # If error, reset
-            except (TypeError, json.JSONDecodeError) as e:
-                ANNCSUMessageManager().show_message(
-                    f"Failed to load default scopes. Reset to default values. {e}",
-                    "error"
+                # parse dates
+                creation_date = datetime.fromisoformat(scope_data["creation_date"])
+                update_date = datetime.fromisoformat(scope_data["update_date"]) if scope_data["update_date"] else None
+                scopes[scope_id] = ScopeData(
+                    duckdb_path=Path(scope_data["duckdb_path"]),
+                    remote_duckdb_url=scope_data["remote_duckdb_url"],
+                    syncked=scope_data["syncked"],
+                    municipality_data=MunicipalityData(**scope_data["municipality_data"]),
+                    source_db=scope_data["source_db"],
+                    creation_date=creation_date,
+                    update_date=update_date,
+                    description=scope_data.get("description"),
                 )
-                cls.reset_scopes()
-                cls.SCOPES = cls.get_scopes()
+            return scopes
+        
+        # If error, reset
+        except (TypeError, json.JSONDecodeError) as e:
+            ANNCSUMessageManager().show_message(
+                f"Failed to load default scopes. Reset to default values. {e}",
+                "error"
+            )
+            cls.reset_scopes()
+            scopes = cls.get_scopes()
 
-        return cls.SCOPES
+        return scopes
 
-    # Environment-backed credential getters/setters (preferred)
-    @staticmethod
-    def get_git_token_env() -> str:
-        """Return ANNCSU_GIT_TOKEN from environment if set, else empty string."""
-        return os.environ.get("ANNCSU_GIT_TOKEN", "")
-
-    @staticmethod
-    def set_git_token_env(token: str):
-        """Set ANNCSU_GIT_TOKEN in environment (use None or empty to unset)."""
-        if not token:
-            os.environ.pop("ANNCSU_GIT_TOKEN", None)
-        else:
-            os.environ["ANNCSU_GIT_TOKEN"] = token
-
-    @staticmethod
-    def get_git_user_env() -> str:
-        return os.environ.get("ANNCSU_GIT_USER", "")
-
-    @staticmethod
-    def set_git_user_env(user: str):
-        if not user:
-            os.environ.pop("ANNCSU_GIT_USER", None)
-        else:
-            os.environ["ANNCSU_GIT_USER"] = user
-
-    @staticmethod
-    def get_git_password_env() -> str:
-        return os.environ.get("ANNCSU_GIT_PASSWORD", "")
-
-    @staticmethod
-    def set_git_password_env(password: str):
-        if not password:
-            os.environ.pop("ANNCSU_GIT_PASSWORD", None)
-        else:
-            os.environ["ANNCSU_GIT_PASSWORD"] = password
-
-    @staticmethod
-    def get_git_ssh_key_env() -> str:
-        return os.environ.get("ANNCSU_SSH_KEY", "")
-
-    @staticmethod
-    def set_git_ssh_key_env(ssh_key_path: str):
-        if not ssh_key_path:
-            os.environ.pop("ANNCSU_SSH_KEY", None)
-        else:
-            os.environ["ANNCSU_SSH_KEY"] = ssh_key_path
-
-    # Backwards-compatible getters/setters that prefer env vars, fall back to QGIS settings
-    @classmethod
-    def get_git_token(cls) -> str:
-        token = cls.get_git_token_env()
-        if token:
-            return token
-        return QgsSettings().value(cls.GIT_TOKEN_KEY, cls.DEFAULTS.get(cls.GIT_TOKEN_KEY, ""))
-
-    @classmethod
-    def set_git_token(cls, token: str):
-        # Persist both in env (preferred) and in QgsSettings for persistence if needed
-        cls.set_git_token_env(token)
-        QgsSettings().setValue(cls.GIT_TOKEN_KEY, token)
-
-    @classmethod
-    def get_git_user(cls) -> str:
-        user = cls.get_git_user_env()
-        if user:
-            return user
-        return QgsSettings().value(cls.GIT_USER_KEY, cls.DEFAULTS.get(cls.GIT_USER_KEY, ""))
-
-    @classmethod
-    def set_git_user(cls, user: str):
-        cls.set_git_user_env(user)
-        QgsSettings().setValue(cls.GIT_USER_KEY, user)
-
-    @classmethod
-    def get_git_password(cls) -> str:
-        pwd = cls.get_git_password_env()
-        if pwd:
-            return pwd
-        return QgsSettings().value(cls.GIT_PASSWORD_KEY, cls.DEFAULTS.get(cls.GIT_PASSWORD_KEY, ""))
-
-    @classmethod
-    def set_git_password(cls, password: str):
-        cls.set_git_password_env(password)
-        QgsSettings().setValue(cls.GIT_PASSWORD_KEY, password)
-
-    @classmethod
-    def get_git_ssh_key(cls) -> str:
-        """get ssh key path file
-
-        Returns:
-            str: path of the key file
-        """
-        key = cls.get_git_ssh_key_env()
-        if key:
-            return key
-        return QgsSettings().value(cls.GIT_SSH_KEY_KEY, cls.DEFAULTS.get(cls.GIT_SSH_KEY_KEY, ""))
-
-    @classmethod
-    def set_git_ssh_key(cls, ssh_key_path: str):
-        cls.set_git_ssh_key_env(ssh_key_path)
-        QgsSettings().setValue(cls.GIT_SSH_KEY_KEY, ssh_key_path)
-
-# SETTERS
-    @classmethod
-    def set_default_session_repo_url(cls, url: str):
-        QgsSettings().setValue(cls.DEFAULT_SESSION_REPO_URL_KEY, url)
-
+    # SETTERS
     @classmethod
     def set_geofence_polygons_source(cls, source: str):
         QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, source)
@@ -601,13 +340,8 @@ class ANNCSUSettingsManager:
 
         encoded_value = json.dumps(scopes, cls=jsonEncoder)
         QgsSettings().setValue(cls.SCOPES_KEY, encoded_value)
-        cls.SCOPES = scopes
 
     # RESETS
-    @classmethod
-    def reset_default_session_repo_url(cls):
-        QgsSettings().setValue(cls.DEFAULT_SESSION_REPO_URL_KEY, cls.DEFAULTS[cls.DEFAULT_SESSION_REPO_URL_KEY])
-
     @classmethod
     def reset_geofence_polygons_source(cls):
         QgsSettings().setValue(cls.GEOFENCE_POLYGONS_SOURCE_KEY, cls.DEFAULTS[cls.GEOFENCE_POLYGONS_SOURCE_KEY])
@@ -635,7 +369,6 @@ class ANNCSUSettingsManager:
 
     @classmethod
     def reset_all(cls):
-        cls.reset_default_session_repo_url()
         cls.reset_geofence_polygons_source()
         cls.reset_anncsu_repo()
         cls.reset_municipality()
@@ -650,10 +383,7 @@ class ANNCSUSettingsManager:
             scope = scopes[scope_id]
             # remove local duckdb file
             if scope.duckdb_path.exists():
-                session_folder = scope.duckdb_path.parent
-                if session_folder.exists() and session_folder.is_dir():
-                    shutil.rmtree(session_folder, ignore_errors=True)
-
+                os.remove(scope.duckdb_path)
             # remove from settings
             del scopes[scope_id]
             ANNCSUSettingsManager.set_scopes(scopes)
@@ -663,240 +393,28 @@ class ANNCSUSettingsManager:
                 ANNCSUSettingsManager.set_current_scope_id("")
 
     @classmethod
-    def get_session_repo_local_path(cls) -> Optional[Path]:
-        scope_id = cls.get_current_scope_id()
-        scopes = cls.get_scopes()
-
-        if not scope_id or (scope_id not in scopes):
-            return None
-
-        scope = scopes[scope_id]
-        if scope.duckdb_path is None:
-            return None
-
-        local_path = Path(scope.duckdb_path).parent
-        return local_path
-
-    @classmethod
-    def get_anncsu_table_dataframe(cls) -> Optional[geopandas.GeoDataFrame]:
-        """Get anncsu table from duckdb of current scope as geopandas dataframe.
-        
-        NOTE: anncsu DB table contain columns introduced by the plugin stating with: PLUGIN_*
-        Returns:
-            Optional[geopandas.GeoDataFrame]: Anncsu table as geopandas dataframe or None if error occurs.
-        """
-        scope_id = cls.get_current_scope_id()
-        scopes = cls.get_scopes()
-
-        if not scope_id or (scope_id not in scopes):
-            return None
-
-        scope = scopes[scope_id]
-        if scope.duckdb_path is None:
-            return None
-
-        # connect to duckdb and read anncsu table
-        with duckdb.connect(database=str(scope.duckdb_path)) as scopedb:
-            try:
-                scopedb.execute("INSTALL spatial;")
-                scopedb.execute("LOAD spatial;")
-                df = scopedb.execute("SELECT * FROM anncsu").df()
-
-                # clean 'nan' strings to None
-                df = df.replace('nan', None)
-
-                # change dtype of PROGRESSIVO_ACCESSO and PROGRESSIVO_NAZIONALE to int
-                df['PROGRESSIVO_ACCESSO'] = pandas.to_numeric(df['PROGRESSIVO_ACCESSO'], errors='coerce').astype('Int64')
-                df['PROGRESSIVO_NAZIONALE'] = pandas.to_numeric(df['PROGRESSIVO_NAZIONALE'], errors='coerce').astype('Int64')
-
-                # change dtype of NUMERO_CIVICO to int
-                df['CIVICO'] = pandas.to_numeric(df['CIVICO'], errors='coerce').astype('Int64')
-
-                # change dtype of COORD_X_COMUNE and COORD_Y_COMUNE to float
-                df['COORD_X_COMUNE'] = pandas.to_numeric(df['COORD_X_COMUNE'], errors='coerce').astype('Float64')
-                df['COORD_Y_COMUNE'] = pandas.to_numeric(df['COORD_Y_COMUNE'], errors='coerce').astype('Float64')
-
-                # change dtype of QUOTA to float
-                df['QUOTA'] = pandas.to_numeric(df['QUOTA'], errors='coerce').astype('Float64')
-
-                return df
-            except Exception as e:
-                QgsMessageLog.logMessage(f"Error reading anncsu table from duckdb at {scope.duckdb_path}: {e}", level=Qgis.Critical)
-                return None
-    
-    @classmethod
-    def merge_geocoded_with_anncsu_dataframe(
-        cls,
-        geocoded_dataframe: geopandas.GeoDataFrame,
-        anncsu_dataframe: geopandas.GeoDataFrame
-    ) -> Optional[geopandas.GeoDataFrame]:
-        """Merge geocoded dataframe with anncsu dataframe based on 'anncsu_id' field.
-
-        Args:
-            geocoded_dataframe (geopandas.GeoDataFrame): Geocoded dataframe 'address_id' and 'road_id' fields.
-            anncsu_dataframe (geopandas.GeoDataFrame): Anncsu dataframe with 'PROGRESSIVO_ACCESSO' and 'PROGRESSIVO_NAZIONALE' fields.
-
-        Returns:
-            Optional[geopandas.GeoDataFrame]: Merged dataframe or None if error occurs.
-        """
-        try:
-            merged_df = pandas.merge(
-                geocoded_dataframe,
-                anncsu_dataframe,
-                left_on=["address_id", "road_id"],
-                right_on=["PROGRESSIVO_ACCESSO", "PROGRESSIVO_NAZIONALE"],
-                how="left"
-            )
-
-            # set COORD_X_COMUNE and COORD_Y_COMUNE from longitude and latitude
-            if 'longitude' in merged_df.columns and 'latitude' in merged_df.columns:
-                merged_df['COORD_X_COMUNE'] = merged_df['longitude']
-                merged_df['COORD_Y_COMUNE'] = merged_df['latitude']
-            
-            # drop all  columns except geometry
-            cols_to_drop = [col for col in geocoded_dataframe.columns if col != 'geometry']
-            merged_df = merged_df.drop(columns=cols_to_drop)
-
-            # drop all automatic columns generated by pandas merge becase PK are "PROGRESSIVO_ACCESSO" and "PROGRESSIVO_NAZIONALE"
-            merged_df = merged_df.drop(columns=['fid', 'id'], errors='ignore')
-
-            # rename geometry to geometry
-            merged_df = geopandas.GeoDataFrame(merged_df, geometry='geometry', crs="EPSG:4326")
-
-            return merged_df
-        except Exception as e:
-            QgsMessageLog.logMessage(f"Error merging geocoded dataframe with anncsu dataframe: {e}", level=Qgis.Critical)
-            return None
-
-    @classmethod
     def create_new_session(
         cls,
         task,
         source_db: AnyUrl,
         municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback,
-    ) -> Tuple[Optional[str], Optional[ScopeData]]:
+    ) -> Tuple[str, ScopeData]:
         """Create a new session and add it to SCOPES.
 
         Args:
             source_db (Optional[AnyUrl]): Source URL from where the duckdb has been extracted.
-            municipality_data (MunicipalityData): Municipality data associated with this scope.
+            municipality_code (str): Municipality code associated with this scope.
         Returns:
             scope: ScopeData"""
         QgsMessageLog.logMessage(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {source_db}...", level=Qgis.Info)
-        print(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {str(source_db)}...")
+        # print(f"Creating new session task: {task.name() if task else 'No Task'} for municipality {municipality_data.anncsu_id} from source db {source_db}...")
 
-        # create remote repo url where to save session make it's name a correct url
-        remote_git_repo = str.lower(cls.get_default_session_repo_url().format(**municipality_data.to_dict()))
-        repo_name = os.path.basename(remote_git_repo).replace(".git", "")
-        local_path =cls.PLUGIN_PATH / "resources" / "data" / repo_name
-        print(f"Using remote git repo URL: {remote_git_repo}")
-
-        # check correctness of the url
-        try:
-            AnyUrl(remote_git_repo)
-        except Exception as e:
-            QgsMessageLog.logMessage(f"Invalid remote HTTP(S) git repo URL: {remote_git_repo} check if SSH. error: {e}", level=Qgis.Critical)
-            parsed = urllib.parse.urlparse(remote_git_repo)
-            if parsed.path == remote_git_repo and (parsed.scheme == "" or parsed.scheme is None):
-                # possibly a git ssh url
-                if "@" in remote_git_repo and ":" in remote_git_repo:
-                    print(f"Assuming remote git repo is SSH URL: {remote_git_repo}")
-                else:
-                    QgsMessageLog.logMessage(f"Invalid remote git repo URL: {remote_git_repo}", level=Qgis.Critical)
-                    return None, None
-            else:
-                return None, None
-
-        # create unique duckdb path for the scope
         now = datetime.now()
         scope_name = f"{municipality_data.anncsu_id}_{now.strftime('%Y%m%d_%H%M%S')}"
-        duckdb_path = local_path / f"{scope_name}.duckdb"
-
-        # clone remote_git_repo locally
-        try:
-            # Use credentials stored in QGIS settings (if any)
-            git_user = cls.get_git_user()
-            git_password = cls.get_git_password()
-            git_token = cls.get_git_token()
-            ssh_key = cls.get_git_ssh_key()
-
-            if local_path.exists():
-                repo = Repo(local_path)
-                origin = repo.remotes.origin
-                original_url = origin.url
-                temp_url_changed = False
-                old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-                try:
-                    if ssh_key:
-                        os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                    elif git_token or (git_user and git_password):
-                        creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                        parsed = urllib.parse.urlsplit(origin.url)
-                        if parsed.scheme in ("http", "https"):
-                            netloc = f"{creds}@{parsed.netloc}"
-                            auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                            origin.set_url(auth_url)
-                            temp_url_changed = True
-
-                    # NOTE: repo need to have at least 1 file otherwise git pull do not fetch any ref
-                    print(f"Pulling latest changes from git repository at {origin.url   }...")
-                    origin.pull()
-                finally:
-                    if temp_url_changed:
-                        try:
-                            origin.set_url(original_url)
-                        except Exception:
-                            pass
-                    if ssh_key:
-                        if old_git_ssh is None:
-                            os.environ.pop("GIT_SSH_COMMAND", None)
-                        else:
-                            os.environ["GIT_SSH_COMMAND"] = old_git_ssh
-
-                print(f"Repository already exists at {local_path}, pulled latest changes.")
-
-            else:
-                # prepare a temporary URL with credentials or GIT_SSH_COMMAND for cloning
-                temp_url = remote_git_repo
-                temp_changed = False
-                old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-                try:
-                    if ssh_key:
-                        os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                    elif git_token or (git_user and git_password):
-                        creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                        parsed = urllib.parse.urlsplit(remote_git_repo)
-                        if parsed.scheme in ("http", "https"):
-                            netloc = f"{creds}@{parsed.netloc}"
-                            temp_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                            temp_changed = True
-
-                    repo = Repo.clone_from(temp_url, local_path)
-                except Exception as e:
-                    print(f"Error cloning git repository from {remote_git_repo}: {e}")
-                    return None, None
-                finally:
-                    if temp_changed:
-                        try:
-                            origin = repo.remotes.origin
-                            origin.set_url(remote_git_repo)
-                        except Exception:
-                            pass
-                    if ssh_key:
-                        if old_git_ssh is None:
-                            os.environ.pop("GIT_SSH_COMMAND", None)
-                        else:
-                            os.environ["GIT_SSH_COMMAND"] = old_git_ssh
-
-        except Exception as e:
-             # QgsMessageLog.logMessage(f"Error cloning git repository from {remote_git_repo}: {e}", level=Qgis.Critical)
-             print(f"Error cloning git repository from {remote_git_repo}: {e}")
-             return None, None
-        QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_git_repo} into {local_path}", level=Qgis.Info)
+        duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / f"{scope_name}.duckdb"
 
         # populate scope session with subset of municipality data get from source_db
-        # QgsMessageLog.logMessage(f"Creating local duckdb at {duckdb_path}...", level=Qgis.Info)
         duckdb_conn = duckdb.connect(database=duckdb_path, read_only=False)
         if duckdb_conn is None:
             raise Exception("Could not create local duckdb database.")
@@ -947,21 +465,19 @@ class ANNCSUSettingsManager:
             # duckdb_conn.execute(f"SELEC * '{str(temp_duckdb_path)}' AS source_db;")
             # create local duckdb with only data for selected municipality_code
             # feedback.setProgress(95)
-            force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'FLOAT', 'COORD_X_COMUNE': 'FLOAT', 'COORD_Y_COMUNE': 'FLOAT'}"
+            force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'VARCHAR'}"
             duckdb_conn.execute(f"""
                 CREATE TABLE anncsu AS
                 SELECT
-                    $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
-                    $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
-                    $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
+                    $tag$'{municipality_data.nome}'$tag$ as COMUNE,
+                    $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
+                    $tag$'{municipality_data.regione}'$tag$ as REGIONE,
                     *
                 FROM
                     READ_CSV_AUTO(
                         'zip://{str(temp_duckdb_path)}',
                         header = true,
                         delim=';',
-                        thousands='.',
-                        decimal_separator=',',
                         types={force_column_types}
                     )
                 WHERE codice_comune = '{municipality_data.anncsu_id}';
@@ -974,7 +490,7 @@ class ANNCSUSettingsManager:
             if not str(source_db).endswith(".duckdb"):
                 raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (shoudl end with .duckdb).")
 
-            # QgsMessageLog.logMessage(f"Source duckdb is local at {source_db}...", level=Qgis.Info)
+            QgsMessageLog.logMessage(f"Source duckdb is local at {source_db}...", level=Qgis.Info)
             # feedback.pushInfo(f"Source duckdb is remote at {source_db}...")
 
             # query from a remote duckdb
@@ -982,9 +498,9 @@ class ANNCSUSettingsManager:
             duckdb_conn.execute(f"""
                 CREATE TABLE anncsu AS
                 SELECT
-                    $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
-                    $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
-                    $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
+                    $tag$'{municipality_data.nome}'$tag$ as COMUNE,
+                    $tag$'{municipality_data.provincia}'$tag$ as PROVINCIA,
+                    $tag$'{municipality_data.regione}'$tag$ as REGIONE,
                     *
                 FROM
                     indirizzarioItalia.anncsu_global
@@ -997,7 +513,7 @@ class ANNCSUSettingsManager:
         # note that geofence source is in 32632 and anncsu data is in wgs84 and
         # x,y coorinates are inverted
         # feedback.setProgress(97)
-        # QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
+        QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
         # feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
         duckdb_conn.execute(f"""
             CREATE OR REPLACE TABLE geofence_polygon AS (
@@ -1014,7 +530,7 @@ class ANNCSUSettingsManager:
                     COMUNE == '{municipality_data.nome}'
             );
         """)
-        # QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
+        QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
         # feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
 
         # all done => close connection
@@ -1024,8 +540,8 @@ class ANNCSUSettingsManager:
         # generate and return scope data
         scope = ScopeData(
             duckdb_path=duckdb_path,
-            remote_git_repo=remote_git_repo,
-            syncked=True,
+            remote_duckdb_url=None,
+            syncked=False,
             municipality_data=municipality_data,
             source_db=source_db,
             creation_date=now,
@@ -1035,5 +551,4 @@ class ANNCSUSettingsManager:
         scopes = cls.get_scopes()
         scopes[scope_name] = scope
         cls.set_scopes(scopes)
-        cls.set_current_scope_id(scope_name)
         return scope_name, scope

@@ -2,7 +2,6 @@ import os
 
 from qgis.gui import QgsDockWidget, QgsMessageBar
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QListWidget,
@@ -31,8 +30,6 @@ class ANNCSUWizardDialog(QDialog):
         self.resize(1000, 850)
 
         self.content = ANNCSUWizard(with_message_bar = True)
-        self.setAttribute(Qt.WA_DeleteOnClose)
-        self.closeEvent = self.__del__
 
         layout = QVBoxLayout()
         layout.addWidget(self.content)
@@ -41,10 +38,6 @@ class ANNCSUWizardDialog(QDialog):
 
         self.setWindowTitle("ANNCSU Wizard")
 
-    def __del__(self) -> None:
-        if self.content:
-            del self.content
-        self.content = None
 
 FORM_CLASS: QWidget = load_ui("wizard.ui")
 
@@ -53,7 +46,6 @@ class ANNCSUWizard(QWidget, FORM_CLASS):
     def __init__(self, with_message_bar: bool = False) -> None:
         super().__init__()
         self.setupUi(self)
-        self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.menu_widget: QListWidget
         self.pages_widget: QStackedWidget
@@ -110,21 +102,6 @@ class ANNCSUWizard(QWidget, FORM_CLASS):
         # Connect settings signal
         self.settings_page.minimal_menu_setting_changed.connect(self.create_menu)
 
-    def __del__(self) -> None:
-        if self.manager_page:
-            del self.manager_page
-        self.manager_page = None
-
-        if self.settings_page:
-            del self.settings_page
-        self.settings_page = None
-
-        if self.about_page:
-            del self.about_page
-        self.about_page = None
-
-        del self.message_manager
-        self.message_manager = None
 
     def create_menu(self, minimize_text: bool = False):
         for i, (text, icon) in enumerate(self.menu_items):

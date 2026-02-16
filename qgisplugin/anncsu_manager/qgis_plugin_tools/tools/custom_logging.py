@@ -114,6 +114,7 @@ class QgsLogHandler(logging.Handler):
                 "Due to memory limitations on this machine, {} logger can not "
                 "handle the full log"
             ).format(self._message_log_name)
+            # print(message)
             # noinspection PyCallByClass,PyTypeChecker
             QgsMessageLog.logMessage(message, level=Qgis.Critical, **tag_kwargs)
 

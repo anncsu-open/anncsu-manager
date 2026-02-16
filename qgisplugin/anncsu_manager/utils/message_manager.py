@@ -11,9 +11,6 @@ class ANNCSUMessageManager:
             cls.instance = super(ANNCSUMessageManager, cls).__new__(cls)
         return cls.instance
 
-    def __del__(self) -> None:
-        self.message_bar.deleteLater()
-        self.message_bar = None
 
     def set_message_bar(self, message_bar: QgsMessageBar):
         self.message_bar = message_bar
