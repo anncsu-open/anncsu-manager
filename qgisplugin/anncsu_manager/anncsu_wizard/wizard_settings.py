@@ -7,7 +7,7 @@ from pydantic import AnyUrl
 import duckdb
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
-from qgis.core import QgsTask, QgsApplication, QgsProject
+from qgis.core import QgsTask, QgsApplication
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -33,14 +33,6 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
-# add Mergin dependcies but do not  trigger error if Mergin is not installed
-# the reason is to allow to check Mergin installed during plugin loading in a
-# controlled way
-try:
-    from Mergin import utils as mergin_utils
-except ImportError:
-    pass
-
 FORM_CLASS: QDialog = load_ui("wizard_settings.ui")
 
 CODICE_CATASTRO_DB_PATH = Path(PLUGIN_PATH) / "resources" / "data" / "Elenco-comuni-italiani.csv"
@@ -57,7 +49,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # self.settings_tabs: QTabWidget
 
         # set progress bar and feedback manager for long operations
-        self.parent = parent
         self.progressBar: QProgressBar = progress_bar if progress_bar is not None else QProgressBar()
         self.progressBar.setVisible(False)
         self.feedback: ANNCSUProcessingFeedback = ANNCSUProcessingFeedback(
@@ -100,7 +91,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             QDialogButtonBox.RestoreDefaults
         ).clicked.connect(self.reset_settings_to_default)
         self.settings_button_box.button(QDialogButtonBox.RestoreDefaults).setAutoDefault(False)
-        self.settings_button_box.button(QDialogButtonBox.Save).clicked.connect(self.check_if_new_session_needed_and_save)
+        self.settings_button_box.button(QDialogButtonBox.Save).clicked.connect(self.save_settings)
 
         # Initialize
         # current configured repo and codice_comune to check if changed and
@@ -329,35 +320,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
         self.update_sync_button_color()
 
-    def set_mergin_projects(self):
-        """Populate Mergin projects combobox."""
-        mergin_projects = mergin_utils.get_local_mergin_projects_info()
-
-        # if not mergin_projects then ask to setting up one before to proceed
-        if not mergin_projects:
-            ANNCSUMessageManager().show_message(
-                "Nessun progetto Mergin locale trovato. Configurare Mergin prima di procedere.",
-                "error",
-            )
-
-        # infer what is the current mergin project reading the current loaded project
-        # and checking if it is among local mergin projects
-        # then setup current configured project
-        # if no match than ask to open a Mergin project
-        cur_project = QgsProject.instance()
-
-        # check if project is among local mergin projects
-        self.mergin_project_l.setText("N/A")
-        for path, workspace, project_name, project_server in mergin_projects:
-            if project_name == cur_project.baseName():
-                self.mergin_project_l.setText(project_name)
-                break
-        if self.mergin_project_l.text() == "N/A":
-            ANNCSUMessageManager().show_message(
-                "Nessun progetto Mergin aperto. Aprirne uno prima di procedere.",
-                "error",
-            )
-
     def registerGeocoders(self):
         """Register geocoder builders in GeocoderFactory based on geocoders.json configuration."""
         # clean all available geocoders first
@@ -392,7 +354,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             except (ImportError, AttributeError) as e:
                 ANNCSUMessageManager().show_message(f"Could not register geocoder '{geocoder_name}': {e}", "error")
 
-    def check_if_new_session_needed_and_save(self):
+    def save_settings(self):
         """Save current selections.
         If codice_comune or anncsu repo changed, warning the user that a new session will be created.
         If user accepts, a new session will be created and settings saved."""

@@ -110,7 +110,6 @@ def load_dataframe_as_layer(
         layer_name: The name of the layer in QGIS.
         geometry_column: The name of the column containing geometry data (WKT format). "geometry" by default.
         crs_epsg: The EPSG code for the coordinate reference system. 4326 (WGS84) by default.
-        materialize: Whether to materialize the layer in current Mering project path. True by default.
     Returns:
         QgsVectorLayer: The created QGIS vector layer.
     """
