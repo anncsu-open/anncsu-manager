@@ -71,6 +71,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # this comobobox store current session data
         # based on session name and scope id
         self.current_session: QComboBox
+        self.update_session: QPushButton
         self.delete_session: QPushButton
 
         # self.default_base_raster: QgsMapLayerComboBox
@@ -86,6 +87,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
         )
         self.delete_session.clicked.connect(lambda: self.manageDeleteSession())
+        self.update_session.clicked.connect(lambda: self.manageUpdateSession())
 
         self.settings_button_box.button(
             QDialogButtonBox.RestoreDefaults
@@ -166,6 +168,26 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
         finally:
             self.feedback.progress_bar.hide()
+
+    def manageUpdateSession(self):
+        """Manage update of current session.
+        Update get the current anncsu remote db and update current session data
+        with new updated records that are the ground thruth."""
+        current_scope = self.current_session.currentData()
+        if current_scope is None:
+            ANNCSUMessageManager().show_message(
+                "Nessuna sessione selezionata da aggiornare.",
+                "warning",
+            )
+            return
+
+        # TODO: implement update session data with current anncsu db data and save it in settings
+
+        # update session data with current selections
+        # municipality_data: MunicipalityData = self.comune_cb.currentData()
+        # current_scope.municipality_data = municipality_data
+        # current_scope.source_db = self.anncsu_base_url.text()
+
 
     def manageDeleteSession(self):
         """Manage deletion of current session."""

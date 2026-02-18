@@ -106,6 +106,13 @@
                  <widget class="QComboBox" name="current_session"/>
                 </item>
                 <item>
+                 <widget class="QPushButton" name="update_session">
+                  <property name="text">
+                   <string>Aggiorna</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QPushButton" name="delete_session">
                   <property name="text">
                    <string>Rimuovi</string>
