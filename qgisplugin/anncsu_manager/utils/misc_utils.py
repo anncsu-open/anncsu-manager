@@ -257,7 +257,7 @@ def download_file_with_progress(
         raise Exception(f"Failed to download from {url}. Status code: {response.status_code}")
 
     total_size = int(response.headers.get('content-length', 0))
-    number_of_chunks = total_size // chunk_size if total_size > 0 else 100
+    number_of_chunks = total_size // chunk_size if (total_size > 0 and chunk_size > 0) else 100
     chunk_number = 0
 
     QgsMessageLog.logMessage(f"Downloading from {url} to {destination_path}...", level=Qgis.Info)
