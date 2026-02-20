@@ -228,7 +228,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                         pass
                     self.feedback.pushInfo(f"info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {len(gdf)} records.")
 
-            # add geocoded_anncsu table from mergin project if exists
+            # add  table from mergin project if exists
             geocoded_anncsu_path = out_path / "geocoded_anncsu.gpkg"
             if geocoded_anncsu_path.exists():
                 geocoded_anncsu_layer = QgsVectorLayer(str(geocoded_anncsu_path), "geocoded_anncsu", "ogr")

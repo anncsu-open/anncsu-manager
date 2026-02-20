@@ -7,15 +7,18 @@ from typing import Optional
 from pathlib import Path
 import geopandas
 from pandas import Float64Dtype, Int64Dtype
+from shapely.geometry import Point
 
 from qgis.core import (
+    Qgis,
     QgsVectorLayer,
     QgsProject,
     QgsGeometry,
     QgsCoordinateReferenceSystem,
     QgsField,
     QgsFeature,
-    QgsVectorFileWriter
+    QgsVectorFileWriter,
+    QgsMessageLog
 )
 from qgis.PyQt.QtCore import QVariant, QMetaType
 
@@ -100,6 +103,7 @@ def convert_layer_to_geopandas(layer: QgsVectorLayer) -> geopandas.GeoDataFrame:
 def load_dataframe_as_layer(
         dataframe: geopandas.GeoDataFrame,
         layer_name: str,
+        column_types: dict,
         geometry_column: str = "geometry",
         crs_epsg: int = 4326,
         out_path: Optional[Path] = None) -> QgsVectorLayer:
@@ -108,39 +112,12 @@ def load_dataframe_as_layer(
     Args:
         dataframe: The pandas DataFrame to load.
         layer_name: The name of the layer in QGIS.
+        column_types: A dictionary mapping column names to their data types (e.g., int, float, bool, str).
         geometry_column: The name of the column containing geometry data (WKT format). "geometry" by default.
         crs_epsg: The EPSG code for the coordinate reference system. 4326 (WGS84) by default.
     Returns:
         QgsVectorLayer: The created QGIS vector layer.
     """
-    # if geometry_column and geometry_column in dataframe.columns:
-    #     # Convert the DataFrame to GeoJSON format
-    #     geojson_str = dataframe.to_json()
-
-    #     # Create a QGIS vector layer from the GeoJSON string
-    #     vl = QgsVectorLayer(geojson_str, layer_name, "ogr")
-
-    #     # Set the geometry column if specified
-    #     if crs_epsg:
-    #         vl.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{crs_epsg}"))
-    # else:
-    #     # If no geometry column is provided, create a non-spatial layer
-    #     vl = QgsVectorLayer("None", layer_name, "memory")
-    #     provider = vl.dataProvider()
-
-    #     # Add fields to the layer
-    #     fields = [QgsField(col, QVariant.String) for col in dataframe.columns]
-    #     provider.addAttributes(fields)
-    #     vl.updateFields()
-
-    #     # Add features to the layer
-    #     for _, row in dataframe.iterrows():
-    #         feat = QgsFeature()
-    #         feat.setFields(vl.fields())
-    #         for col in dataframe.columns:
-    #             feat.setAttribute(col, str(row[col]))
-    #         provider.addFeature(feat)
-
     # get geometry type from the first valid geometry
     first_valid_geom = None
     for geom in dataframe[geometry_column]:
@@ -148,16 +125,13 @@ def load_dataframe_as_layer(
             first_valid_geom = geom
             break
     if first_valid_geom is None:
-        raise ValueError("No valid geometries found in the specified geometry column.")
-    # geom_type = first_valid_geom.geom_type
-    # if geom_type == 0:
-    #     qgis_geom_type = "Point"
-    # elif geom_type == 1:
-    #     qgis_geom_type = "LineString"
-    # elif geom_type == 2:
-    #     qgis_geom_type = "Polygon"
-    # else:
-    #     raise ValueError(f"Unsupported geometry type. {geom_type}")
+        # do not raise an error, just create a point layer with default geometry type
+        # raise ValueError("No valid geometries found in the specified geometry column.")
+        QgsMessageLog.logMessage(
+            "No valid geometries found in the specified geometry column. Assuming Point layer!",
+            level=Qgis.Warning
+        )
+        first_valid_geom = Point()
 
     vl = QgsVectorLayer(f"{first_valid_geom.geom_type}?crs=epsg:{crs_epsg}", layer_name, "memory")
     provider = vl.dataProvider()
@@ -165,15 +139,18 @@ def load_dataframe_as_layer(
         raise ValueError("Could not get data provider for the vector layer.")
 
     # Add fields to the layer
+    integers = ['int64', 'int32', 'int16', 'Int8', Int64Dtype()]
+    floats = ['float64', 'float32', 'float16', 'double', 'decimal', Float64Dtype()]
+
     for col in dataframe.columns:
         if col == geometry_column:
             continue
         if col not in vl.fields().names():
             # get type of the dataframe column
             dataframe_col_type = dataframe[col].dtype
-            if dataframe_col_type in ['int64', 'int32', 'int16', 'Int8', Int64Dtype()]:
+            if (dataframe_col_type in integers or column_types.get(col) in integers):
                 provider.addAttributes([QgsField(col, QMetaType.Int)])
-            elif dataframe_col_type in ['float64', 'float32', 'float16', 'double', 'decimal', Float64Dtype()]:
+            elif (dataframe_col_type in floats or column_types.get(col) in floats):
                 provider.addAttributes([QgsField(col, QMetaType.Double)])
             elif dataframe_col_type == 'bool':  
                 provider.addAttributes([QgsField(col, QMetaType.Bool)])

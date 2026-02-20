@@ -138,7 +138,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 return
 
         # load anncsu table from DB to join with each geocoder results
-        anncsu_df = ANNCSUSettingsManager.get_anncsu_table_dataframe()
+        anncsu_df, anncsu_column_types = ANNCSUSettingsManager.get_table_dataframe()
         if anncsu_df is None:
             ANNCSUMessageManager().show_message(
                 "Impossibile caricare la tabella ANNCSU. Assicurarsi che la tabella sia disponibile prima di procedere.",
@@ -146,7 +146,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             )
             return
 
-        # remove columns intrudiced by the plugin named "PLUGIN_*"
+        # remove columns introduced by the plugin named "PLUGIN_*"
         anncsu_df = anncsu_df.loc[:, ~anncsu_df.columns.str.startswith("PLUGIN_")]
 
         # for each geocode tab in the related page of the parent ANNCSUWizardManager
@@ -171,6 +171,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.geofence_polygon,
                     layer_name=layer_geofence_polygon,
+                    column_types=anncsu_column_types,
                     geometry_column="geometry",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
@@ -194,6 +195,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=merged_success_df,
                     layer_name=layer_name_success,
+                    column_types=anncsu_column_types,
                     geometry_column="geometry",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
@@ -216,6 +218,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=merged_fails_df,
                     layer_name=layer_name_fails,
+                    column_types=anncsu_column_types,
                     geometry_column="geometry",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
@@ -238,6 +241,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=merged_out_of_geofence_df,
                     layer_name=layer_name_out_of_geofence,
+                    column_types=anncsu_column_types,
                     geometry_column="geometry",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
@@ -250,18 +254,36 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 duration=5
             )
 
-        # create a copy of anncsu_df to update with best geocode results
-        geocoded_anncsu_df = anncsu_df.copy()
-        geocoded_anncsu_df['PLUGIN_SCORE'] = None
-        geocoded_anncsu_df['PLUGIN_GEOCODER'] = None
-        geocoded_anncsu_df['geometry'] = None
+        # get geocoded_anncsu dataframe from DB if aleady present due to previous editing sessions
+        # or set it from scratch as copy of anncsu table
+        geocoded_anncsu_df, geocoded_anncsu_column_types = ANNCSUSettingsManager.get_table_dataframe(table_name="geocoded_anncsu")
+        if geocoded_anncsu_df is None:
+            # create a copy of anncsu_df to update with best geocode results
+            geocoded_anncsu_df = anncsu_df.copy()
+            geocoded_anncsu_df['PLUGIN_SCORE'] = None
+            geocoded_anncsu_df['PLUGIN_GEOCODER'] = None
+            geocoded_anncsu_df['geometry'] = None
 
-        # create a gocoded_anncsu table getting the geocode result from that with highest score for
-        # each record in anncsu table
-        for row in geocoded_anncsu_df.itertuples():
+            # align geocoded_anncsu_column_types with anncsu_column_types and add new columns
+            geocoded_anncsu_column_types = anncsu_column_types.copy()
+            geocoded_anncsu_column_types['PLUGIN_SCORE'] = 'float64'
+            geocoded_anncsu_column_types['PLUGIN_GEOCODER'] = 'string'
+            geocoded_anncsu_column_types['geometry'] = 'geometry'
+
+
+        # create a geocoded_anncsu table getting the geocode result from that with highest score for
+        # each record in anncsu table OR mantain the geocoded record if alreay present in anncsu table
+        for index, row in enumerate(geocoded_anncsu_df.itertuples()):
             address_id = row.PROGRESSIVO_ACCESSO
             road_id = row.PROGRESSIVO_NAZIONALE
-            # find best geocode result among all geocoders tabs
+
+            # do not use geocoder if row as been already geocoded
+            if row.COORD_X_COMUNE is not None and row.COORD_Y_COMUNE is not None:
+                geocoded_anncsu_df.loc[index, 'PLUGIN_SCORE'] = 1.0
+                geocoded_anncsu_df.loc[index, 'PLUGIN_GEOCODER'] = "Existing"
+                continue
+
+            # find best geocode result among all geocoders tabs if the address has not been already geocoded
             best_result = None
             best_geocoder_name = None
             best_score = -1
@@ -298,6 +320,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         load_dataframe_as_layer(
             dataframe=geocoded_anncsu_df,
             layer_name="geocoded_anncsu",
+            column_types=geocoded_anncsu_column_types,
             geometry_column="geometry",
             crs_epsg=4326,  # assuming WGS84, adjust as needed
             out_path=out_path  # save in current Mergin local repo

@@ -1,10 +1,11 @@
 import geopandas
 import pandas
+import numpy
 import json
 import os
 import requests
 import shutil
-from git import List, Repo
+from git import Repo
 from typing import Optional, Dict, Tuple, Union
 from pathlib import Path
 from pydantic.dataclasses import dataclass
@@ -21,6 +22,7 @@ from qgis.core import (
     QgsSettings,
     QgsMessageLog,
     Qgis,
+    QgsTask,
 )
 from qgis.PyQt.QtWidgets import (
     QMessageBox
@@ -698,32 +700,44 @@ class ANNCSUSettingsManager:
         return local_path
 
     @classmethod
-    def get_anncsu_table_dataframe(cls) -> Optional[geopandas.GeoDataFrame]:
-        """Get anncsu table from duckdb of current scope as geopandas dataframe.
+    def get_table_dataframe(cls, table_name: str = 'anncsu') -> Tuple[Optional[geopandas.GeoDataFrame], Optional[dict]]:
+        """Get table with name "table_name" ("anncsu" by default or "geocoded_anncsu") from duckdb of
+        current scope as geopandas dataframe.
         
-        NOTE: anncsu DB table contain columns introduced by the plugin stating with: PLUGIN_*
+        NOTE: anncsu or geocoded_anncsu DB table contain columns introduced by the plugin stating with: PLUGIN_*
         Returns:
-            Optional[geopandas.GeoDataFrame]: Anncsu table as geopandas dataframe or None if error occurs.
+            Tuple[Optional[geopandas.GeoDataFrame], Optional[dict]]: A tuple with the dataframe and a dict with original column types, or None if error occurs.
         """
         scope_id = cls.get_current_scope_id()
         scopes = cls.get_scopes()
 
         if not scope_id or (scope_id not in scopes):
-            return None
+            return None, None
 
         scope = scopes[scope_id]
         if scope.duckdb_path is None:
-            return None
+            return None, None
 
         # connect to duckdb and read anncsu table
         with duckdb.connect(database=str(scope.duckdb_path)) as scopedb:
             try:
+                # check if table exists
+                exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()
+                if len(exists) == 0:
+                    QgsMessageLog.logMessage(f"Table '{table_name}' not found in duckdb at {scope.duckdb_path}.", level=Qgis.Warning)
+                    return None, None
+
                 scopedb.execute("INSTALL spatial;")
                 scopedb.execute("LOAD spatial;")
-                df = scopedb.execute("SELECT * FROM anncsu").df()
 
-                # clean 'nan' strings to None
+                df = scopedb.execute(f"SELECT * FROM '{table_name}'").df()
+
+                # clean 'nan' strings to None to avoid to have numeric columns with 'nan' string
+                # values that cannot be converted to numeric types
                 df = df.replace('nan', None)
+
+                # save column types to preserve after confertions
+                column_types = df.dtypes.to_dict()
 
                 # change dtype of PROGRESSIVO_ACCESSO and PROGRESSIVO_NAZIONALE to int
                 df['PROGRESSIVO_ACCESSO'] = pandas.to_numeric(df['PROGRESSIVO_ACCESSO'], errors='coerce').astype('Int64')
@@ -739,11 +753,17 @@ class ANNCSUSettingsManager:
                 # change dtype of QUOTA to float
                 df['QUOTA'] = pandas.to_numeric(df['QUOTA'], errors='coerce').astype('Float64')
 
-                return df
+                # clean numpy.NATypes to None.- This is necessary because pandas.to_numeric with errors='coerce' convert
+                # non numeric values to NaN and the resto of python code assume a NA or NaN valus should be None, but pandas use 
+                # numpy.NA that is not recognized as NA value by other libraries, so we need to convert it to None.
+                df = df.replace({numpy.nan: None})
+                # df = df.astype(column_types)  # restore original column types after conversions
+
+                return (df, column_types)
             except Exception as e:
-                QgsMessageLog.logMessage(f"Error reading anncsu table from duckdb at {scope.duckdb_path}: {e}", level=Qgis.Critical)
-                return None
-    
+                QgsMessageLog.logMessage(f"Error reading {table_name} table from duckdb at {scope.duckdb_path}: {e}", level=Qgis.Critical)
+                return None, None
+
     @classmethod
     def merge_geocoded_with_anncsu_dataframe(
         cls,
@@ -789,7 +809,10 @@ class ANNCSUSettingsManager:
             return None
 
     @classmethod
-    def update_current_session(cls):
+    def update_current_session(
+        cls,
+        task: Optional[QgsTask] = None,
+    ) -> None:
         """Update current session data in SCOPES.
         """
         scope_id: str = cls.get_current_scope_id()
@@ -832,6 +855,17 @@ class ANNCSUSettingsManager:
                     scope_name=scope_id
                 )
 
+                # because scope.source_db is source of truth for anncsu data, we can consider that all
+                # the rows in temp table are the new values for anncsu table, so we can replace all the
+                # values in anncsu table with the values in temp table,
+                conn.execute("""
+                    CREATE OR REPLACE TABLE anncsu AS
+                    SELECT * from to_delete;
+                """)
+
+                # then workl on current geocoded_anncsu table that is the table where operators
+                # work on settin new geocoding values, so we need to update only the values of
+                # this table that are present in temp table
                 # loop over all rows of temp table and update anncsu table with new values,
                 # matching by PK (PROGRESSIVO_ACCESSO, PROGRESSIVO_NAZIONALE)
                 # if a row in temp table is not present in anncsu table, insert it
@@ -896,7 +930,7 @@ class ANNCSUSettingsManager:
                         COALESCE(a.COORD_Y_COMUNE, td.COORD_Y_COMUNE) AS LOCAL_COORD_Y_COMUNE,
                         COALESCE(td.QUOTA, a.QUOTA) AS QUOTA,
                         COALESCE(td.METODO, a.METODO) AS METODO
-                    FROM anncsu a
+                    FROM geocoded_anncsu a
                     FULL OUTER JOIN to_delete td
                         ON a.PROGRESSIVO_NAZIONALE = td.PROGRESSIVO_NAZIONALE;
                 """)
@@ -982,15 +1016,15 @@ class ANNCSUSettingsManager:
                     """)
 
                     # replace old anncsu table with updated_anncsu table
-                    conn.execute("DROP TABLE IF EXISTS anncsu;")
-                    conn.execute("ALTER TABLE updated_anncsu RENAME TO anncsu;")
+                    conn.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
+                    conn.execute("ALTER TABLE updated_anncsu RENAME TO geocoded_anncsu;")
 
             except Exception as e:
                 conn.execute("ROLLBACK;")
                 QgsMessageLog.logMessage(f"Error updating session with new anncsu data: {e}", level=Qgis.Critical)
                 raise Exception(f"Error updating session with new anncsu data: {e}")
             
-            finally:                # drop temp table
+            else:                # drop temp table
                 conn.execute("DROP TABLE IF EXISTS to_delete;")
                 conn.execute("COMMIT;")
 
@@ -1090,7 +1124,7 @@ class ANNCSUSettingsManager:
     @classmethod
     def create_new_session(
         cls,
-        task,
+        task: QgsTask,
         source_db: AnyUrl,
         municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback,

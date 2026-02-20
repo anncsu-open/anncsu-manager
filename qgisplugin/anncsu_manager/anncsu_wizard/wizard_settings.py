@@ -181,12 +181,33 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
             return
 
-        # TODO: implement update session data with current anncsu db data and save it in settings
+        # update the session (time consuming) task
+        self.update_current_session_task = QgsTask.fromFunction(
+            f"Aggiornamento sessione per comune {current_scope.municipality_data.anncsu_id} con i dati ufficiali ANNCSU",
+            ANNCSUSettingsManager.update_current_session,
+            on_finished=self.on_finished_update_current_session,
+        )
 
-        # update session data with current selections
-        # municipality_data: MunicipalityData = self.comune_cb.currentData()
-        # current_scope.municipality_data = municipality_data
-        # current_scope.source_db = self.anncsu_base_url.text()
+        # run update current session time consuming task
+        QgsApplication.taskManager().addTask(self.update_current_session_task)
+
+
+    def on_finished_update_current_session(self, exception, result=None):
+        """Callback when finished updating current session."""
+        self.update_current_session_task = None  # reset task reference
+        self.feedback.progress_bar.hide()
+
+        if exception is not None:
+            ANNCSUMessageManager().show_message(
+                f"Errore durante l'aggiornamento della sessione: {str(exception)}",
+                "error",
+            )
+            return
+
+        ANNCSUMessageManager().show_message(
+            "Sessione aggiornata, Ricorda di esportare su Mergin per lavorare con dati aggiornati.",
+            "warning",
+        )
 
 
     def manageDeleteSession(self):
