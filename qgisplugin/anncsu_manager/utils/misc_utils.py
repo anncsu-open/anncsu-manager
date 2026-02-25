@@ -4,6 +4,7 @@ import requests
 from typing import Optional, Callable
 from pathlib import Path
 from git import Repo
+import pandas as pd
 
 from qgis.core import (
     QgsApplication,
@@ -19,6 +20,12 @@ from anncsu_manager.qgis_plugin_tools.tools.resources import resources_path
 
 TEMPORARY_OUTPUT = 'TEMPORARY_OUTPUT'
 PLUGIN_PATH = os.path.dirname(os.path.dirname(__file__))
+
+def tuple_to_dict(list_of_tuples: list[tuple], keys: list[str]) -> list[dict]:
+    return [dict(zip(keys, t)) for t in list_of_tuples]
+
+def tuple_to_dataframe(list_of_tuples: list[tuple], columns: list[str]):
+    return pd.DataFrame(list_of_tuples, columns=columns)
 
 class EventSource:
     def __init__(self):

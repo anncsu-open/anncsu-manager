@@ -1,5 +1,11 @@
 import geopandas
 from qgis.utils import iface
+from qgis.core import (
+    QgsCoordinateTransform,
+    QgsCoordinateReferenceSystem,
+    QgsProject,
+    QgsVectorLayer,
+)
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QTabWidget,
@@ -67,11 +73,11 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             success_score_threshold = self.geocoder_config.get("threshold", 0.88)
 
             # get geocoded result as GeoDataFrame and to do this have to convert internal spatial format to WKT
-            results_df = self.scopedb.execute(f"SELECT *, ST_AsText(geometry) as newgeom FROM {self.result_table_name};").df()
-            results_df.drop(columns=["geometry"], inplace=True)
-            results_df.rename(columns={"newgeom": "geometry"}, inplace=True)
-            results_df['geometry'] = geopandas.GeoSeries.from_wkt(results_df['geometry'])
-            self.results = geopandas.GeoDataFrame(results_df, geometry='geometry', crs="EPSG:4326")
+            results_df = self.scopedb.execute(f"SELECT *, ST_AsText(geom) as newgeom FROM {self.result_table_name};").df()
+            results_df.drop(columns=["geom"], inplace=True)
+            results_df.rename(columns={"newgeom": "geom"}, inplace=True)
+            results_df['geom'] = geopandas.GeoSeries.from_wkt(results_df['geom'])
+            self.results = geopandas.GeoDataFrame(results_df, geometry='geom', crs="EPSG:4326")
 
             # show results in table view
             # passed threshold will be use dot set background color for score values
@@ -88,25 +94,25 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             # get  geofence polygon
             geofence_df = self.scopedb.execute(f"""
                 SELECT
-                    ST_AsText(geometry) as geometry
+                    ST_AsText(geom) as wktgeom
                 FROM
                     geofence_polygon
                 LIMIT 1;
             """).df()
-            geofence_df['geometry'] = geopandas.GeoSeries.from_wkt(geofence_df['geometry'])
-            self.geofence_polygon = geopandas.GeoDataFrame(geofence_df, geometry='geometry', crs="EPSG:4326")
+            geofence_df['geom'] = geopandas.GeoSeries.from_wkt(geofence_df['wktgeom'])
+            self.geofence_polygon = geopandas.GeoDataFrame(geofence_df, geometry='geom', crs="EPSG:4326")
 
             # mark as out_of_geofence all records that are outside geofence_polygon layer if defined
             if not self.geofence_polygon.empty:
-                geofence_geom = self.geofence_polygon.iloc[0].geometry
+                geofence_geom = self.geofence_polygon.iloc[0].geom
                 outside_geofence_mask = ~self.results.within(geofence_geom)
                 self.results.loc[outside_geofence_mask, 'score'] = -1 * self.results.loc[outside_geofence_mask, 'score']  # mark score as negative for out of geofence
 
             # calculate and display statistics
             total_records = len(self.results)
-            self.success = self.results.query(f"geometry != None and score >= {success_score_threshold}", inplace=False)
+            self.success = self.results.query(f"geom != None and score >= {success_score_threshold}", inplace=False)
             num_of_success = len(self.success)
-            self.fails = self.results.query(f"geometry == None or (score >= 0 and score < {success_score_threshold})", inplace=False)
+            self.fails = self.results.query(f"geom == None or (score >= 0 and score < {success_score_threshold})", inplace=False)
             num_of_fails = len(self.fails)
             self.out_of_geofence = self.results.query("score < 0", inplace=False)
             num_of_out_of_geofence = len(self.out_of_geofence)
@@ -171,7 +177,8 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.geofence_polygon,
                     layer_name=layer_geofence_polygon,
-                    geometry_column="geometry",
+                    column_types={},  # no need to specify column types for geofence polygon
+                    geometry_column="geom",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=None  # mantain layer in memory
                 )
@@ -183,15 +190,11 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 tab.successLayer = load_dataframe_as_layer(
                     dataframe=tab.success,
                     layer_name=layer_name_success,
-                    geometry_column="geometry",
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=None  # mantain layer in memory
                 )
-
-                # zoom to the layer extent
-                canvas = iface.mapCanvas()
-                canvas.setExtent(tab.successLayer.extent())
-                canvas.refresh()
 
             # load fails layer
             if tab.fails is not None and not tab.fails.empty:
@@ -200,7 +203,8 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 tab.failsLayer = load_dataframe_as_layer(
                     dataframe=tab.fails,
                     layer_name=layer_name_fails,
-                    geometry_column="geometry",  # BEAWARE could contain None geometries
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",  # BEAWARE could contain None geometries
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=None  # mantain layer in memory
                 )
@@ -212,10 +216,26 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 tab.outOfGeofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.out_of_geofence,
                     layer_name=layer_name_out_of_geofence,
-                    geometry_column="geometry",  # BEAWARE could contain None geometries
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",  # BEAWARE could contain None geometries
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=None  # mantain layer in memory
                 )
+
+            # zoom to the layer extent
+            canvas = iface.mapCanvas()
+
+            # convert extent to project CRS if needed
+            extent_4326 = tab.outOfGeofenceLayer.extent()
+            project_crs = canvas.mapSettings().destinationCrs()
+            if project_crs.authid() != "EPSG:4326":
+                transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:4326"), project_crs, QgsProject.instance())
+                extent_project_crs = transform.transform(extent_4326)
+                canvas.setExtent(extent_project_crs)
+            else:
+                canvas.setExtent(extent_4326)
+            canvas.refresh()
+
 
 
     def populate_geocoders_tabs(self):

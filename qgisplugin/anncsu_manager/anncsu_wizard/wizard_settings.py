@@ -73,6 +73,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.current_session: QComboBox
         self.update_session: QPushButton
         self.delete_session: QPushButton
+        self.create_new_session: QPushButton
 
         # self.default_base_raster: QgsMapLayerComboBox
         self.minimal_menu_selection: QCheckBox
@@ -88,6 +89,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         )
         self.delete_session.clicked.connect(lambda: self.manageDeleteSession())
         self.update_session.clicked.connect(lambda: self.manageUpdateSession())
+        self.create_new_session.clicked.connect(lambda: self.save_settings(force_creation_new_session=True))
 
         self.settings_button_box.button(
             QDialogButtonBox.RestoreDefaults
@@ -397,10 +399,20 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             except (ImportError, AttributeError) as e:
                 ANNCSUMessageManager().show_message(f"Could not register geocoder '{geocoder_name}': {e}", "error")
 
-    def save_settings(self):
-        """Save current selections.
-        If codice_comune or anncsu repo changed, warning the user that a new session will be created.
-        If user accepts, a new session will be created and settings saved."""
+    def save_settings(self, force_creation_new_session: bool = False):
+        """Save current selections and persist ANNCSU plugin settings.
+        If the selected municipality code or ANNCSU repository URL differs from the
+        current session, prompt the user to confirm creation of a new session. When
+        confirmed, start a background task to create the new session; otherwise restore
+        previous values and abort. If no change is detected (or when applicable), save
+        geocoder configurations, repository URL, municipality code, scopes, and current
+        scope identifier, then notify the user.
+        Args:
+            force_creation_new_session (bool): If True, force creation of a new session
+                without checking whether the municipality code or repository changed.
+        Returns:
+            None
+        """
         # get current session data from combobox
         current_scope = self.current_session.currentData()
         current_scope_dict = {}
@@ -419,14 +431,22 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         current_municipality_code = current_scope_dict.get("municipality_data", {}).get("anncsu_id", "")
         if (
             self.anncsu_base_url.text() != current_scope_dict.get("source_db", "") or
-            municipality_data.anncsu_id != current_municipality_code
+            municipality_data.anncsu_id != current_municipality_code or
+            force_creation_new_session
         ):
+            if force_creation_new_session:
+                message = "Forzando la creazione di una nuova sessione ANNCSU. Vuoi procedere?" \
+
+            else:
+                message = "Il codice comune o il database sorgente ANNCSU sono stati modificati rispetto alla sessione attuale.\n" \
+                    "Verrà generata una nuova sessione ANNCSU. Vuoi procedere?"
             reply = QMessageBox.question(self,
                 "DB sorgente ANNUCSU o codice comune modificati",
-                "Verrà generata una nuova sessione ANNCSU. Vuoi procedere?",
+                message,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
+
             if reply == QMessageBox.StandardButton.No:
                 # set back previous data
                 self.anncsu_base_url.setText(current_scope_dict.get("source_db", ""))

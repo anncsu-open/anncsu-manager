@@ -20,7 +20,6 @@ from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager, ScopeDa
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCUGeocodeResultTab
-from anncsu_manager.qgis_plugin_tools.tools.layers import convert_layer_to_geopandas
 
 import duckdb
 
@@ -158,37 +157,36 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                 self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
                 return
 
-            # load statial extension
-            scopedb.execute("INSTALL spatial;")
-            scopedb.execute("LOAD spatial;")
+            # start transaction
+            scopedb.execute("BEGIN;")
+            try:
+                # load statial extension
+                scopedb.execute("INSTALL spatial;")
+                scopedb.execute("LOAD spatial;")
 
-            # register geoarrow extensions to support geopandas geometry column
-            scopedb.sql("CALL register_geoarrow_extensions()")
+                geocoders_configs = ANNCSUSettingsManager.get_geocoders_configs()
+                for geocoder_name, geocoder_config in geocoders_configs.items():
+                    # skip geocoder tables if not acitve
+                    if geocoder_config.get("active", False) in [False, "False", "false"]:
+                        self.feedback.pushInfo(f"info: Skipping inactive geocoder '{geocoder_name}'.")
+                        continue
 
-            geocoders_configs = ANNCSUSettingsManager.get_geocoders_configs()
-            for geocoder_name, geocoder_config in geocoders_configs.items():
-                # skip geocoder tables if not acitve
-                if geocoder_config.get("active", False) in [False, "False", "false"]:
-                    self.feedback.pushInfo(f"info: Skipping inactive geocoder '{geocoder_name}'.")
-                    continue
+                    # set default layer names for a specific geocoder
+                    layer_name_success = f"{geocoder_name}_success"
+                    layer_name_fails = f"{geocoder_name}_fails"
+                    layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
 
-                # set default layer names for a specific geocoder
-                layer_name_success = f"{geocoder_name}_success"
-                layer_name_fails = f"{geocoder_name}_fails"
-                layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
-
-                # for all mergin layers
-                layer_names = [layer_name_success, layer_name_fails, layer_name_out_of_geofence]
-                for layer_name in layer_names:
-                    self.feedback.pushInfo(f"info: Processing layer '{layer_name}' for geocoder '{geocoder_name}'.")
-               
-                    # get layer file related to layer name
-                    layers = QgsProject.instance().mapLayersByName(layer_name)
-                    if not layers or len(layers) == 0:
-                        if not get_from_mergin_folder:
-                            self.feedback.pushInfo(f"warning: Layer '{layer_name}' not found in the project. Skipping.")
-                            continue
-                        else:
+                    # for all mergin layers
+                    layer_names = [layer_name_success, layer_name_fails, layer_name_out_of_geofence]
+                    for layer_name in layer_names:
+                        self.feedback.pushInfo(f"info: Processing layer '{layer_name}' for geocoder '{geocoder_name}'.")
+                
+                        # get layer file related to layer name
+                        layers = QgsProject.instance().mapLayersByName(layer_name)
+                        if not layers or len(layers) == 0:
+                            if not get_from_mergin_folder:
+                                self.feedback.pushInfo(f"warning: Layer '{layer_name}' not found in the project. Skipping.")
+                                continue
                             # try to load layer from mergin project folder
                             layer_path = out_path / f"{layer_name}.gpkg"
                             if not layer_path.exists():
@@ -200,55 +198,45 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                                 continue
                             layers = [layer]
                             self.feedback.pushInfo(f"info: Loaded layer '{layer_name}' from Mergin project folder.")
-                    layer = layers[0]
+                        layer = layers[0]
+                        layer_path = layer.source()
 
-                    # dump layer records into a geodataframe to simplify dump them into duckdb
-                    gdf = convert_layer_to_geopandas(layer)
-                    if gdf.empty:
-                        self.feedback.pushWarning(f"warning: Layer '{layer_name}' is empty. Skipping.")
-                        continue
+                        # dump geodataframe into duckdb table that has the same name of the layer
+                        # the below code drop table and rebuild it assuming the structure is the same
+                        table_name = f"{layer_name}"
 
-                    # convert GeoPandas to GeoArrow format usefult to dump into duckdb
-                    # with geometry column
-                    # this comes from https://github.com/duckdb/duckdb-spatial/issues/311#issuecomment-3313877004
-                    gdf_arrow = gdf.to_arrow()
-
-                    # dump geodataframe into duckdb table that has the same name of the layer
-                    # the below code drop table and rebuild it assuming the structure is the same
-                    table_name = f"{layer_name}"
-
-                    # drop and dump gdf into duckdb. NOTE that used the same columns as when created
-                    # TODO: improve the code to be generic instead of hardcoding columns
-                    scopedb.execute(f"DROP TABLE IF EXISTS {table_name};")
-                    scopedb.execute(f"CREATE TABLE {table_name} AS SELECT * FROM gdf_arrow;")
-                    # drop the autogenerated id column if exists
-                    try:
-                        scopedb.execute(f"ALTER TABLE {table_name} DROP COLUMN id;")
-                    except Exception as e:
-                        pass
-                    self.feedback.pushInfo(f"info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {len(gdf)} records.")
-
-            # add  table from mergin project if exists
-            geocoded_anncsu_path = out_path / "geocoded_anncsu.gpkg"
-            if geocoded_anncsu_path.exists():
-                geocoded_anncsu_layer = QgsVectorLayer(str(geocoded_anncsu_path), "geocoded_anncsu", "ogr")
-                if geocoded_anncsu_layer is not None:
-                    gdf_geocoded_anncsu = convert_layer_to_geopandas(geocoded_anncsu_layer)
-                    if not gdf_geocoded_anncsu.empty:
-                        gdf_geocoded_anncsu_arrow = gdf_geocoded_anncsu.to_arrow()
-                        scopedb.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
-                        scopedb.execute("CREATE TABLE geocoded_anncsu AS SELECT * FROM gdf_geocoded_anncsu_arrow;")
+                        # TODO: improve the code to be generic instead of hardcoding columns
+                        scopedb.execute(f"DROP TABLE IF EXISTS {table_name};")
+                        scopedb.execute(f"CREATE TABLE {table_name} AS SELECT * FROM st_read('{layer_path}');")
+                        # drop the autogenerated id column if exists
                         try:
-                            scopedb.execute("ALTER TABLE geocoded_anncsu DROP COLUMN id;")
+                            scopedb.execute(f"ALTER TABLE {table_name} DROP COLUMN id;")
                         except Exception as e:
                             pass
-                        self.feedback.pushInfo(f"info: Dumped 'geocoded_anncsu' layer into DuckDB table 'geocoded_anncsu' with {len(gdf_geocoded_anncsu)} records.")
-                    else:
-                        self.feedback.pushWarning("warning: 'geocoded_anncsu' layer is empty. Skipping.")
+                        self.feedback.pushInfo(f"info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {layer.featureCount()} records.")
+
+                # add  table from mergin project if exists
+                geocoded_anncsu_path = out_path / "geocoded_anncsu.gpkg"
+                if geocoded_anncsu_path.exists():
+                    # load layer just to count features
+                    layer = QgsVectorLayer(str(geocoded_anncsu_path), layer_name, "ogr")
+
+                    scopedb.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
+                    scopedb.execute(f"CREATE TABLE geocoded_anncsu AS SELECT * FROM st_read('{geocoded_anncsu_path}');")
+                    try:
+                        scopedb.execute("ALTER TABLE geocoded_anncsu DROP COLUMN id;")
+                    except Exception as e:
+                        pass
+                    self.feedback.pushInfo(f"info: Dumped layer 'geocoded_anncsu' into DuckDB table 'geocoded_anncsu' with {layer.featureCount()} records.")
                 else:
-                    self.feedback.pushWarning("warning: Could not load 'geocoded_anncsu' layer. Skipping.")
+                    self.feedback.pushInfo("info: 'geocoded_anncsu.gpkg' file not found in Mergin project folder. Skipping.")
+
+            except Exception as e:
+                scopedb.execute("ROLLBACK;")
+                self.feedback.reportError(f"Error while updating from Mergin: {str(e)}")
+                return
             else:
-                self.feedback.pushInfo("info: 'geocoded_anncsu.gpkg' file not found in Mergin project folder. Skipping.")
+                scopedb.execute("COMMIT;")
 
         # reopen duckdb to consolidate changes
         with duckdb.connect(duck_db_source) as scopedb:

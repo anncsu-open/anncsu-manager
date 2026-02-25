@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>606</width>
+    <width>705</width>
     <height>477</height>
    </rect>
   </property>
@@ -69,7 +69,7 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QCheckBox" name="checkBox">
+      <widget class="QCheckBox" name="include_geocoded_ckb">
        <property name="text">
         <string>geocoded</string>
        </property>

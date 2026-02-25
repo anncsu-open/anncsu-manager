@@ -98,7 +98,8 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.geofence_polygon,
                     layer_name=layer_geofence_polygon,
-                    geometry_column="geometry",
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
@@ -114,7 +115,8 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.fails,
                     layer_name=layer_name_fails,
-                    geometry_column="geometry",
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
@@ -130,7 +132,8 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.out_of_geofence,
                     layer_name=layer_name_out_of_geofence,
-                    geometry_column="geometry",
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
@@ -146,7 +149,8 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.success,
                     layer_name=layer_name_success,
-                    geometry_column="geometry",
+                    column_types={},  # infer column types automatically
+                    geometry_column="geom",
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )

@@ -148,7 +148,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                             latitude DOUBLE,
                             longitude DOUBLE,
                             score DOUBLE,
-                            geometry GEOMETRY
+                            geom GEOMETRY
                         )
                     """)
 
@@ -167,7 +167,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                                         latitude,
                                         longitude,
                                         score,
-                                        geometry
+                                        geom
                                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
                                 """, (
                                     result.get("address_id", idx),
