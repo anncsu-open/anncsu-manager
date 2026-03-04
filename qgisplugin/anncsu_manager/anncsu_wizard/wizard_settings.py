@@ -297,6 +297,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             print(f"Session changed to {current_scope_id} for {current_scope}")
         
         # set gui basing on current scope
+        scope_id = self.current_session.currentText()
         scope = self.current_session.currentData()
         scope_dict = scope.to_dict() if scope else {}
         anncsu_repo = scope_dict.get("source_db", self.fallout_anncsu_repo)
@@ -325,6 +326,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # depending on sync flag into current session
         # set color of sync_pb button
         self.update_sync_button_color()
+
+        # update current session data in settings to be able to retrieve it in main wizard
+        ANNCSUSettingsManager.set_current_scope_id(scope_id)
 
     def update_sync_button_color(self):
         """Update sync button color based on current session sync status."""
