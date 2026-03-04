@@ -185,22 +185,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
             return
 
-        # update ANNCSU table in current session with source_db data, this operation can be time
-        # consuming so run it in a separate thread with QgsTask
-        # current_scope = self.current_session.currentData()
-        # update_anncsu_function = partial(ANNCSUSettingsManager.populate_table_from_source,
-        #     duckdb_path=current_scope.duckdb_path,
-        #     source_db=current_scope.source_db,
-        #     table_name="anncsu",
-        #     municipality_data=current_scope.municipality_data,
-        # )
-
-        # self.update_anncsu_task = QgsTask.fromFunction(
-        #     f"Scaricando ANNCSU aggiornato per comune {current_scope.municipality_data.anncsu_id}",
-        #     update_anncsu_function,
-        #     on_finished=self.manageUpdateSessionStep2,
-        # )
-
         # # run update current session time consuming task
         update_anncsu_task = ANNCSUSettingsManager.populate_table_from_source_task(
             duckdb_path=current_scope.duckdb_path,
