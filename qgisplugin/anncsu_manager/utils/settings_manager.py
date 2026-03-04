@@ -1,3 +1,5 @@
+from time import sleep
+
 import geopandas
 import pandas
 import numpy
@@ -5,6 +7,7 @@ import json
 import os
 import requests
 import shutil
+from functools import partial
 from git import Repo
 from typing import Optional, Dict, Tuple, Union
 from pathlib import Path
@@ -19,6 +22,7 @@ import duckdb
 
 from qgis.utils import iface
 from qgis.core import (
+    QgsApplication,
     QgsSettings,
     QgsMessageLog,
     Qgis,
@@ -33,12 +37,13 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.misc_utils import (
     EventSource,
     download_file_async,
-    clone_or_pull_git_repo
+    clone_or_pull_git_repo_task
 )
 
 
 load_dotenv()
 
+update_anncsu_task: Optional[QgsTask] = None
 
 @dataclass
 class MunicipalityData:
@@ -894,8 +899,7 @@ class ANNCSUSettingsManager:
     @classmethod
     def update_current_session(
         cls,
-        task: Optional[QgsTask] = None,
-    ) -> None:
+    ) -> bool:
         """Update current session data in SCOPES.
         """
         scope_id: str = cls.get_current_scope_id()
@@ -919,34 +923,30 @@ class ANNCSUSettingsManager:
                 QMessageBox.No
             )
             if reply == QMessageBox.No:
-                return
+                return False
 
         # merge updated values with current anncsu table and update current duckdb file
         with duckdb.connect(database=str(scope.duckdb_path)) as conn:
+            conn.execute("INSTALL spatial;")
+            conn.execute("LOAD spatial;")
+
+            # check if geocoded_anncsu table exists that is generated when updateing
+            # from merging
+            exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
+            if len(exists) == 0:
+                QgsMessageLog.logMessage(f"Table 'geocoded_anncsu' not found in duckdb at {scope.duckdb_path}. Cannot update session.", level=Qgis.Warning)
+                QMessageBox.warning(
+                    iface.mainWindow(),
+                    "Aggiornamento non possibile",
+                    "La tabella 'geocoded_anncsu' non è stata trovata nel database della sessione.\n"
+                    + "Assicurati di aver eseguito l'update da Merging."
+                )
+                return False
+
             # start transaction
             conn.execute("BEGIN;")
             try:
-                conn.execute("INSTALL spatial;")
-                conn.execute("LOAD spatial;")
-
-                # first need to download updated values from anncsu DB to a temp table
-                cls._populate_table_from_source(
-                    duckdb_conn=conn,
-                    source_db=scope.source_db,
-                    table_name="to_delete",
-                    municipality_data=scope.municipality_data,
-                    scope_name=scope_id
-                )
-
-                # because scope.source_db is source of truth for anncsu data, we can consider that all
-                # the rows in temp table are the new values for anncsu table, so we can replace all the
-                # values in anncsu table with the values in temp table,
-                conn.execute("""
-                    CREATE OR REPLACE TABLE anncsu AS
-                    SELECT * from to_delete;
-                """)
-
-                # then workl on current geocoded_anncsu table that is the table where operators
+                # then work on current geocoded_anncsu table that is the table where operators
                 # work on settin new geocoding values, so we need to update only the values of
                 # this table that are present in temp table
                 # loop over all rows of temp table and update anncsu table with new values,
@@ -989,33 +989,33 @@ class ANNCSUSettingsManager:
                 conn.execute("""
                     CREATE OR REPLACE TABLE updated_anncsu AS
                     SELECT
-                        td.PLUGIN_COMUNE AS PLUGIN_COMUNE,
-                        td.PLUGIN_PROVINCIA AS PLUGIN_PROVINCIA,
-                        td.PLUGIN_REGIONE AS PLUGIN_REGIONE,
-                        COALESCE(td.CODICE_COMUNE::VARCHAR, a.CODICE_COMUNE::VARCHAR) AS CODICE_COMUNE,
-                        COALESCE(td.CODICE_ISTAT::VARCHAR, a.CODICE_ISTAT::VARCHAR) AS CODICE_ISTAT,
-                        COALESCE(td.PROGRESSIVO_NAZIONALE::INTEGER, a.PROGRESSIVO_NAZIONALE::INTEGER) AS PROGRESSIVO_NAZIONALE,
-                        COALESCE(td.CODICE_COMUNALE::VARCHAR, a.CODICE_COMUNALE::VARCHAR) AS CODICE_COMUNALE,
-                        COALESCE(td.ODONIMO::VARCHAR, a.ODONIMO::VARCHAR) AS ODONIMO,
-                        COALESCE(td."LOCALITA'"::VARCHAR, a."LOCALITA'"::VARCHAR) AS "LOCALITA'",
-                        COALESCE(td.DIZIONE_LINGUA1::VARCHAR, a.DIZIONE_LINGUA1::VARCHAR) AS DIZIONE_LINGUA1,
-                        COALESCE(td.DIZIONE_LINGUA2::VARCHAR, a.DIZIONE_LINGUA2::VARCHAR) AS DIZIONE_LINGUA2,
-                        COALESCE(td.PROGRESSIVO_ACCESSO::INTEGER, a.PROGRESSIVO_ACCESSO::INTEGER) AS PROGRESSIVO_ACCESSO,
-                        COALESCE(td.CODICE_COMUNALE_ACCESSO::VARCHAR, a.CODICE_COMUNALE_ACCESSO::VARCHAR) AS CODICE_COMUNALE_ACCESSO,
-                        COALESCE(td.CIVICO::INTEGER, a.CIVICO::INTEGER) AS CIVICO,
-                        COALESCE(td.ESPONENTE::VARCHAR, a.ESPONENTE::VARCHAR) AS ESPONENTE,
-                        COALESCE(td.SPECIFICITA::VARCHAR, a.SPECIFICITA::VARCHAR) AS SPECIFICITA,
-                        COALESCE(td.METRICO::BIGINT, a.METRICO::BIGINT) AS METRICO,
-                        COALESCE(td.PROGRESSIVO_SNC::BIGINT, a.PROGRESSIVO_SNC::BIGINT) AS PROGRESSIVO_SNC,
-                        COALESCE(td.COORD_X_COMUNE::FLOAT, a.COORD_X_COMUNE::FLOAT) AS COORD_X_COMUNE,
-                        COALESCE(td.COORD_Y_COMUNE::FLOAT, a.COORD_Y_COMUNE::FLOAT) AS COORD_Y_COMUNE,
-                        COALESCE(a.COORD_X_COMUNE::FLOAT, td.COORD_X_COMUNE::FLOAT) AS LOCAL_COORD_X_COMUNE,
-                        COALESCE(a.COORD_Y_COMUNE::FLOAT, td.COORD_Y_COMUNE::FLOAT) AS LOCAL_COORD_Y_COMUNE,
-                        COALESCE(td.QUOTA::FLOAT, a.QUOTA::FLOAT) AS QUOTA,
-                        COALESCE(td.METODO::VARCHAR, a.METODO::VARCHAR) AS METODO
-                    FROM geocoded_anncsu a
-                    FULL OUTER JOIN to_delete td
-                        ON a.PROGRESSIVO_NAZIONALE = td.PROGRESSIVO_NAZIONALE;
+                        a.PLUGIN_COMUNE AS PLUGIN_COMUNE,
+                        a.PLUGIN_PROVINCIA AS PLUGIN_PROVINCIA,
+                        a.PLUGIN_REGIONE AS PLUGIN_REGIONE,
+                        COALESCE(a.CODICE_COMUNE::VARCHAR, ga.CODICE_COMUNE::VARCHAR) AS CODICE_COMUNE,
+                        COALESCE(a.CODICE_ISTAT::VARCHAR, ga.CODICE_ISTAT::VARCHAR) AS CODICE_ISTAT,
+                        COALESCE(a.PROGRESSIVO_NAZIONALE::INTEGER, ga.PROGRESSIVO_NAZIONALE::INTEGER) AS PROGRESSIVO_NAZIONALE,
+                        COALESCE(a.CODICE_COMUNALE::VARCHAR, ga.CODICE_COMUNALE::VARCHAR) AS CODICE_COMUNALE,
+                        COALESCE(a.ODONIMO::VARCHAR, ga.ODONIMO::VARCHAR) AS ODONIMO,
+                        COALESCE(a."LOCALITA'"::VARCHAR, ga."LOCALITA'"::VARCHAR) AS "LOCALITA'",
+                        COALESCE(a.DIZIONE_LINGUA1::VARCHAR, ga.DIZIONE_LINGUA1::VARCHAR) AS DIZIONE_LINGUA1,
+                        COALESCE(a.DIZIONE_LINGUA2::VARCHAR, ga.DIZIONE_LINGUA2::VARCHAR) AS DIZIONE_LINGUA2,
+                        COALESCE(a.PROGRESSIVO_ACCESSO::INTEGER, ga.PROGRESSIVO_ACCESSO::INTEGER) AS PROGRESSIVO_ACCESSO,
+                        COALESCE(a.CODICE_COMUNALE_ACCESSO::VARCHAR, ga.CODICE_COMUNALE_ACCESSO::VARCHAR) AS CODICE_COMUNALE_ACCESSO,
+                        COALESCE(a.CIVICO::INTEGER, ga.CIVICO::INTEGER) AS CIVICO,
+                        COALESCE(a.ESPONENTE::VARCHAR, ga.ESPONENTE::VARCHAR) AS ESPONENTE,
+                        COALESCE(a.SPECIFICITA::VARCHAR, ga.SPECIFICITA::VARCHAR) AS SPECIFICITA,
+                        COALESCE(a.METRICO::BIGINT, ga.METRICO::BIGINT) AS METRICO,
+                        COALESCE(a.PROGRESSIVO_SNC::BIGINT, ga.PROGRESSIVO_SNC::BIGINT) AS PROGRESSIVO_SNC,
+                        COALESCE(a.COORD_X_COMUNE::FLOAT, ga.COORD_X_COMUNE::FLOAT) AS COORD_X_COMUNE,
+                        COALESCE(a.COORD_Y_COMUNE::FLOAT, ga.COORD_Y_COMUNE::FLOAT) AS COORD_Y_COMUNE,
+                        COALESCE(ga.COORD_X_COMUNE::FLOAT, a.COORD_X_COMUNE::FLOAT) AS LOCAL_COORD_X_COMUNE,
+                        COALESCE(ga.COORD_Y_COMUNE::FLOAT, a.COORD_Y_COMUNE::FLOAT) AS LOCAL_COORD_Y_COMUNE,
+                        COALESCE(a.QUOTA::FLOAT, ga.QUOTA::FLOAT) AS QUOTA,
+                        COALESCE(a.METODO::VARCHAR, ga.METODO::VARCHAR) AS METODO
+                    FROM geocoded_anncsu ga
+                    FULL OUTER JOIN anncsu a
+                        ON (ga.PROGRESSIVO_ACCESSO::INTEGER = a.PROGRESSIVO_ACCESSO::INTEGER);
                 """)
 
                 # collect all records where the anncsu coordinates are different from
@@ -1036,11 +1036,11 @@ class ANNCSUSettingsManager:
                     WHERE
                         (COORD_X_COMUNE IS NOT NULL AND
                          LOCAL_COORD_X_COMUNE IS NOT NULL AND
-                         ABS(COORD_X_COMUNE - LOCAL_COORD_X_COMUNE) > $1)
+                         ABS(COORD_X_COMUNE::FLOAT - LOCAL_COORD_X_COMUNE::FLOAT) > $1)
                         OR
                         (COORD_Y_COMUNE IS NOT NULL AND
                          LOCAL_COORD_Y_COMUNE IS NOT NULL AND
-                         ABS(COORD_Y_COMUNE - LOCAL_COORD_Y_COMUNE) > $1)
+                         ABS(COORD_Y_COMUNE::FLOAT - LOCAL_COORD_Y_COMUNE::FLOAT) > $1)
                 """, (threshold,)).df()
 
                 # if there are records with coordinates different from local table,
@@ -1051,22 +1051,22 @@ class ANNCSUSettingsManager:
                     (Soglia di differenza: {threshold} gradi, circa {threshold * 111000:.2f} metri)
                     """
                     print(message)
-                    # reply = QMessageBox.question(
-                    #     iface.mainWindow(),
-                    #     "Coordinate aggiornate",
-                    #     message,
-                    #     QMessageBox.Yes | QMessageBox.No,
-                    #     QMessageBox.Yes
-                    # )
-                    # if reply == QMessageBox.Yes:
-                    import pprint
-                    pprint.pprint(out_of_threshold)
-                    # details = "\n".join([
-                    #     f"Accesso {row['CODICE_COMUNALE_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
-                    #     f"ANNCSU({row['ANNCSU_COORD_X']}, {row['ANNCSU_COORD_Y']}) -> "
-                    #     f"Locale({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
-                    #     for row in out_of_threshold.to_dict()
-                    # ])
+                    reply = QMessageBox.question(
+                        iface.mainWindow(),
+                        "Coordinate aggiornate",
+                        message,
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.Yes
+                    )
+                    if reply == QMessageBox.Yes:
+                        import pprint
+                        pprint.pprint(out_of_threshold)
+                        # details = "\n".join([
+                        #     f"Accesso {row['CODICE_COMUNALE_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
+                        #     f"ANNCSU({row['ANNCSU_COORD_X']}, {row['ANNCSU_COORD_Y']}) -> "
+                        #     f"Locale({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
+                        #     for row in out_of_threshold.to_dict()
+                        # ])
 
                     # TODO: probaqbly better to show this in a dock widget with a table and possibility
                     # to click on a row to zoom to the accesso on the map, instead of a message box
@@ -1080,18 +1080,18 @@ class ANNCSUSettingsManager:
                 # coordinates different from local table, to avoid updating coordinates without
                 # user knowing that some coordinates have been updated
                 if len(out_of_threshold) > 0:
-                    # message = f"""Vuoi procedere con l'aggiornamento dei dati della sessione?
-                    # (Se scegli di procedere, le coordinate degli accessi saranno aggiornate con i valori presenti nella tabella anncsu, anche per quelli con differenze superiori alla soglia)"""
-                    # reply = QMessageBox.question(
-                    #     iface.mainWindow(),
-                    #     "Procedere con aggiornamento?",
-                    #     message,
-                    #     QMessageBox.Yes | QMessageBox.No,
-                    #     QMessageBox.Yes
-                    # )
-                    # if reply == QMessageBox.No:
-                    #     conn.execute("ROLLBACK;")
-                    #     return
+                    message = f"""Vuoi procedere con l'aggiornamento dei dati della sessione?
+                    (Se scegli di procedere, le coordinate degli accessi saranno aggiornate con i valori presenti nella tabella anncsu, anche per quelli con differenze superiori alla soglia)"""
+                    reply = QMessageBox.question(
+                        iface.mainWindow(),
+                        "Procedere con aggiornamento?",
+                        message,
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.Yes
+                    )
+                    if reply == QMessageBox.No:
+                        conn.execute("ROLLBACK;")
+                        return False
                     
                     # dropping local coordinates columns from updated_anncsu table
                     # and keeping only anncsu coordinates to avoid confusion
@@ -1113,19 +1113,64 @@ class ANNCSUSettingsManager:
                 QgsMessageLog.logMessage(f"Error updating session with new anncsu data: {e}", level=Qgis.Critical)
                 raise Exception(f"Error updating session with new anncsu data: {e}")
             
-            else:                # drop temp table
-                conn.execute("DROP TABLE IF EXISTS to_delete;")
+            else:
+                # drop temp table
+                # conn.execute("DROP TABLE IF EXISTS to_delete;")
                 conn.execute("COMMIT;")
+            
+            return True
+
+
+    class populate_table_from_source_task(QgsTask):
+
+        def __init__(self, 
+                duckdb_path: Path,
+                source_db: AnyUrl,
+                table_name: str,
+                municipality_data: MunicipalityData,
+            ) -> None:
+            super().__init__(f"Scaricando ANNCSU aggiornato per comune {municipality_data.anncsu_id}", QgsTask.CanCancel)
+            self.duckdb_path = duckdb_path
+            self.source_db = source_db
+            self.table_name = table_name
+            self.municipality_data = municipality_data
+
+            # task status
+            self.exception = None
+            self.result = None
+
+        def run(self) -> bool:
+            try:
+                self.result = ANNCSUSettingsManager.populate_table_from_source(
+                    duckdb_path=self.duckdb_path,
+                    source_db=self.source_db,
+                    table_name=self.table_name,
+                    municipality_data=self.municipality_data
+                )
+            except Exception as e:
+                self.exception = e
+                QgsMessageLog.logMessage(f"Error in populate_table_from_source_task: {e}", level=Qgis.Critical)
+                self.result = False
+            
+            return self.result
+
+        def finished(self, result: bool):
+            if result:
+                QgsMessageLog.logMessage(f"Tabella {self.table_name} popolata con successo da {self.source_db}", level=Qgis.Info)
+            else:
+                QgsMessageLog.logMessage(f"Errore durante la popolazione della tabella {self.table_name} da {self.source_db}", level=Qgis.Critical)
+
+            return super().finished(result)
+
 
     @classmethod
-    def _populate_table_from_source(
+    def populate_table_from_source(
         cls,
-        duckdb_conn: duckdb.DuckDBPyConnection,
+        duckdb_path: Path,
         source_db: AnyUrl,
         table_name: str,
         municipality_data: MunicipalityData,
-        scope_name: str
-    ) -> None:
+    ) -> bool:
         """Populate anncsu table in duckdb from source database.
 
         This method handles two types of sources:
@@ -1133,87 +1178,106 @@ class ANNCSUSettingsManager:
         2. Local or remote DuckDB files with anncsu_global table
 
         Args:
-            duckdb_conn: Active DuckDB connection where table will be created
+            duckdb_path: Path to the DuckDB database where table will be created
             source_db: Source URL (ZIP file or DuckDB file)
             table_name: Name of the table to create in duckdb (e.g. "anncsu")
             municipality_data: Municipality data for filtering and enrichment
-            scope_name: Unique scope identifier for temporary file naming
 
         Raises:
             Exception: If download fails or source_db format is invalid
         """
-        # depending if source_db is remote or local file path
-        if 'agenziaentrate.gov.it' in str(source_db):
-            # load extension to parse zip content
-            duckdb_conn.execute("INSTALL zipfs FROM community;")
-            duckdb_conn.execute("LOAD zipfs;")
+        with duckdb.connect(database=str(duckdb_path), read_only=False) as duckdb_conn:
+            # load spatial extension
+            duckdb_conn.execute("INSTALL spatial;")
+            duckdb_conn.execute("LOAD spatial;")
 
-            # download source db because it is not possible to attach remote duckdb
-            # Get filename from Content-Disposition header or use fallback
-            response_head = requests.head(str(source_db))
-            fallout_temp_filename = f"temp_{scope_name}.zip"
-            remote_filename = fallout_temp_filename
-            if response_head.status_code == 200 and response_head.headers.get('Content-Disposition'):
-                remote_filename = response_head.headers.get('Content-Disposition').split('filename=')[-1].strip('"')
+            duckdb_conn.execute("BEGIN;")
+            try:
+                # depending if source_db is remote or local file path
+                if 'agenziaentrate.gov.it' in str(source_db):
+                    QgsMessageLog.logMessage(f"Connect remote DB: {source_db}", level=Qgis.Info)
 
-            temp_duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / remote_filename
+                    # load extension to parse zip content
+                    duckdb_conn.execute("INSTALL zipfs FROM community;")
+                    duckdb_conn.execute("LOAD zipfs;")
 
-            # Download file asynchronously with progress tracking in QGIS task manager
-            download_task = download_file_async(str(source_db), temp_duckdb_path)
+                    # download source db because it is not possible to attach remote duckdb
+                    # Get filename from Content-Disposition header or use fallback
+                    response_head = requests.head(str(source_db))
+                    fallout_temp_filename = f"fallout_anncsu.zip"
+                    remote_filename = fallout_temp_filename
+                    if response_head.status_code == 200 and response_head.headers.get('Content-Disposition'):
+                        remote_filename = response_head.headers.get('Content-Disposition').split('filename=')[-1].strip('"')
 
-            # Wait for download to complete (shows progress in task manager, allows cancellation)
-            if not download_task.waitForFinished():
-                error_msg = str(download_task.exception) if download_task.exception else "Download was cancelled or timed out"
-                raise Exception(f"Failed to download source database: {error_msg}")
+                    temp_duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / remote_filename
 
-            # create local duckdb with only data for selected municipality_code
-            force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'FLOAT', 'COORD_X_COMUNE': 'FLOAT', 'COORD_Y_COMUNE': 'FLOAT'}"
-            duckdb_conn.execute(f"""
-                CREATE TABLE {table_name} AS
-                SELECT
-                    $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
-                    $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
-                    $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
-                    *
-                FROM
-                    READ_CSV_AUTO(
-                        'zip://{str(temp_duckdb_path)}',
-                        header = true,
-                        delim=';',
-                        thousands='.',
-                        decimal_separator=',',
-                        types={force_column_types}
-                    )
-                WHERE codice_comune = '{municipality_data.anncsu_id}';
-            """)
+                    # Download file asynchronously with progress tracking in QGIS task manager
+                    download_task = download_file_async(str(source_db), temp_duckdb_path)
 
-            # remove temporary downloaded duckdb
-            os.remove(temp_duckdb_path)
+                    # Wait for download to complete (shows progress in task manager, allows cancellation)
+                    if not download_task.waitForFinished():
+                        error_msg = str(download_task.exception) if download_task.exception else "Download was cancelled or timed out"
+                        raise Exception(f"Failed to download source database: {error_msg}")
 
-        else:
-            if not str(source_db).endswith(".duckdb"):
-                raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (shoudl end with .duckdb).")
+                    # create local duckdb with only data for selected municipality_code
+                    force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'FLOAT', 'COORD_X_COMUNE': 'FLOAT', 'COORD_Y_COMUNE': 'FLOAT'}"
+                    duckdb_conn.execute(f"""
+                        CREATE OR REPLACE TABLE {table_name} AS
+                        SELECT
+                            $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
+                            $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
+                            $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
+                            *
+                        FROM
+                            READ_CSV_AUTO(
+                                'zip://{str(temp_duckdb_path)}',
+                                header = true,
+                                delim=';',
+                                thousands='.',
+                                decimal_separator=',',
+                                types={force_column_types}
+                            )
+                        WHERE codice_comune = '{municipality_data.anncsu_id}';
+                    """)
 
-            # query from a remote duckdb
-            duckdb_conn.execute(f"ATTACH DATABASE '{str(source_db)}' AS indirizzarioItalia;")
-            duckdb_conn.execute(f"""
-                CREATE TABLE {table_name} AS
-                SELECT
-                    $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
-                    $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
-                    $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
-                    *
-                FROM
-                    indirizzarioItalia.anncsu_global
-                WHERE
-                    CODICE_COMUNE == '{municipality_data.anncsu_id}';
-            """)
-            duckdb_conn.execute("DETACH DATABASE indirizzarioItalia;")
+                    # remove temporary downloaded duckdb
+                    os.remove(temp_duckdb_path)
+
+                else:
+                    QgsMessageLog.logMessage(f"Connect local DB: {source_db}", level=Qgis.Info)
+
+                    if not str(source_db).endswith(".duckdb"):
+                        raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (should end with .duckdb).")
+
+                    # query from a remote duckdb
+                    duckdb_conn.execute(f"ATTACH DATABASE '{str(source_db)}' AS indirizzarioItalia;")
+                    duckdb_conn.execute(f"""
+                        CREATE OR REPLACE TABLE {table_name} AS
+                        SELECT
+                            $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
+                            $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
+                            $tag$'{municipality_data.regione}'$tag$ as PLUGIN_REGIONE,
+                            *
+                        FROM
+                            indirizzarioItalia.anncsu_global
+                        WHERE
+                            CODICE_COMUNE == '{municipality_data.anncsu_id}';
+                    """)
+                    duckdb_conn.execute("DETACH DATABASE indirizzarioItalia;")
+
+            except Exception as e:
+                duckdb_conn.execute("ROLLBACK;")
+                QgsMessageLog.logMessage(f"Error populating {table_name} table from source database: {e}", level=Qgis.Critical)
+                raise e
+            else:
+                QgsMessageLog.logMessage(f"Populated {table_name} table from source database: {source_db}", level=Qgis.Info)
+                duckdb_conn.execute("COMMIT;")
+                return True
+
 
     @classmethod
     def create_new_session(
         cls,
-        task: QgsTask,
         source_db: AnyUrl,
         municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback,
@@ -1255,8 +1319,9 @@ class ANNCSUSettingsManager:
         scope_name = f"{municipality_data.anncsu_id}_{now.strftime('%Y%m%d_%H%M%S')}"
         duckdb_path = local_path / f"{scope_name}.duckdb"
 
-        # clone or pull remote git repository locally
-        repo = clone_or_pull_git_repo(
+        # clone or pull remote git repository locally in separate thread becasuse
+        # can takes time and not block the UI
+        clone_repo_task = clone_or_pull_git_repo_task(
             remote_git_repo=remote_git_repo,
             local_path=local_path,
             git_user=cls.get_git_user(),
@@ -1264,10 +1329,40 @@ class ANNCSUSettingsManager:
             git_token=cls.get_git_token(),
             ssh_key=cls.get_git_ssh_key()
         )
-        if repo is None:
+        QgsApplication.taskManager().addTask(clone_repo_task)
+        while clone_repo_task.status() != QgsTask.Running:
+            QgsApplication.processEvents()
+        while clone_repo_task.status() == QgsTask.Running:
+            QgsApplication.processEvents()
+
+        if clone_repo_task.repo is None:
             return None, None
 
         QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_git_repo} into {local_path}", level=Qgis.Info)
+        del clone_repo_task  # no more need to keep reference
+
+        # update ANNCSU table in current session with source_db data, this operation can be time
+        update_anncsu_task = ANNCSUSettingsManager.populate_table_from_source_task(
+            duckdb_path=duckdb_path,
+            source_db=source_db,
+            table_name="anncsu",
+            municipality_data=municipality_data
+        )
+
+        # run update current session time consuming task
+        QgsApplication.taskManager().addTask(update_anncsu_task)
+        while update_anncsu_task.status() != QgsTask.Running:
+            QgsApplication.processEvents()
+        while update_anncsu_task.status() == QgsTask.Running:
+            QgsApplication.processEvents()
+
+        # check if task has been terminated due to error or cancellation
+        if update_anncsu_task.status() == QgsTask.Terminated:
+            ANNCSUMessageManager().show_message(
+                f"Errore durante la creazione della nuova sessione: {str(update_anncsu_task.exception)}",
+                "error",
+            )
+            return None, None
 
         # populate scope session with subset of municipality data get from source_db
         # QgsMessageLog.logMessage(f"Creating local duckdb at {duckdb_path}...", level=Qgis.Info)
@@ -1275,15 +1370,6 @@ class ANNCSUSettingsManager:
             # load spatial extension
             duckdb_conn.execute("INSTALL spatial;")
             duckdb_conn.execute("LOAD spatial;")
-
-            # populate anncsu table from source database
-            cls._populate_table_from_source(
-                duckdb_conn=duckdb_conn,
-                source_db=source_db,
-                table_name="anncsu",
-                municipality_data=municipality_data,
-                scope_name=scope_name
-            )
 
             # now create geofence polygon table related to the current scope municipality
             # note that geofence source is in 32632 and anncsu data is in wgs84 and

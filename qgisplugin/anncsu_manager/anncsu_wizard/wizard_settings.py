@@ -1,4 +1,5 @@
 import json
+from functools import partial
 from pathlib import Path
 from typing import Optional
 import importlib
@@ -7,7 +8,7 @@ from pydantic import AnyUrl
 import duckdb
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
-from qgis.core import QgsTask, QgsApplication
+from qgis.core import Qgis, QgsMessageLog, QgsTask, QgsApplication
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -57,6 +58,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         )
         self.feedback.progress_signal.connect(self.update_feedback_progress)
         self.create_new_session_task: Optional[QgsTask] = None  # necessary to track task state
+        self.update_anncsu_task: Optional[QgsTask] = None  # necessary to track task state
 
         # binding var to UI elements
         self.anncsu_base_url: QLineEdit
@@ -88,7 +90,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
         )
         self.delete_session.clicked.connect(lambda: self.manageDeleteSession())
-        self.update_session.clicked.connect(lambda: self.manageUpdateSession())
+        self.update_session.clicked.connect(self.manageUpdateSession)
         self.create_new_session.clicked.connect(lambda: self.save_settings(force_creation_new_session=True))
 
         self.settings_button_box.button(
@@ -183,34 +185,59 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             )
             return
 
-        # update the session (time consuming) task
-        self.update_current_session_task = QgsTask.fromFunction(
-            f"Aggiornamento sessione per comune {current_scope.municipality_data.anncsu_id} con i dati ufficiali ANNCSU",
-            ANNCSUSettingsManager.update_current_session,
-            on_finished=self.on_finished_update_current_session,
+        # update ANNCSU table in current session with source_db data, this operation can be time
+        # consuming so run it in a separate thread with QgsTask
+        # current_scope = self.current_session.currentData()
+        # update_anncsu_function = partial(ANNCSUSettingsManager.populate_table_from_source,
+        #     duckdb_path=current_scope.duckdb_path,
+        #     source_db=current_scope.source_db,
+        #     table_name="anncsu",
+        #     municipality_data=current_scope.municipality_data,
+        # )
+
+        # self.update_anncsu_task = QgsTask.fromFunction(
+        #     f"Scaricando ANNCSU aggiornato per comune {current_scope.municipality_data.anncsu_id}",
+        #     update_anncsu_function,
+        #     on_finished=self.manageUpdateSessionStep2,
+        # )
+
+        # # run update current session time consuming task
+        update_anncsu_task = ANNCSUSettingsManager.populate_table_from_source_task(
+            duckdb_path=current_scope.duckdb_path,
+            source_db=current_scope.source_db,
+            table_name="anncsu",
+            municipality_data=current_scope.municipality_data
         )
 
         # run update current session time consuming task
-        QgsApplication.taskManager().addTask(self.update_current_session_task)
+        QgsApplication.taskManager().addTask(update_anncsu_task)
+        while update_anncsu_task.status() != QgsTask.Running:
+            QgsApplication.processEvents()
+        while update_anncsu_task.status() == QgsTask.Running:
+            QgsApplication.processEvents()
 
-
-    def on_finished_update_current_session(self, exception, result=None):
-        """Callback when finished updating current session."""
-        self.update_current_session_task = None  # reset task reference
-        self.feedback.progress_bar.hide()
-
-        if exception is not None:
+        # check if task has been terminated due to error or cancellation
+        if update_anncsu_task.status() == QgsTask.Terminated:
             ANNCSUMessageManager().show_message(
-                f"Errore durante l'aggiornamento della sessione: {str(exception)}",
+                f"Errore durante la creazione della nuova sessione: {str(update_anncsu_task.exception)}",
                 "error",
+            )
+            return
+        QgsMessageLog.logMessage(f"Successfully updated ANNCSU table for session {self.current_session.currentText()}", level=Qgis.Info)
+
+        # now update current session with update ANNCSU data
+        res = ANNCSUSettingsManager.update_current_session()
+        if not res:
+            ANNCSUMessageManager().show_message(
+                "Aggiornamento ANNCSU annullato.",
+                "info",
             )
             return
 
         ANNCSUMessageManager().show_message(
-            "Sessione aggiornata, Ricorda di esportare su Mergin per lavorare con dati aggiornati.",
-            "warning",
+            "ANNCSU Aggiornato con successo per la sessione selezionata.",
+            "success",
         )
-
 
     def manageDeleteSession(self):
         """Manage deletion of current session."""
@@ -434,6 +461,15 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             municipality_data.anncsu_id != current_municipality_code or
             force_creation_new_session
         ):
+            # launch a new session creation with QgsTask to avoid GUI blocking
+            if self.create_new_session_task is not None:
+                # avoid multiple task creation
+                ANNCSUMessageManager().show_message(
+                    "Task di creazione nuova sessione già in esecuzione.",
+                    "warning",
+                )
+                return
+
             if force_creation_new_session:
                 message = "Forzando la creazione di una nuova sessione ANNCSU. Vuoi procedere?" \
 
@@ -457,52 +493,73 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
                 ANNCSUMessageManager().show_message("Nessun cambio salvato", "success")
                 return  # user cancelled, do not save settings
-            else:
-                # proceed to create new session
-                self.feedback.progress_bar.show()
-                self.feedback.progress_bar.setMinimum(0)
-                self.feedback.progress_bar.setMaximum(0)
 
-                # launch a new session creation with QgsTask to avoid GUI blocking
-                if self.create_new_session_task is not None:
-                    # avoid multiple task creation
-                    ANNCSUMessageManager().show_message(
-                        "Task di creazione nuova sessione già in esecuzione.",
-                        "warning",
-                    )
-                    return
+            # proceed to create new session
+            self.feedback.progress_bar.show()
+            self.feedback.progress_bar.setMinimum(0)
+            self.feedback.progress_bar.setMaximum(0)
 
-                # prepare location where to store session that have to
-                # be synced to/from remote repo
-                # session_path, remote_repo = ANNCSUSettingsManager.clone_or_pull_remote_repo(
-                #     base_path=Path(PLUGIN_PATH) / "resources" / "data",
-                #     municipality_data=municipality_data,
-                #     feedback=self.feedback,
-                # )
+            # create the session (time consuming) task
+            # self.create_new_session_task = QgsTask.fromFunction(
+            #     f"Creazione nuova sessione per comune {municipality_data.anncsu_id}",
+            #     ANNCSUSettingsManager.create_new_session,
+            #     source_db=AnyUrl(self.anncsu_base_url.text()),
+            #     municipality_data=municipality_data,
+            #     feedback=self.feedback,
+            #     on_finished=self.on_finished_create_new_session,
+            # )
 
-                # create the session (time consuming) task
-                self.create_new_session_task = QgsTask.fromFunction(
-                    f"Creazione nuova sessione per comune {municipality_data.anncsu_id}",
-                    ANNCSUSettingsManager.create_new_session,
+            # # run create new settion sime spending task
+            # QgsApplication.taskManager().addTask(self.create_new_session_task)
+
+            # create new session
+            new_scope_id, new_scope = None, None
+            try:
+                new_scope_id, new_scope = ANNCSUSettingsManager.create_new_session(
                     source_db=AnyUrl(self.anncsu_base_url.text()),
                     municipality_data=municipality_data,
                     feedback=self.feedback,
-                    on_finished=self.on_finished_create_new_session,
                 )
+            except Exception as e:
+                ANNCSUMessageManager().show_message(str(e), "error")
 
-                # run create new settion sime spending task
-                QgsApplication.taskManager().addTask(self.create_new_session_task)
-        else:
-            # no session change, just save current settings
-            ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
-            self.registerGeocoders()
-            ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-            ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
-            scopes = ANNCSUSettingsManager.get_scopes()
-            scopes[self.current_session.currentText()] = current_scope
-            ANNCSUSettingsManager.set_scopes(scopes)
-            ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-            ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+            finally:
+                self.feedback.progress_bar.hide()
+                if new_scope_id is None or new_scope is None:
+                    ANNCSUMessageManager().show_message(
+                        "Errore durante la creazione della nuova sessione",
+                        "error",
+                    )
+                    return
+                print(f"New session created: {new_scope_id} -> {new_scope}")
+
+            # add new session to combobox and set it as current
+            current_scope = new_scope
+            current_scope.sync_changed.connect(self.update_sync_button_color)
+            current_scope.sync_changed.emit()  # initial sync status
+            self.current_session.addItem(new_scope_id, current_scope)
+            self.current_session.setCurrentIndex(
+                self.current_session.findText(new_scope_id)
+            )
+
+            # save settings
+            # ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
+            # self.registerGeocoders()
+            # ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
+            # ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
+            # ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+            # ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+
+        # just save current settings
+        ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
+        self.registerGeocoders()
+        ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
+        ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
+        scopes = ANNCSUSettingsManager.get_scopes()
+        scopes[self.current_session.currentText()] = current_scope
+        ANNCSUSettingsManager.set_scopes(scopes)
+        ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+        ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
 
     def reset_settings_to_default(self):
         """Set selections to defaults. Does not save."""
@@ -511,41 +568,41 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.manageSessionChange()
         ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings reset.", "info")
 
-    def on_finished_create_new_session(self, exception, result=None):
-        """Callback when finished creating a new session."""
-        self.create_new_session_task = None  # reset task reference
-        self.feedback.progress_bar.hide()
+    # def on_finished_create_new_session(self, exception, result=None):
+    #     """Callback when finished creating a new session."""
+    #     self.create_new_session_task = None  # reset task reference
+    #     self.feedback.progress_bar.hide()
 
-        if exception is not None:
-            ANNCSUMessageManager().show_message(
-                f"Errore durante la creazione della nuova sessione: {str(exception)}",
-                "error",
-            )
-            return
+    #     if exception is not None:
+    #         ANNCSUMessageManager().show_message(
+    #             f"Errore durante la creazione della nuova sessione: {str(exception)}",
+    #             "error",
+    #         )
+    #         return
 
-        # save new sesstion data
-        mew_scope_id, new_scope = result if result is not None else (None, None)
-        if mew_scope_id is None or new_scope is None:
-            ANNCSUMessageManager().show_message(
-                "Errore durante la creazione della nuova sessione: dati sessione non validi.",
-                "error",
-            )
-            return
-        print(f"New session created: {mew_scope_id} -> {new_scope} ---- {result}")
+    #     # save new sesstion data
+    #     new_scope_id, new_scope = result if result is not None else (None, None)
+    #     if new_scope_id is None or new_scope is None:
+    #         ANNCSUMessageManager().show_message(
+    #             "Errore durante la creazione della nuova sessione: dati sessione non validi.",
+    #             "error",
+    #         )
+    #         return
+    #     print(f"New session created: {new_scope_id} -> {new_scope} ---- {result}")
 
-        # add new session to combobox and set it as current
-        new_scope.sync_changed.connect(self.update_sync_button_color)
-        new_scope.sync_changed.emit()  # initial sync status
-        self.current_session.addItem(mew_scope_id, new_scope)
-        self.current_session.setCurrentIndex(
-            self.current_session.findText(mew_scope_id)
-        )
+    #     # add new session to combobox and set it as current
+    #     new_scope.sync_changed.connect(self.update_sync_button_color)
+    #     new_scope.sync_changed.emit()  # initial sync status
+    #     self.current_session.addItem(new_scope_id, new_scope)
+    #     self.current_session.setCurrentIndex(
+    #         self.current_session.findText(new_scope_id)
+    #     )
 
-        # save settings
-        municipality_data: MunicipalityData = self.comune_cb.currentData()
-        ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
-        self.registerGeocoders()
-        ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-        ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
-        ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-        ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+    #     # save settings
+    #     municipality_data: MunicipalityData = self.comune_cb.currentData()
+    #     ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
+    #     self.registerGeocoders()
+    #     ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
+    #     ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
+    #     ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+    #     ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")

@@ -327,6 +327,62 @@ def download_file_async(
     QgsApplication.taskManager().addTask(task)
     return task
 
+class clone_or_pull_git_repo_task(QgsTask):
+    """Wrapper task to run clone_or_pull_git_repo in a separate thread with progress tracking.
+
+    Args:
+        see clone_or_pull_git_repo for details on parameters and return value.
+    """
+
+    def __init__(self, 
+            remote_git_repo: str,
+            local_path: Path,
+            git_user: Optional[str] = None,
+            git_password: Optional[str] = None,
+            git_token: Optional[str] = None,
+            ssh_key: Optional[str] = None
+        ) -> None:
+        super().__init__(f"Clonando repo {remote_git_repo}", QgsTask.CanCancel)
+        self.remote_git_repo = remote_git_repo
+        self.local_path = local_path
+        self.git_user = git_user
+        self.git_password = git_password
+        self.git_token = git_token
+        self.ssh_key = ssh_key
+
+        # task status
+        self.exception = None
+        self.result = None
+        self.repo: Optional[Repo] = None
+
+    def run(self) -> bool:
+        try:
+            self.repo = clone_or_pull_git_repo(
+                remote_git_repo=self.remote_git_repo,
+                local_path=self.local_path,
+                git_user=self.git_user,
+                git_password=self.git_password,
+                git_token=self.git_token,
+                ssh_key=self.ssh_key
+            )
+            if self.repo is None:
+                self.result = False
+            else:
+                self.result = True
+        except Exception as e:
+            self.exception = e
+            QgsMessageLog.logMessage(f"Error in clone_or_pull_git_repo_task: {e}", level=Qgis.Critical)
+            self.result = False
+        
+        return self.result
+
+    def finished(self, result: bool):
+        if result:
+            QgsMessageLog.logMessage(f"Clonato repo {self.remote_git_repo} popolata con successo in {self.local_path}", level=Qgis.Info)
+        else:
+            QgsMessageLog.logMessage(f"Errore durante la clonazione del repo {self.remote_git_repo} in {self.local_path}", level=Qgis.Critical)
+        return super().finished(result)
+
 
 def clone_or_pull_git_repo(
     remote_git_repo: str,
@@ -375,8 +431,9 @@ def clone_or_pull_git_repo(
                         temp_url_changed = True
 
                 # NOTE: repo need to have at least 1 file otherwise git pull do not fetch any ref
-                print(f"Pulling latest changes from git repository at {origin.url}...")
+                QgsMessageLog.logMessage(f"Pulling latest changes from git repository at {origin.url}...", level=Qgis.Info)
                 origin.pull()
+
             finally:
                 if temp_url_changed:
                     try:
@@ -389,7 +446,7 @@ def clone_or_pull_git_repo(
                     else:
                         os.environ["GIT_SSH_COMMAND"] = old_git_ssh
 
-            print(f"Repository already exists at {local_path}, pulled latest changes.")
+            QgsMessageLog.logMessage(f"Repository already exists at {local_path}, pulled latest changes.", level=Qgis.Info)
             return repo
 
         else:
@@ -409,9 +466,11 @@ def clone_or_pull_git_repo(
                         temp_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
                         temp_changed = True
 
+                QgsMessageLog.logMessage(f"Cloning latest changes from git repository at {temp_url}...", level=Qgis.Info)
                 repo = Repo.clone_from(temp_url, local_path)
+
             except Exception as e:
-                print(f"Error cloning git repository from {remote_git_repo}: {e}")
+                QgsMessageLog.logMessage(f"Error cloning git repository {remote_git_repo}: {e}", level=Qgis.Critical)
                 return None
             finally:
                 if temp_changed and repo is not None:
@@ -425,11 +484,11 @@ def clone_or_pull_git_repo(
                         os.environ.pop("GIT_SSH_COMMAND", None)
                     else:
                         os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+                QgsMessageLog.logMessage(f"Successfully cloned repo {remote_git_repo} to {local_path}.", level=Qgis.Info)
 
-            print(f"Successfully cloned repository from {remote_git_repo} to {local_path}.")
             return repo
 
     except Exception as e:
-        print(f"Error cloning/pulling git repository from {remote_git_repo}: {e}")
+        QgsMessageLog.logMessage(f"Error cloning/pulling git repository {remote_git_repo}: {e}", level=Qgis.Critical)
         return None
 
