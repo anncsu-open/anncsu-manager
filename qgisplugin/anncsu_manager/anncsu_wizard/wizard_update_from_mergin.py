@@ -220,9 +220,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                 if geocoded_anncsu_path.exists():
                     # load layer just to count features
                     layer = QgsVectorLayer(str(geocoded_anncsu_path), layer_name, "ogr")
-
-                    scopedb.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
-                    scopedb.execute(f"CREATE TABLE geocoded_anncsu AS SELECT * FROM st_read('{geocoded_anncsu_path}');")
+                    scopedb.execute(f"CREATE OR REPLACE TABLE geocoded_anncsu AS SELECT * FROM st_read('{geocoded_anncsu_path}');")
                     try:
                         scopedb.execute("ALTER TABLE geocoded_anncsu DROP COLUMN id;")
                     except Exception as e:
