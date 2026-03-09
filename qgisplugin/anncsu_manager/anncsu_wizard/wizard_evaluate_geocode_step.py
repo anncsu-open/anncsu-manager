@@ -125,7 +125,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                 success_rate = (num_of_success / total_records) * 100
             else:
                 success_rate = 0.0
-            self.statistics_geocode_score.setText(f"{success_rate:.2f}% (Threshoold: {success_score_threshold})")
+            self.statistics_geocode_score.setText(f"{success_rate:.2f}% (Threshold: {success_score_threshold})")
 
         except Exception as e:
             self.feedback.reportError(f"Error loading results: {str(e)}")
