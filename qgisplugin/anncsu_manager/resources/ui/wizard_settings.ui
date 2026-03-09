@@ -124,11 +124,17 @@
                   <property name="toolTip">
                    <string>session url on remote git repo</string>
                   </property>
-                  <property name="readOnly">
+                  <property name="dragEnabled">
                    <bool>true</bool>
+                  </property>
+                  <property name="readOnly">
+                   <bool>false</bool>
                   </property>
                   <property name="placeholderText">
                    <string>session url on remote git repo</string>
+                  </property>
+                  <property name="clearButtonEnabled">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>

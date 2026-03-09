@@ -7,8 +7,14 @@ from pydantic import AnyUrl
 
 import duckdb
 
-from anncsu_manager.utils.misc_utils import PLUGIN_PATH
-from qgis.core import Qgis, QgsMessageLog, QgsTask, QgsApplication
+from anncsu_manager.utils.misc_utils import PLUGIN_PATH, tuple_to_dataframe
+from qgis.core import (
+    Qgis,
+    QgsMessageLog,
+    QgsTask,
+    QgsApplication,
+    QgsProject,
+)
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -30,6 +36,7 @@ from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.anncsu_wizard.data_models.geocoder_model import GeocoderModel
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
+from anncsu_manager.qgis_plugin_tools.tools.layers import load_dataframe_as_layer, remove_layer_by_name
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory
@@ -64,7 +71,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.anncsu_base_url: QLineEdit
         self.comune_cb: QComboBox
         self.geocodersTreeView: QTreeView
-        self.session_url: QLabel
+        self.session_url: QLineEdit
 
         self.sync_pb: QPushButton
         self.sync_pb.clicked.connect(lambda: self.sync_session())
