@@ -799,8 +799,11 @@ class ANNCSUSettingsManager:
                 df['PROGRESSIVO_ACCESSO'] = pandas.to_numeric(df['PROGRESSIVO_ACCESSO'], errors='coerce').astype('Int64')
                 df['PROGRESSIVO_NAZIONALE'] = pandas.to_numeric(df['PROGRESSIVO_NAZIONALE'], errors='coerce').astype('Int64')
 
-                # change dtype of NUMERO_CIVICO to int
+                # change dtype of NUMERO_CIVICO, METRICO, PROGRESSIVO_SNC and METODO to int
                 df['CIVICO'] = pandas.to_numeric(df['CIVICO'], errors='coerce').astype('Int64')
+                df['METRICO'] = pandas.to_numeric(df['METRICO'], errors='coerce').astype('Int64')
+                df['PROGRESSIVO_SNC'] = pandas.to_numeric(df['PROGRESSIVO_SNC'], errors='coerce').astype('Int64')
+                df['METODO'] = pandas.to_numeric(df['METODO'], errors='coerce').astype('Int64')
 
                 # change dtype of COORD_X_COMUNE and COORD_Y_COMUNE to float
                 df['COORD_X_COMUNE'] = pandas.to_numeric(df['COORD_X_COMUNE'], errors='coerce').astype('Float64')
@@ -1006,15 +1009,15 @@ class ANNCSUSettingsManager:
                         a.PLUGIN_REGIONE AS PLUGIN_REGIONE,
                         COALESCE(a.CODICE_COMUNE::VARCHAR, ga.CODICE_COMUNE::VARCHAR) AS CODICE_COMUNE,
                         COALESCE(a.CODICE_ISTAT::VARCHAR, ga.CODICE_ISTAT::VARCHAR) AS CODICE_ISTAT,
-                        COALESCE(a.PROGRESSIVO_NAZIONALE::INTEGER, ga.PROGRESSIVO_NAZIONALE::INTEGER) AS PROGRESSIVO_NAZIONALE,
+                        COALESCE(a.PROGRESSIVO_NAZIONALE::BIGINT, ga.PROGRESSIVO_NAZIONALE::BIGINT) AS PROGRESSIVO_NAZIONALE,
                         COALESCE(a.CODICE_COMUNALE::VARCHAR, ga.CODICE_COMUNALE::VARCHAR) AS CODICE_COMUNALE,
                         COALESCE(a.ODONIMO::VARCHAR, ga.ODONIMO::VARCHAR) AS ODONIMO,
                         COALESCE(a."LOCALITA'"::VARCHAR, ga."LOCALITA'"::VARCHAR) AS "LOCALITA'",
                         COALESCE(a.DIZIONE_LINGUA1::VARCHAR, ga.DIZIONE_LINGUA1::VARCHAR) AS DIZIONE_LINGUA1,
                         COALESCE(a.DIZIONE_LINGUA2::VARCHAR, ga.DIZIONE_LINGUA2::VARCHAR) AS DIZIONE_LINGUA2,
-                        COALESCE(a.PROGRESSIVO_ACCESSO::INTEGER, ga.PROGRESSIVO_ACCESSO::INTEGER) AS PROGRESSIVO_ACCESSO,
+                        COALESCE(a.PROGRESSIVO_ACCESSO::BIGINT, ga.PROGRESSIVO_ACCESSO::BIGINT) AS PROGRESSIVO_ACCESSO,
                         COALESCE(a.CODICE_COMUNALE_ACCESSO::VARCHAR, ga.CODICE_COMUNALE_ACCESSO::VARCHAR) AS CODICE_COMUNALE_ACCESSO,
-                        COALESCE(a.CIVICO::INTEGER, ga.CIVICO::INTEGER) AS CIVICO,
+                        COALESCE(a.CIVICO::BIGINT, ga.CIVICO::BIGINT) AS CIVICO,
                         COALESCE(a.ESPONENTE::VARCHAR, ga.ESPONENTE::VARCHAR) AS ESPONENTE,
                         COALESCE(a.SPECIFICITA::VARCHAR, ga.SPECIFICITA::VARCHAR) AS SPECIFICITA,
                         COALESCE(a.METRICO::BIGINT, ga.METRICO::BIGINT) AS METRICO,
@@ -1024,11 +1027,11 @@ class ANNCSUSettingsManager:
                         COALESCE(ga.COORD_X_COMUNE::FLOAT, a.COORD_X_COMUNE::FLOAT) AS LOCAL_COORD_X_COMUNE,
                         COALESCE(ga.COORD_Y_COMUNE::FLOAT, a.COORD_Y_COMUNE::FLOAT) AS LOCAL_COORD_Y_COMUNE,
                         COALESCE(a.QUOTA::FLOAT, ga.QUOTA::FLOAT) AS QUOTA,
-                        COALESCE(a.METODO::VARCHAR, ga.METODO::VARCHAR) AS METODO,
+                        COALESCE(a.METODO::BIGINT, ga.METODO::BIGINT) AS METODO,
                         NULL::GEOMETRY AS geom
                     FROM geocoded_anncsu ga
                     FULL OUTER JOIN anncsu a
-                        ON (ga.PROGRESSIVO_ACCESSO::INTEGER = a.PROGRESSIVO_ACCESSO::INTEGER);
+                        ON (ga.PROGRESSIVO_ACCESSO::BIGINT = a.PROGRESSIVO_ACCESSO::BIGINT);
                 """)
 
                 # collect all records where the anncsu coordinates are different from
