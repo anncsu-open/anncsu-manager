@@ -29,7 +29,9 @@ from qgis.core import (
     QgsTask,
 )
 from qgis.PyQt.QtWidgets import (
-    QMessageBox
+    QMessageBox,
+    QSpacerItem,
+    QSizePolicy
 )
 
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
@@ -206,7 +208,7 @@ class ANNCSUSettingsManager:
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 
     DEFAULT_COORDINATE_DISTANCE_THRESHOLD=0.00001
-    DEFAULT_SESSION_REPO_URL = "https://github.com/geobeyond/anncsu-{nome}-{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
+    DEFAULT_SESSION_REPO_URL = "https://github.com/anncsu-open/anncsu-{nome}-{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
@@ -709,6 +711,7 @@ class ANNCSUSettingsManager:
         """Get duckdb connection to current scope duckdb and check if table with name "table_name" exists.
         
         NOTE: all columns stating with: PLUGIN_* are introduced by the plugin
+        NOTE: the geom column is returned as WKB to avoid issues with duckdb spatial extension that is not compatible with all the libraries that manage geometries, so it's necessary to convert it to geometry in the rest of the code using shapely.wkb.loads or similar functions.
         Returns:
             Tuple[Optional[list[tuple]], Optional[list[str]]]: DuckDB tuple and list of column names 
                                                                if table exists, else None, None.
@@ -726,6 +729,9 @@ class ANNCSUSettingsManager:
         # connect to duckdb and read anncsu table
         with duckdb.connect(database=str(scope.duckdb_path)) as scopedb:
             try:
+                scopedb.execute("INSTALL spatial;")
+                scopedb.execute("LOAD spatial;")
+
                 # check if table exists
                 exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()
                 if len(exists) == 0:
@@ -736,7 +742,13 @@ class ANNCSUSettingsManager:
                 columns = scopedb.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';").fetchall()
                 columns = [col[0] for col in columns]
 
-                records = scopedb.execute(f"SELECT * FROM '{table_name}'").fetchall()
+                try:
+                    records = scopedb.execute(f"SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM '{table_name}'").fetchall()
+                except Exception as e:
+                    # in case no geom column is present or geom column is already in WKB format just ignore and keep original table                    if 'ST_AsWKB(WKB_BLOB)' in str(e):
+                    QgsMessageLog.logMessage(f"Error: {e}", level=Qgis.Warning)
+                    records = scopedb.execute(f"SELECT * FROM '{table_name}'").fetchall()
+
                 return records, columns
 
             except Exception as e:
@@ -1012,7 +1024,8 @@ class ANNCSUSettingsManager:
                         COALESCE(ga.COORD_X_COMUNE::FLOAT, a.COORD_X_COMUNE::FLOAT) AS LOCAL_COORD_X_COMUNE,
                         COALESCE(ga.COORD_Y_COMUNE::FLOAT, a.COORD_Y_COMUNE::FLOAT) AS LOCAL_COORD_Y_COMUNE,
                         COALESCE(a.QUOTA::FLOAT, ga.QUOTA::FLOAT) AS QUOTA,
-                        COALESCE(a.METODO::VARCHAR, ga.METODO::VARCHAR) AS METODO
+                        COALESCE(a.METODO::VARCHAR, ga.METODO::VARCHAR) AS METODO,
+                        NULL::GEOMETRY AS geom
                     FROM geocoded_anncsu ga
                     FULL OUTER JOIN anncsu a
                         ON (ga.PROGRESSIVO_ACCESSO::INTEGER = a.PROGRESSIVO_ACCESSO::INTEGER);
@@ -1044,69 +1057,61 @@ class ANNCSUSettingsManager:
                 """, (threshold,)).df()
 
                 # if there are records with coordinates different from local table,
-                # warn user with a message box
+                # warn user with a message box and detail of the records with different coordinates,
+                # and ask if he want to proceed with update or not
                 if len(out_of_threshold) > 0:
-                    message = f"""Alcuni accessi hanno coordinate aggiornate rispetto alla tabella locale.
-                    Vuoi visualizzare i dettagli degli accessi con coordinate aggiornate?
-                    (Soglia di differenza: {threshold} gradi, circa {threshold * 111000:.2f} metri)
-                    """
-                    print(message)
-                    reply = QMessageBox.question(
-                        iface.mainWindow(),
-                        "Coordinate aggiornate",
-                        message,
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.Yes
-                    )
-                    if reply == QMessageBox.Yes:
-                        import pprint
-                        pprint.pprint(out_of_threshold)
-                        # details = "\n".join([
-                        #     f"Accesso {row['CODICE_COMUNALE_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
-                        #     f"ANNCSU({row['ANNCSU_COORD_X']}, {row['ANNCSU_COORD_Y']}) -> "
-                        #     f"Locale({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
-                        #     for row in out_of_threshold.to_dict()
-                        # ])
 
-                    # TODO: probaqbly better to show this in a dock widget with a table and possibility
-                    # to click on a row to zoom to the accesso on the map, instead of a message box
-                    # QMessageBox.information(
-                    #     iface.mainWindow(),
-                    #     "Dettagli coordinate aggiornate",
-                    #     details
-                    # )
-                
-                # ask to user if he wants to proceed with update if there are records with
-                # coordinates different from local table, to avoid updating coordinates without
-                # user knowing that some coordinates have been updated
-                if len(out_of_threshold) > 0:
-                    message = f"""Vuoi procedere con l'aggiornamento dei dati della sessione?
-                    (Se scegli di procedere, le coordinate degli accessi saranno aggiornate con i valori presenti nella tabella anncsu, anche per quelli con differenze superiori alla soglia)"""
-                    reply = QMessageBox.question(
-                        iface.mainWindow(),
-                        "Procedere con aggiornamento?",
-                        message,
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.Yes
-                    )
+                    # create informative text to be displayed to the user
+                    details = "\n".join([
+                        f"Accesso {row['PROGRESSIVO_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
+                        f"ANNCSU({row['ANNCSU_COORD_X']}, {row['ANNCSU_COORD_Y']}) -> "
+                        f"Locale({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
+                        for row in out_of_threshold.to_dict(orient="records")
+                    ])
+                    message = f"Alcuni accessi hanno coordinate aggiornate rispetto alla tabella locale.\n" \
+                               "Vuoi procedere con l'aggiornamento dei dati della sessione?\n" \
+                              f"In dettagli visualizza gli accessi con coordinate aggiornate?\n" \
+                              f"(Soglia di differenza: {threshold} gradi, circa {threshold * 111000:.2f} metri)"
+                    messsageBox = QMessageBox()
+                    messsageBox.setIcon(QMessageBox.Warning)
+                    messsageBox.setWindowTitle("Aggiornare coordinate degli accessi?")
+                    messsageBox.setText(message)
+                    messsageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                    messsageBox.setDefaultButton(QMessageBox.Yes)
+                    messsageBox.setDetailedText(details)
+                    # resize basing on content because lit of details can be larger than default message box size
+                    horizontalSpacer = QSpacerItem(1000, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+                    layout = messsageBox.layout()
+                    layout.addItem(horizontalSpacer, layout.rowCount(), 0, 1, layout.columnCount())
+                    # ask to the user if he want to proceed with update or not
+                    reply = messsageBox.exec_()
                     if reply == QMessageBox.No:
                         conn.execute("ROLLBACK;")
                         return False
-                    
-                    # dropping local coordinates columns from updated_anncsu table
-                    # and keeping only anncsu coordinates to avoid confusion
-                    conn.execute("""
-                        ALTER TABLE updated_anncsu
-                        DROP COLUMN LOCAL_COORD_X_COMUNE;
-                    """)
-                    conn.execute("""
-                        ALTER TABLE updated_anncsu
-                        DROP COLUMN LOCAL_COORD_Y_COMUNE;
-                    """)
 
-                    # replace old anncsu table with updated_anncsu table
-                    conn.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
-                    conn.execute("ALTER TABLE updated_anncsu RENAME TO geocoded_anncsu;")
+                # dropping local coordinates columns from updated_anncsu table
+                # and keeping only anncsu coordinates to avoid confusion
+                conn.execute("""
+                    ALTER TABLE updated_anncsu
+                    DROP COLUMN LOCAL_COORD_X_COMUNE;
+                """)
+                conn.execute("""
+                    ALTER TABLE updated_anncsu
+                    DROP COLUMN LOCAL_COORD_Y_COMUNE;
+                """)
+
+                # now update geom creating geometry point from official COORD_X_COMUNE and COORD_Y_COMUNE columns
+                conn.execute("""
+                    UPDATE updated_anncsu
+                    SET geom = ST_GeomFromText(
+                        'SRID=4326;POINT(' || COORD_X_COMUNE::TEXT || ' ' || COORD_Y_COMUNE::TEXT || ')'
+                    )
+                    WHERE COORD_X_COMUNE IS NOT NULL AND COORD_Y_COMUNE IS NOT NULL;
+                """)
+
+                # replace old anncsu table with updated_anncsu table
+                conn.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
+                conn.execute("ALTER TABLE updated_anncsu RENAME TO geocoded_anncsu;")
 
             except Exception as e:
                 conn.execute("ROLLBACK;")
@@ -1114,10 +1119,14 @@ class ANNCSUSettingsManager:
                 raise Exception(f"Error updating session with new anncsu data: {e}")
             
             else:
-                # drop temp table
-                # conn.execute("DROP TABLE IF EXISTS to_delete;")
                 conn.execute("COMMIT;")
-            
+                # update session data in SCOPES syncked status to false because
+                # now the session is not syncked with remote git repo because of the new anncsu data
+                scope.syncked = False
+                scope.sync_changed.emit()
+                scopes[scope_id] = scope
+                ANNCSUSettingsManager.set_scopes(scopes)
+
             return True
 
 
