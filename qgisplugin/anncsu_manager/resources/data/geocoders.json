@@ -1,9 +1,68 @@
 {
+    "Bing": {
+        "active": "False",
+        "api_key": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "dedupe": "True",
+        "default_scheme": "https",
+        "default_score": 0.5,
+        "default_timeout": 5,
+        "default_user_agent": "geopy/2.4.1",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "dedupe",
+            "default_scheme",
+            "default_timeout",
+            "default_user_agent",
+            "default_score",
+            "language",
+            "max_results",
+            "min_score",
+            "url",
+            "threshold"
+        ],
+        "language": "en",
+        "max_results": 5,
+        "min_score": 0,
+        "service_name": "Bing",
+        "threshold": 0.5,
+        "url": "http://dev.virtualearth.net/REST/v1/Locations"
+    },
+    "GoogleV3": {
+        "active": "True",
+        "api_key": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "dedupe": "True",
+        "default_score": 0.9,
+        "default_timeout": 5,
+        "default_user_agent": "geopy/2.4.1",
+        "domain": "maps.googleapis.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "dedupe",
+            "scheme",
+            "default_timeout",
+            "default_user_agent",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "GoogleV3",
+        "threshold": 0.8
+    },
     "Nominatim": {
         "active": "False",
         "addressdetails": "True",
         "bounded": "False",
-        "builder": "NominatimGeocoderBuilder",
+        "builder": "GeopyGeocoderBuilder",
         "country_codes": "",
         "dedupe": "True",
         "email": "",
@@ -32,7 +91,7 @@
         "boundary.rect.max_lon": "",
         "boundary.rect.min_lat": "",
         "boundary.rect.min_lon": "",
-        "builder": "PeliasGeocoderBuilder",
+        "builder": "GeopyGeocoderBuilder",
         "dedupe": "True",
         "focus.point.lat": "",
         "focus.point.lon": "",
@@ -46,7 +105,7 @@
     },
     "Photon": {
         "active": "False",
-        "builder": "PhotonGeocoderBuilder",
+        "builder": "GeopyGeocoderBuilder",
         "dedupe": "True",
         "lang": "en",
         "limit": 10,
@@ -58,11 +117,8 @@
         "active": "True",
         "builder": "WhereaboutsGeocoderBuilder",
         "builder_module": "whereabouts_geocoder",
-        "how": [
-            "standard",
-            "trigram"
-        ],
+        "how": "standard",
         "matcher_db": "italia_whereabouts",
-        "threshold": 0.8
+        "threshold": 0.5
     }
 }
