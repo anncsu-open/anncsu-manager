@@ -125,7 +125,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
             # ask user to confirm to proceed anyway
             reply = QMessageBox.question(
                 self,
-                "Contnua il salvataggio?",
+                "Continua il salvataggio?",
                 f"Il progetto Mergin selezionato '{project_name}' non corrisponde al progetto QGIS aperto '{cur_project.baseName()}'. Procedere comunque?",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
