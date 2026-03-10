@@ -18,8 +18,6 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 
 import duckdb
 
-# geocoders related imports
-from geopy.geocoders import get_geocoder_for_service
 # from whereabouts.Matcher import Matcher
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory
 
