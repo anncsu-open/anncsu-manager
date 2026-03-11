@@ -1,39 +1,27 @@
 {
-    "Bing": {
+    "AzureMaps": {
         "active": "False",
-        "api_key": "",
         "builder": "GeopyGeocoderBuilder",
         "builder_module": "geopy_geocoder",
-        "dedupe": "True",
-        "default_scheme": "https",
         "default_score": 0.5,
-        "default_timeout": 5,
-        "default_user_agent": "geopy/2.4.1",
+        "domain": "atlas.microsoft.com",
         "kw_clean": [
             "active",
             "builder",
             "builder_module",
             "service_name",
-            "dedupe",
-            "default_scheme",
-            "default_timeout",
-            "default_user_agent",
             "default_score",
-            "language",
-            "max_results",
-            "min_score",
-            "url",
             "threshold"
         ],
-        "language": "en",
-        "max_results": 5,
-        "min_score": 0,
-        "service_name": "Bing",
+        "scheme": "https",
+        "service_name": "azure",
+        "subscription_key": "",
         "threshold": 0.5,
-        "url": "http://dev.virtualearth.net/REST/v1/Locations"
+        "timeout": 5,
+        "user_agent": "geopy/2.4.1"
     },
     "GoogleV3": {
-        "active": "True",
+        "active": "False",
         "api_key": "",
         "builder": "GeopyGeocoderBuilder",
         "builder_module": "geopy_geocoder",
@@ -58,27 +46,67 @@
         "service_name": "GoogleV3",
         "threshold": 0.8
     },
+    "HereV7": {
+        "active": "True",
+        "apikey": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.9,
+        "domain": "search.hereapi.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "HEREv7",
+        "threshold": 0.5,
+        "timeout": 5,
+        "user_agent": "anncsu_manager/0.1"
+    },
     "Nominatim": {
         "active": "False",
-        "addressdetails": "True",
-        "bounded": "False",
         "builder": "GeopyGeocoderBuilder",
-        "country_codes": "",
-        "dedupe": "True",
-        "email": "",
-        "extratags": "False",
-        "language": "en",
-        "limit": 1,
-        "max_results": 5,
-        "min_score": 0,
-        "namedetails": "False",
-        "polygon_geojson": "False",
-        "polygon_kml": "False",
-        "rate_limit": 1.0,
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.9,
+        "domain": "nominatim.openstreetmap.org",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "Nominatim",
+        "threshold": 0.8,
         "timeout": 5,
-        "url": "https://nominatim.openstreetmap.org/",
-        "user_agent": "ANNCSU Geocode QGIS Plugin",
-        "viewbox": ""
+        "user_agent": "anncsu_manager/0.1"
+    },
+    "OpenCage": {
+        "active": "False",
+        "api_key": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.5,
+        "domain": "api.opencagedata.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "OpenCage",
+        "threshold": 0.5,
+        "timeout": 5,
+        "user_agent": "geopy/2.4.1"
     },
     "Pelias": {
         "active": "False",
@@ -114,7 +142,7 @@
         "url": "https://photon.komoot.io/api/"
     },
     "WhereAbouts": {
-        "active": "True",
+        "active": "False",
         "builder": "WhereaboutsGeocoderBuilder",
         "builder_module": "whereabouts_geocoder",
         "how": "standard",
