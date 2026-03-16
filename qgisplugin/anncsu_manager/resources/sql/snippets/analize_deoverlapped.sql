@@ -11,6 +11,9 @@ WITH
 	),
 	deoverlapped_clustered_addresses AS (
 		SELECT
+			A."ODONIMO",
+			A."CIVICO",
+			A."ESPONENTE",
 			A.PROGRESSIVO_ACCESSO,
 			A.COORD_X_COMUNE,
 			A.COORD_Y_COMUNE
@@ -28,11 +31,13 @@ select * from deoverlapped_clustered_addresses;
 WITH
     deoverlapped_clusters AS (
 		SELECT
+			"ODONIMO",
+			"CIVICO",
 		    COORD_X_COMUNE,
 		    COORD_Y_COMUNE,
 		    COUNT(*) AS record_count
 		FROM deoverlapped_geocoded_anncsu
-		GROUP BY COORD_X_COMUNE, COORD_Y_COMUNE
+		GROUP BY "ODONIMO", "CIVICO", COORD_X_COMUNE, COORD_Y_COMUNE
 		HAVING record_count > 1
 		ORDER BY record_count DESC
 	)
