@@ -108,13 +108,23 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                     # )
 
                     addresses_to_geocode = []
+                    addresses_to_geocode_alternatives = []
                     anncsu_addresses = []
                     for to_geocode in scopedb.execute("SELECT * FROM anncsu").fetchall():
                         to_geocode_dict = dict(zip(ANNCSU_TABLE_FIELDS, to_geocode))
                         anncsu_addresses.append(to_geocode_dict)
 
-                        address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
+                        # manage None values in address components
+                        for key in ["ODONIMO", "CIVICO", "ESPONENTE", "PLUGIN_COMUNE", "PLUGIN_PROVINCIA"]:
+                            if to_geocode_dict.get(key) is None:
+                                to_geocode_dict[key] = ""
+
+                        # create the address to geocode using odonimo, civico, esponente, comune and provincia and also
+                        # create an alternatibve address with ESPONENTE attached to CIVICO
+                        address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]} {to_geocode_dict["ESPONENTE"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
+                        address_to_geocode_altrnative = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}{to_geocode_dict["ESPONENTE"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
                         addresses_to_geocode.append(address_to_geocode)
+                        addresses_to_geocode_alternatives.append([address_to_geocode_altrnative])
 
                     self.feedback.progress_signal.emit(0)
                     self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
