@@ -131,6 +131,34 @@
           </property>
          </widget>
         </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_6">
+          <property name="text">
+           <string>Clusters</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0">
+         <widget class="QLabel" name="label_7">
+          <property name="text">
+           <string>Overlapped</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLabel" name="statistics_num_of_clusters">
+          <property name="text">
+           <string>number_of_clusters</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="1">
+         <widget class="QLabel" name="statistics_num_of_overlapped_addresses">
+          <property name="text">
+           <string>number_of_overlapped_addresses</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
      </layout>

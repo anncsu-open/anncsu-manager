@@ -1,4 +1,5 @@
 import geopandas
+import pandas
 from qgis.utils import iface
 from qgis.core import (
     QgsCoordinateTransform,
@@ -37,6 +38,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                  parent=None,
                  scopedb: duckdb.DuckDBPyConnection = None,
                  result_table_name: str = "",
+                 geocoder_name = "",
                  geocoder_config: dict = {},
                  feedback: ANNCSUProcessingFeedback = ANNCSUProcessingFeedback()) -> None:
         super().__init__(parent)
@@ -44,6 +46,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
 
         self.scopedb = scopedb
         self.result_table_name = result_table_name
+        self.geocoder_name = geocoder_name
         self.geocoder_config = geocoder_config
 
         # setup UI elements
@@ -54,6 +57,8 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
         self.statistics_num_of_success: QLabel
         self.statistics_num_of_fails: QLabel
         self.statistics_num_of_out_of_geofence: QLabel
+        self.statistics_num_of_clusters: QLabel
+        self.statistics_num_of_overlapped_addresses: QLabel
 
         # load results
         self.geofence_polygon = geopandas.GeoDataFrame
@@ -61,6 +66,8 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
         self.success: geopandas.GeoDataFrame
         self.fails: geopandas.GeoDataFrame
         self.out_of_geofence: geopandas.GeoDataFrame
+        self.clusters: pandas.DataFrame
+        self.overlapped_addresses: pandas.DataFrame
         self.successLayer: QgsVectorLayer
         self.failsLayer: QgsVectorLayer
         self.outOfGeofenceLayer: QgsVectorLayer
@@ -126,6 +133,46 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             else:
                 success_rate = 0.0
             self.statistics_geocode_score.setText(f"{success_rate:.2f}% (Threshold: {success_score_threshold})")
+
+            # calculate clusters of geocoded addresses with the same coordinates
+            cluster_table_name = f"{self.geocoder_name}_clusters"
+            cluster_query = f"""
+                CREATE OR REPLACE TABLE {cluster_table_name} AS (
+                    SELECT
+                        longitude AS COORD_X_COMUNE,
+                        latitude AS COORD_Y_COMUNE,
+                        COUNT(*) AS record_count
+                    FROM {self.result_table_name}
+                    GROUP BY longitude, latitude
+                    HAVING record_count > 1
+                    ORDER BY record_count DESC
+                );
+                SELECT * FROM {cluster_table_name};
+            """
+            self.clusters = self.scopedb.execute(cluster_query).df()
+            self.statistics_num_of_clusters.setText(str(self.clusters.shape[0]))
+
+            # calculate overlapped addresses (i.e. with same address and different geocoding result)
+            overlapped_table_name = f"{self.geocoder_name}_overlapped"
+            overlapped_query = f"""
+                CREATE OR REPLACE TABLE {overlapped_table_name} AS (
+                    SELECT
+                        A.address_id AS PROGRESSIVO_ACCESSO,
+                        A.longitude AS COORD_X_COMUNE,
+                        A.latitude AS COORD_Y_COMUNE
+                    FROM
+                        {self.result_table_name} A,
+                        {cluster_table_name} B
+                    WHERE
+                        A.longitude = B.COORD_X_COMUNE AND
+                        A.latitude = B.COORD_Y_COMUNE
+                    ORDER BY
+                        A.address_id
+                );
+                SELECT * FROM {overlapped_table_name};
+            """
+            self.overlapped_addresses = self.scopedb.execute(overlapped_query).df()
+            self.statistics_num_of_overlapped_addresses.setText(str(self.overlapped_addresses.shape[0]))
 
         except Exception as e:
             self.feedback.reportError(f"Error loading results: {str(e)}")
@@ -283,6 +330,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 parent=self,
                 scopedb=scopedb,
                 result_table_name=result_table_name,
+                geocoder_name=geocoder_name,
                 geocoder_config=geocoder_config,
                 feedback=self.feedback
             )
