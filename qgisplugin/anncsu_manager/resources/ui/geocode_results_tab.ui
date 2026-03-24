@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>397</width>
+    <width>398</width>
     <height>522</height>
    </rect>
   </property>
@@ -94,7 +94,7 @@
         <item row="4" column="0">
          <widget class="QLabel" name="label_4">
           <property name="text">
-           <string>Out of  geofence</string>
+           <string>Out of  geofence:</string>
           </property>
           <property name="textInteractionFlags">
            <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -134,14 +134,14 @@
         <item row="5" column="0">
          <widget class="QLabel" name="label_6">
           <property name="text">
-           <string>Clusters</string>
+           <string>Clusters:</string>
           </property>
          </widget>
         </item>
         <item row="6" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
-           <string>Overlapped</string>
+           <string>Overlapped:</string>
           </property>
          </widget>
         </item>
