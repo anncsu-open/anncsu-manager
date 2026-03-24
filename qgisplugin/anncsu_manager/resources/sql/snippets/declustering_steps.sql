@@ -254,25 +254,27 @@ WHERE
 -- After all the updates, check if there are still duplicate coordinates in the deoverlapped_geocoded_anncsu table.
 -- This query identifies any remaining duplicate coordinates in the deoverlapped_geocoded_anncsu table
 -- after all the updates have been applied.
+CREATE OR REPLACE TABLE remaining_clusters AS (
+	SELECT
+		COORD_X_COMUNE,
+		COORD_Y_COMUNE,
+		COUNT(*) AS record_count
+	FROM deoverlapped_geocoded_anncsu
+	GROUP BY COORD_X_COMUNE, COORD_Y_COMUNE
+	HAVING record_count > 1
+	ORDER BY record_count DESC
+);
+
+-- Step 12 (checking)
+-- Create a table with the records that still have duplicate coordinates after all the updates.
 CREATE OR REPLACE TABLE remaining_duplicates AS (
-    WITH
-        final_clusters AS (
-            SELECT
-                COORD_X_COMUNE,
-                COORD_Y_COMUNE,
-                COUNT(*) AS record_count
-            FROM deoverlapped_geocoded_anncsu
-            GROUP BY COORD_X_COMUNE, COORD_Y_COMUNE
-            HAVING record_count > 1
-            ORDER BY record_count DESC
-        )   
     SELECT
         A.*,
         B.ODONIMO,
         B.CIVICO,
         B.ESPONENTE
     FROM
-        final_clusters A,
+        remaining_clusters A,
         deoverlapped_geocoded_anncsu B
     WHERE
         A.COORD_X_COMUNE = B.COORD_X_COMUNE AND
