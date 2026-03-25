@@ -132,6 +132,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # register geocoders in factory
         self.registerGeocoders()
 
+    def __del__(self):
+        # clean all available geocoders first to avoid to maintain
+        # opened or attached db connections in geocoder instances
+        GeocoderFactory().reset_builders()
+
     def unlink_scopes_listeners(self) -> None:
         # because self.scopes hold references to ScopeData singleton instances
         # linked signals have to be unlinked to avoid memory leaks

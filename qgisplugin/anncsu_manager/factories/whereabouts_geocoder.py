@@ -7,6 +7,9 @@ class WhereaboutsGeocoder:
     def __init__(self, db_name: str, how: str, threshold: float):
         self.matcher = Matcher(db_name=db_name, how=how, threshold=threshold)
 
+    def __del__(self):
+        del self.matcher
+
     def geocode(self, addresses: List[str]) -> List[dict]:
         return self.matcher.geocode(addresses=addresses)
 

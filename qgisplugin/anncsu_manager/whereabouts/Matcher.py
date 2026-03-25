@@ -90,6 +90,13 @@ class Matcher:
         self.how = how
         self.threshold = threshold
 
+    def __del__(self):
+        try:
+            self.con.execute(f"DETACH DATABASE IF EXISTS remote;")
+            self.con.close()
+        except Exception as e:
+            print(f"Error while closing connection: {e}")
+
     def geocode(self, addresses, top_n=1, address_ids=None, how=None):
         """
         Geocodes a list of addresses.
