@@ -4,5 +4,5 @@ pytest-timeout==2.0.2
 pytest-qt==3.3.0
 pytest-mock==3.6.1
 
-requests==2.26.0
+requests==2.33.0
 types-requests==2.27.7
