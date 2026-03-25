@@ -4,7 +4,7 @@ from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 
 class GeocoderFactory:
 
-    builder: dict = {}
+    _builders: dict = {}
 
     def __new__(cls):
         if not hasattr(cls, "instance"):
