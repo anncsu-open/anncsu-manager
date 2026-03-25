@@ -22,4 +22,7 @@ class GeocoderFactory:
         return builder(**kwargs)
 
     def reset_builders(self) -> None:
+        for geocoder_name in list(self._builders.keys()):
+            print(f"Resetting builder for geocoder {geocoder_name}...")
+            del self._builders[geocoder_name]
         self._builders = {}
