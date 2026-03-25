@@ -18,6 +18,7 @@ from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCSUWiza
 from anncsu_manager.anncsu_wizard.wizard_generate_mergin_step import ANNCUWizardGenerateMerginStep
 # from anncsu_manager.anncsu_wizard.wizard_materialise_layers import ANNCUWizardMaterialiseLayersStep
 from anncsu_manager.anncsu_wizard.wizard_update_from_mergin import ANNCUWizardUpdateFromMerginStep
+from anncsu_manager.anncsu_wizard.wizard_reduce_clusters_step import ANNCSUWizardReduceClustersStep
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
 
@@ -53,6 +54,10 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
         # add update from Mergin wizard page
         self.update_from_mergin_page = ANNCUWizardUpdateFromMerginStep(parent=self, progress_bar=self.progressBar)
         self.update_from_mergin_page_id = self.addPage(self.update_from_mergin_page)
+
+        # add reduce clusters wizard page
+        self.reduce_clusters_page = ANNCSUWizardReduceClustersStep(parent=self, progress_bar=self.progressBar)
+        self.reduce_clusters_page_id = self.addPage(self.reduce_clusters_page)
 
         # activate first page to allow enable it's events
         self.setStartId(self.run_geocoders_page_id)
