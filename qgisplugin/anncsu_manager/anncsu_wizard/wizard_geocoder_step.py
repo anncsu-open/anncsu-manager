@@ -101,11 +101,6 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                     if geocoder is None:
                         self.feedback.reportError(f"Could not instantiate geocoder '{geocoder_name}'.")
                         continue
-                    # geocoder = Matcher(
-                    #     db_name=geocoder_config.get("matcher_db", "italia_whereabouts"),
-                    #     how=geocoder_config.get("how", ["standard"]),
-                    #     threshold=geocoder_config.get("threshold", 0.5),
-                    # )
 
                     addresses_to_geocode = []
                     addresses_to_geocode_alternatives = []
