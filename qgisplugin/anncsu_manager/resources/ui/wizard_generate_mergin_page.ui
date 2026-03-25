@@ -13,6 +13,15 @@
   <property name="windowTitle">
    <string>WizardPage</string>
   </property>
+  <property name="title">
+   <string>Add layers to Mering</string>
+  </property>
+  <property name="subTitle">
+   <string>Export geocoded layers to a Mergin project</string>
+  </property>
+  <attribute name="pageId">
+   <string notr="true">generate_mergin_id</string>
+  </attribute>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QPushButton" name="add_to_mergin_pb">
