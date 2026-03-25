@@ -159,6 +159,12 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                     for idx, result in enumerate(geocoded):
                         self.feedback.progress_signal.emit(idx + 1)
                         if result:
+                            # make the coordinates digits no more than 6
+                            if result.get("latitude") is not None:
+                                result["latitude"] = round(result["latitude"], 9)
+                            if result.get("longitude") is not None:
+                                result["longitude"] = round(result["longitude"], 9)
+
                             scopedb.execute(f"""
                                     INSERT INTO {result_table_name} (
                                         address_id,
