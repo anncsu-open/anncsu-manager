@@ -1112,6 +1112,16 @@ class ANNCSUSettingsManager:
                     WHERE COORD_X_COMUNE IS NOT NULL AND COORD_Y_COMUNE IS NOT NULL;
                 """)
 
+                # save involved tables to trace modifications
+                conn.execute("""
+                    CREATE OR REPLACE TABLE previous_geocoded_anncsu AS
+                    SELECT * FROM updated_anncsu;
+                """)
+                conn.execute("""
+                    CREATE OR REPLACE TABLE source_updated_anncsu AS
+                    SELECT * FROM updated_anncsu;
+                """)
+
                 # replace old anncsu table with updated_anncsu table
                 conn.execute("DROP TABLE IF EXISTS geocoded_anncsu;")
                 conn.execute("ALTER TABLE updated_anncsu RENAME TO geocoded_anncsu;")
