@@ -201,7 +201,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         update_anncsu_task = ANNCSUSettingsManager.populate_table_from_source_task(
             duckdb_path=current_scope.duckdb_path,
             source_db=current_scope.source_db,
-            table_name="anncsu",
+            table_name="new_anncsu",
             municipality_data=current_scope.municipality_data
         )
 

@@ -961,6 +961,12 @@ class ANNCSUSettingsManager:
             # start transaction
             conn.execute("BEGIN;")
             try:
+                # save previous anncsu table as backup in case of errors during update
+                conn.execute("CREATE OR REPLACE TABLE anncsu_backup AS SELECT * FROM anncsu;")
+
+                # change from new_anncsu to anncsu ans source of truth
+                conn.execute("CREATE OR REPLACE TABLE anncsu AS SELECT * FROM new_anncsu;")
+
                 # then work on current geocoded_anncsu table that is the table where operators
                 # work on settin new geocoding values, so we need to update only the values of
                 # this table that are present in temp table
