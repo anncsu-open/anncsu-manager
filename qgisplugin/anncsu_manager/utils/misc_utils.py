@@ -189,18 +189,22 @@ class DownloadFileTask(QgsTask):
         """
         if result:
             QgsMessageLog.logMessage(
-                f"Successfully downloaded file to {self.destination_path}",
+                f"Successfully downloaded url: {self.url} to {self.destination_path}",
                 level=Qgis.Info
             )
         else:
             error_msg = str(self.exception) if self.exception else "Unknown error"
             QgsMessageLog.logMessage(
-                f"Failed to download file: {error_msg}",
+                f"Failed to download url: {self.url}. Error: {error_msg}",
                 level=Qgis.Critical
             )
 
     def waitForFinished(self, timeout_ms: int = 300000):
-        """Wait for the task to finish (blocking).
+        """
+        NOTE: UNUSED
+        TODO: TO BE DELETED
+
+        Wait for the task to finish (blocking).
 
         Args:
             timeout_ms: Maximum time to wait in milliseconds (default: 5 minutes)
@@ -288,7 +292,11 @@ def download_file_async(
     destination_path: Path,
     on_finished: Optional[Callable] = None
 ) -> DownloadFileTask:
-    """Download a file asynchronously using QgsTask (non-blocking).
+    """
+    NOTE: UNUSED BECAUSE USE DIRECTLY DownloadFileTask
+    TODO: TO BE DELETED
+
+    Download a file asynchronously using QgsTask (non-blocking).
 
     This method returns immediately and the download happens in the background.
     Progress is shown in QGIS task manager.
