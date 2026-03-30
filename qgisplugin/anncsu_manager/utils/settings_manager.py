@@ -38,7 +38,7 @@ from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.misc_utils import (
     EventSource,
-    download_file_async,
+    DownloadFileTask,
     clone_or_pull_git_repo_task
 )
 
@@ -1109,13 +1109,16 @@ class ANNCSUSettingsManager:
                     DROP COLUMN LOCAL_COORD_Y_COMUNE;
                 """)
 
+
                 # now update geom creating geometry point from official COORD_X_COMUNE and COORD_Y_COMUNE columns
                 conn.execute("""
-                    UPDATE updated_anncsu
-                    SET geom = ST_GeomFromText(
-                        'SRID=4326;POINT(' || COORD_X_COMUNE::TEXT || ' ' || COORD_Y_COMUNE::TEXT || ')'
-                    )
-                    WHERE COORD_X_COMUNE IS NOT NULL AND COORD_Y_COMUNE IS NOT NULL;
+                    UPDATE
+                        updated_anncsu
+                    SET
+                        geom = ST_Point(COORD_X_COMUNE, COORD_Y_COMUNE)
+                    WHERE
+                        COORD_X_COMUNE IS NOT NULL AND
+                        COORD_Y_COMUNE IS NOT NULL;
                 """)
 
                 # save involved tables to trace modifications
@@ -1240,12 +1243,29 @@ class ANNCSUSettingsManager:
                     temp_duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / remote_filename
 
                     # Download file asynchronously with progress tracking in QGIS task manager
-                    download_task = download_file_async(str(source_db), temp_duckdb_path)
+                    # download_task = download_file_async(str(source_db), temp_duckdb_path)
+                    download_task = DownloadFileTask(str(source_db), temp_duckdb_path, f"Downloading {str(source_db)}")
+
+                    # run dwonload
+                    QgsApplication.taskManager().addTask(download_task)
+                    while download_task.status() != QgsTask.Running:
+                        QgsApplication.processEvents()
+                    while download_task.status() == QgsTask.Running:
+                        QgsApplication.processEvents()
+
+                    # check if task has been terminated due to error or cancellation
+                    if download_task.status() == QgsTask.Terminated:
+                        error_msg = str(download_task.exception) if download_task.exception else "Download was cancelled or timed out"
+                        ANNCSUMessageManager().show_message(
+                            f"Failed to download source database: {error_msg}",
+                            "error",
+                        )
+                        return False
 
                     # Wait for download to complete (shows progress in task manager, allows cancellation)
-                    if not download_task.waitForFinished():
-                        error_msg = str(download_task.exception) if download_task.exception else "Download was cancelled or timed out"
-                        raise Exception(f"Failed to download source database: {error_msg}")
+                    # if not download_task.waitForFinished():
+                    #     error_msg = str(download_task.exception) if download_task.exception else "Download was cancelled or timed out"
+                    #     raise Exception(f"Failed to download source database: {error_msg}")
 
                     # create local duckdb with only data for selected municipality_code
                     force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'FLOAT', 'COORD_X_COMUNE': 'FLOAT', 'COORD_Y_COMUNE': 'FLOAT'}"
