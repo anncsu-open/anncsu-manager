@@ -198,6 +198,10 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             return
 
         # # run update current session time consuming task
+        self.feedback.progress_bar.show()
+        self.feedback.progress_bar.setMinimum(0)
+        self.feedback.progress_bar.setMaximum(0)
+
         update_anncsu_task = ANNCSUSettingsManager.populate_table_from_source_task(
             duckdb_path=current_scope.duckdb_path,
             source_db=current_scope.source_db,
@@ -211,6 +215,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             QgsApplication.processEvents()
         while update_anncsu_task.status() == QgsTask.Running:
             QgsApplication.processEvents()
+        self.feedback.progress_bar.hide()
 
         # check if task has been terminated due to error or cancellation
         if update_anncsu_task.status() == QgsTask.Terminated:
