@@ -1132,17 +1132,22 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
     <message>
       <location filename="../resources/ui/wizard_about.ui"/>
       <source>Getting started</source>
-      <translation>Per iniziare</translation>
+      <translation type="obsolete">Per iniziare</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_about.ui"/>
       <source>To run any tools of ANNCSU QGIS Plugin, you need to install ANNCSU Toolkit. ANNCSU Toolkit needs to be installed separately from ANNCSU QGIS Plugin due to package incompabilities between ANNCSU Toolkit and QGIS.</source>
-      <translation>Per utilizzare gli strumenti del plugin ANNCSU QGIS, è necessario installare ANNCSU Toolkit. ANNCSU Toolkit va installato separatamente dal plugin ANNCSU QGIS a causa di incompatibilità di pacchetti tra ANNCSU Toolkit e QGIS.</translation>
+      <translation type="obsolete">Per utilizzare gli strumenti del plugin ANNCSU QGIS, è necessario installare ANNCSU Toolkit. ANNCSU Toolkit va installato separatamente dal plugin ANNCSU QGIS a causa di incompatibilità di pacchetti tra ANNCSU Toolkit e QGIS.</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_about.ui"/>
       <source>You can install ANNCSU Toolkit in any Python environment, but using a clean Conda environment or venv is recommended. For detailed installation instructions, see ANNCSU Toolkit GitHub (link below). After installation, set the location of your Python environment on Settings page.</source>
-      <translation>È possibile installare ANNCSU Toolkit in qualsiasi ambiente Python, ma si consiglia di utilizzare un ambiente Conda o venv pulito. Per istruzioni dettagliate sull&apos;installazione, consultare il repository GitHub di ANNCSU Toolkit (link in basso). Dopo l&apos;installazione, impostare il percorso dell&apos;ambiente Python nella pagina Impostazioni.</translation>
+      <translation type="obsolete">È possibile installare ANNCSU Toolkit in qualsiasi ambiente Python, ma si consiglia di utilizzare un ambiente Conda o venv pulito. Per istruzioni dettagliate sull&apos;installazione, consultare il repository GitHub di ANNCSU Toolkit (link in basso). Dopo l&apos;installazione, impostare il percorso dell&apos;ambiente Python nella pagina Impostazioni.</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>ANNCSU-Manager is a QGIS plugin to update Italian official portal data database called ANNCSU.</source>
+      <translation>ANNCSU-Manager è un plugin QGIS per aggiornare il database del portale ufficiale italiano denominato ANNCSU.</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_about.ui"/>

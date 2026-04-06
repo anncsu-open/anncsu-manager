@@ -50,9 +50,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>ANNCSU (Exploration Information Systems) is a Horizon Europe project that aims to support the implementation of the European Green Deal and increasing Europe’s long-term self-sufficiency of critical raw materials (CRM).
-
-ANNCSU QGIS Plugin is a graphical user interface for ANNCSU Toolkit, a comprehensive mineral prospecitivty mapping Python library.</string>
+             <string>ANNCSU-Manager is a QGIS plugin to update Italian official portal data database called ANNCSU.</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>
@@ -72,35 +70,6 @@ ANNCSU QGIS Plugin is a graphical user interface for ANNCSU Toolkit, a comprehen
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="groupBox_5">
-         <property name="title">
-          <string>Getting started</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
-          <item>
-           <widget class="QLabel" name="label_5">
-            <property name="text">
-             <string>To run any tools of ANNCSU QGIS Plugin, you need to install ANNCSU Toolkit. ANNCSU Toolkit needs to be installed separately from ANNCSU QGIS Plugin due to package incompabilities between ANNCSU Toolkit and QGIS.</string>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_6">
-            <property name="text">
-             <string>You can install ANNCSU Toolkit in any Python environment, but using a clean Conda environment or venv is recommended. For detailed installation instructions, see ANNCSU Toolkit GitHub (link below). After installation, set the location of your Python environment on Settings page.</string>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -136,7 +105,7 @@ ANNCSU QGIS Plugin is a graphical user interface for ANNCSU Toolkit, a comprehen
           <item row="2" column="1">
            <widget class="QLabel" name="label_21">
             <property name="text">
-             <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/GispoCoding/anncsu_toolkit&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/GispoCoding/anncsu_toolkit&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/anncsu-open/anncsu_toolkit&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/anncsu-open/anncsu-toolkit&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="openExternalLinks">
              <bool>true</bool>
@@ -146,7 +115,7 @@ ANNCSU QGIS Plugin is a graphical user interface for ANNCSU Toolkit, a comprehen
           <item row="1" column="1">
            <widget class="QLabel" name="label_20">
             <property name="text">
-             <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/GispoCoding/anncsu_manager&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/GispoCoding/anncsu_manager&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/anncsu-open/anncsu-manager&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/anncsu-open/anncsu-manager&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="openExternalLinks">
              <bool>true</bool>
@@ -163,7 +132,7 @@ ANNCSU QGIS Plugin is a graphical user interface for ANNCSU Toolkit, a comprehen
           <item row="0" column="1">
            <widget class="QLabel" name="label_22">
             <property name="text">
-             <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/GispoCoding/anncsu_manager/wiki&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/GispoCoding/anncsu_manager/wiki&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/anncsu-open/anncsu-manager/wiki&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/anncsu-open/anncsu-manager/wiki&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="openExternalLinks">
              <bool>true</bool>
