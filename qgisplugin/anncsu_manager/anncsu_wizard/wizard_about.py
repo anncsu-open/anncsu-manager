@@ -17,8 +17,11 @@ class ANNCSUWizardAbout(QWidget, FORM_CLASS):
         super().__init__(parent)
         self.setupUi(self)
 
-        anncsu_pixmap = QPixmap(os.path.join(PLUGIN_PATH, "resources/icons/anncsu_logo_smaller.png"))
+        anncsu_pixmap = QPixmap(os.path.join(PLUGIN_PATH, "resources/icons/ANNCSU-logo.png"))
         self.anncsu_logo_label.setPixmap(anncsu_pixmap)
 
         gnu_pixmap = QPixmap(os.path.join(PLUGIN_PATH, "resources/icons/gnu_logo.png"))
         self.gnu_logo_label.setPixmap(gnu_pixmap)
+
+        geobeyond_pixmap = QPixmap(os.path.join(PLUGIN_PATH, "resources/icons/geo-logo-white.png"))
+        self.geobeyond_logo_label.setPixmap(geobeyond_pixmap)
