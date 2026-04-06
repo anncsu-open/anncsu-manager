@@ -2,6 +2,7 @@ from typing import Literal, Optional
 
 from qgis.core import Qgis
 from qgis.gui import QgsMessageBar
+from qgis.PyQt.QtCore import QCoreApplication
 
 
 class ANNCSUMessageManager:
@@ -32,12 +33,12 @@ class ANNCSUMessageManager:
             duration = -1
 
         if level == "success":
-            self.message_bar.pushMessage("Success", text, Qgis.MessageLevel.Success, duration)
+            self.message_bar.pushMessage(QCoreApplication.translate("ANNCSUMessageManager", "Success"), text, Qgis.MessageLevel.Success, duration)
         elif level == "info":
-            self.message_bar.pushMessage("Info", text, Qgis.MessageLevel.Info, duration)
+            self.message_bar.pushMessage(QCoreApplication.translate("ANNCSUMessageManager", "Info"), text, Qgis.MessageLevel.Info, duration)
         elif level == "warning":
-            self.message_bar.pushMessage("Warning", text, Qgis.MessageLevel.Warning, duration)
+            self.message_bar.pushMessage(QCoreApplication.translate("ANNCSUMessageManager", "Warning"), text, Qgis.MessageLevel.Warning, duration)
         elif level == "invalid":
             self.message_bar.pushMessage(text, Qgis.MessageLevel.Warning, duration)
         elif level == "error":
-            self.message_bar.pushMessage("Error", text, Qgis.MessageLevel.Critical, duration)
+            self.message_bar.pushMessage(QCoreApplication.translate("ANNCSUMessageManager", "Error"), text, Qgis.MessageLevel.Critical, duration)

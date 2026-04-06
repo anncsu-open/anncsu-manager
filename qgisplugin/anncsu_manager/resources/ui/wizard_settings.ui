@@ -86,7 +86,7 @@
               <item row="1" column="0">
                <widget class="QLabel" name="label_6">
                 <property name="text">
-                 <string>Comune:</string>
+                 <string>Municipality:</string>
                 </property>
                </widget>
               </item>
@@ -98,7 +98,7 @@
                 <item>
                  <widget class="QPushButton" name="delete_session">
                   <property name="text">
-                   <string>Rimuovi Sessione</string>
+                   <string>Remove Session</string>
                   </property>
                  </widget>
                 </item>
@@ -107,7 +107,7 @@
               <item row="7" column="0">
                <widget class="QLabel" name="label_5">
                 <property name="text">
-                 <string>URL Sessione:</string>
+                 <string>Session URL:</string>
                 </property>
                </widget>
               </item>
@@ -156,21 +156,21 @@
               <item row="2" column="0">
                <widget class="QLabel" name="label_2">
                 <property name="text">
-                 <string>Nome sessione:</string>
+                 <string>Session name:</string>
                 </property>
                </widget>
               </item>
               <item row="3" column="1">
                <widget class="QPushButton" name="update_session">
                 <property name="text">
-                 <string>Aggiorna da ANNCSU</string>
+                 <string>Update from ANNCSU</string>
                 </property>
                </widget>
               </item>
               <item row="5" column="1">
                <widget class="QPushButton" name="create_new_session">
                 <property name="text">
-                 <string>Crea Nuova Sessione</string>
+                 <string>Create New Session</string>
                 </property>
                </widget>
               </item>

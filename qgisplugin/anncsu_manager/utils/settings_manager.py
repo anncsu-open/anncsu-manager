@@ -33,6 +33,7 @@ from qgis.PyQt.QtWidgets import (
     QSpacerItem,
     QSizePolicy
 )
+from qgis.PyQt.QtCore import QCoreApplication
 
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
@@ -123,7 +124,7 @@ class ScopeData:
 
         # do nothing is already syncked and notify
         if self.syncked:
-            QgsMessageLog.logMessage(f"Scope at {self.duckdb_path} is already syncked with remote repo {self.remote_git_repo}.", level=Qgis.Info)
+            QgsMessageLog.logMessage(QCoreApplication.translate("ANNCSUSettingsManager", "Scope at {duckdb_path} is already syncked with remote repo {remote_git_repo}.").format(duckdb_path=self.duckdb_path, remote_git_repo=self.remote_git_repo), level=Qgis.Info)
             return
 
         local_path = self.get_local_repo_path()
@@ -359,6 +360,10 @@ class ANNCSUSettingsManager:
         GIT_SSH_KEY_KEY: "",
     })
 
+    @classmethod
+    def tr(cls, text: str) -> str:
+        return QCoreApplication.translate('ANNCSUSettingsManager', text)
+
     # GETTERS
     @classmethod
     def get_default_coordinate_distance_threshold(cls) -> float:
@@ -410,7 +415,7 @@ class ANNCSUSettingsManager:
         # If error, reset
         except (TypeError, json.JSONDecodeError) as e:
             ANNCSUMessageManager().show_message(
-                f"Failed to load default geocoder configs. Reset to default values. {e}",
+                cls.tr("Failed to load default geocoder configs. Reset to default values. {e}").format(e=e),
                 "error"
             )
             cls.reset_geocoders_configs()
@@ -461,7 +466,7 @@ class ANNCSUSettingsManager:
             # If error, reset
             except (TypeError, json.JSONDecodeError) as e:
                 ANNCSUMessageManager().show_message(
-                    f"Failed to load default scopes. Reset to default values. {e}",
+                    cls.tr("Failed to load default scopes. Reset to default values. {e}").format(e=e),
                     "error"
                 )
                 cls.reset_scopes()
@@ -588,7 +593,7 @@ class ANNCSUSettingsManager:
     def set_geocoders_json_path(cls, path: str):
         if not Path(path).exists():
             ANNCSUMessageManager().show_message(
-                f"Could not find geocoders.json at {path}. Reverting to default path.",
+                cls.tr("Could not find geocoders.json at {path}. Reverting to default path.").format(path=path),
                 "warning"
             )
             geocoders_json_path = cls.get_geocoders_json_path()
@@ -735,7 +740,7 @@ class ANNCSUSettingsManager:
                 # check if table exists
                 exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()
                 if len(exists) == 0:
-                    QgsMessageLog.logMessage(f"Table '{table_name}' not found in duckdb at {scope.duckdb_path}.", level=Qgis.Warning)
+                    QgsMessageLog.logMessage(cls.tr("Table '{table_name}' not found in duckdb at {duckdb_path}.").format(table_name=table_name, duckdb_path=scope.duckdb_path), level=Qgis.Warning)
                     return None, None
 
                 # get columns names from duckdb
@@ -746,13 +751,13 @@ class ANNCSUSettingsManager:
                     records = scopedb.execute(f"SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM '{table_name}'").fetchall()
                 except Exception as e:
                     # in case no geom column is present or geom column is already in WKB format just ignore and keep original table                    if 'ST_AsWKB(WKB_BLOB)' in str(e):
-                    QgsMessageLog.logMessage(f"Error: {e}", level=Qgis.Warning)
+                    QgsMessageLog.logMessage(cls.tr("Error: {e}").format(e=e), level=Qgis.Warning)
                     records = scopedb.execute(f"SELECT * FROM '{table_name}'").fetchall()
 
                 return records, columns
 
             except Exception as e:
-                QgsMessageLog.logMessage(f"Error reading {table_name} table from duckdb at {scope.duckdb_path}: {e}", level=Qgis.Critical)
+                QgsMessageLog.logMessage(cls.tr("Error reading {table_name} table from duckdb at {duckdb_path}: {e}").format(table_name=table_name, duckdb_path=scope.duckdb_path, e=e), level=Qgis.Critical)
                 return None, None
 
     @classmethod
@@ -780,7 +785,7 @@ class ANNCSUSettingsManager:
                 # check if table exists
                 exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()
                 if len(exists) == 0:
-                    QgsMessageLog.logMessage(f"Table '{table_name}' not found in duckdb at {scope.duckdb_path}.", level=Qgis.Warning)
+                    QgsMessageLog.logMessage(cls.tr("Table '{table_name}' not found in duckdb at {duckdb_path}.").format(table_name=table_name, duckdb_path=scope.duckdb_path), level=Qgis.Warning)
                     return None, None
 
                 scopedb.execute("INSTALL spatial;")
@@ -820,7 +825,7 @@ class ANNCSUSettingsManager:
 
                 return (df, column_types)
             except Exception as e:
-                QgsMessageLog.logMessage(f"Error reading {table_name} table from duckdb at {scope.duckdb_path}: {e}", level=Qgis.Critical)
+                QgsMessageLog.logMessage(cls.tr("Error reading {table_name} table from duckdb at {duckdb_path}: {e}").format(table_name=table_name, duckdb_path=scope.duckdb_path, e=e), level=Qgis.Critical)
                 return None, None
 
     @classmethod
@@ -864,7 +869,7 @@ class ANNCSUSettingsManager:
 
             return merged_df
         except Exception as e:
-            QgsMessageLog.logMessage(f"Error merging geocoded dataframe with anncsu dataframe: {e}", level=Qgis.Critical)
+            QgsMessageLog.logMessage(cls.tr("Error merging geocoded dataframe with anncsu dataframe: {e}").format(e=e), level=Qgis.Critical)
             return None
 
     @classmethod
@@ -908,7 +913,7 @@ class ANNCSUSettingsManager:
 
             return merged_df
         except Exception as e:
-            QgsMessageLog.logMessage(f"Error merging geocoded dataframe with anncsu dataframe: {e}", level=Qgis.Critical)
+            QgsMessageLog.logMessage(cls.tr("Error merging geocoded dataframe with anncsu dataframe: {e}").format(e=e), level=Qgis.Critical)
             return None
 
     @classmethod
@@ -930,10 +935,8 @@ class ANNCSUSettingsManager:
         if not scope.syncked:
             reply = QMessageBox.question(
                 iface.mainWindow(),
-                "Continua l'aggiornamento?",
-                f"""La sessione attuale non è sincronizzata con il repository git remoto.
-                Se aggiorni i dati della sessione, potresti perdere le modifiche non sincronizzate.
-                """,
+                QCoreApplication.translate("ANNCSUSettingsManager", "Continue update?"),
+                QCoreApplication.translate("ANNCSUSettingsManager", "The current session is not synchronized with the remote git repository.\nIf you update the session data, you may lose unsynchronized changes."),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )
@@ -949,12 +952,11 @@ class ANNCSUSettingsManager:
             # from merging
             exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
             if len(exists) == 0:
-                QgsMessageLog.logMessage(f"Table 'geocoded_anncsu' not found in duckdb at {scope.duckdb_path}. Cannot update session.", level=Qgis.Warning)
+                QgsMessageLog.logMessage(cls.tr("Table 'geocoded_anncsu' not found in duckdb at {duckdb_path}. Cannot update session.").format(duckdb_path=scope.duckdb_path), level=Qgis.Warning)
                 QMessageBox.warning(
                     iface.mainWindow(),
-                    "Aggiornamento non possibile",
-                    "La tabella 'geocoded_anncsu' non è stata trovata nel database della sessione.\n"
-                    + "Assicurati di aver eseguito l'update da Merging."
+                    QCoreApplication.translate("ANNCSUSettingsManager", "Update not possible"),
+                    QCoreApplication.translate("ANNCSUSettingsManager", "The 'geocoded_anncsu' table was not found in the session database.\nMake sure you have performed the update from Mergin.")
                 )
                 return False
 
@@ -1072,18 +1074,15 @@ class ANNCSUSettingsManager:
 
                     # create informative text to be displayed to the user
                     details = "\n".join([
-                        f"Accesso {row['PROGRESSIVO_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
+                        f"Address {row['PROGRESSIVO_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
                         f"ANNCSU({row['ANNCSU_COORD_X']}, {row['ANNCSU_COORD_Y']}) -> "
-                        f"Locale({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
+                        f"Local({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
                         for row in out_of_threshold.to_dict(orient="records")
                     ])
-                    message = f"Alcuni accessi hanno coordinate aggiornate rispetto alla tabella locale.\n" \
-                               "Vuoi procedere con l'aggiornamento dei dati della sessione?\n" \
-                              f"In dettagli visualizza gli accessi con coordinate aggiornate?\n" \
-                              f"(Soglia di differenza: {threshold} gradi, circa {threshold * 111000:.2f} metri)"
+                    message = QCoreApplication.translate("ANNCSUSettingsManager", "Some addresses have updated coordinates compared to the local table.\nDo you want to proceed with updating the session data?\nDetails show addresses with updated coordinates.\n(Difference threshold: {threshold} degrees, approx. {meters:.2f} meters)").format(threshold=threshold, meters=threshold * 111000)
                     messsageBox = QMessageBox()
                     messsageBox.setIcon(QMessageBox.Warning)
-                    messsageBox.setWindowTitle("Aggiornare coordinate degli accessi?")
+                    messsageBox.setWindowTitle(QCoreApplication.translate("ANNCSUSettingsManager", "Update address coordinates?"))
                     messsageBox.setText(message)
                     messsageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                     messsageBox.setDefaultButton(QMessageBox.Yes)
@@ -1137,7 +1136,7 @@ class ANNCSUSettingsManager:
 
             except Exception as e:
                 conn.execute("ROLLBACK;")
-                QgsMessageLog.logMessage(f"Error updating session with new anncsu data: {e}", level=Qgis.Critical)
+                QgsMessageLog.logMessage(cls.tr("Error updating session with new anncsu data: {e}").format(e=e), level=Qgis.Critical)
                 raise Exception(f"Error updating session with new anncsu data: {e}")
             
             else:
@@ -1160,7 +1159,7 @@ class ANNCSUSettingsManager:
                 table_name: str,
                 municipality_data: MunicipalityData,
             ) -> None:
-            super().__init__(f"Scaricando ANNCSU aggiornato per comune {municipality_data.anncsu_id}", QgsTask.CanCancel)
+            super().__init__(f"Downloading updated ANNCSU for municipality {municipality_data.anncsu_id}", QgsTask.CanCancel)
             self.duckdb_path = duckdb_path
             self.source_db = source_db
             self.table_name = table_name
@@ -1180,16 +1179,16 @@ class ANNCSUSettingsManager:
                 )
             except Exception as e:
                 self.exception = e
-                QgsMessageLog.logMessage(f"Error in populate_table_from_source_task: {e}", level=Qgis.Critical)
+                QgsMessageLog.logMessage(self.tr("Error in populate_table_from_source_task: {e}").format(e=e), level=Qgis.Critical)
                 self.result = False
             
             return self.result
 
         def finished(self, result: bool):
             if result:
-                QgsMessageLog.logMessage(f"Tabella {self.table_name} popolata con successo da {self.source_db}", level=Qgis.Info)
+                QgsMessageLog.logMessage(self.tr("Table {table_name} successfully populated from {source_db}").format(table_name=self.table_name, source_db=self.source_db), level=Qgis.Info)
             else:
-                QgsMessageLog.logMessage(f"Errore durante la popolazione della tabella {self.table_name} da {self.source_db}", level=Qgis.Critical)
+                QgsMessageLog.logMessage(self.tr("Error populating table {table_name} from {source_db}").format(table_name=self.table_name, source_db=self.source_db), level=Qgis.Critical)
 
             return super().finished(result)
 
@@ -1226,7 +1225,7 @@ class ANNCSUSettingsManager:
             try:
                 # depending if source_db is remote or local file path
                 if 'agenziaentrate.gov.it' in str(source_db):
-                    QgsMessageLog.logMessage(f"Connect remote DB: {source_db}", level=Qgis.Info)
+                    QgsMessageLog.logMessage(cls.tr("Connect remote DB: {source_db}").format(source_db=source_db), level=Qgis.Info)
 
                     # load extension to parse zip content
                     duckdb_conn.execute("INSTALL zipfs FROM community;")
@@ -1257,7 +1256,7 @@ class ANNCSUSettingsManager:
                     if download_task.status() == QgsTask.Terminated:
                         error_msg = str(download_task.exception) if download_task.exception else "Download was cancelled or timed out"
                         ANNCSUMessageManager().show_message(
-                            f"Failed to download source database: {error_msg}",
+                            cls.tr("Failed to download source database: {error_msg}").format(error_msg=error_msg),
                             "error",
                         )
                         return False
@@ -1292,7 +1291,7 @@ class ANNCSUSettingsManager:
                     os.remove(temp_duckdb_path)
 
                 else:
-                    QgsMessageLog.logMessage(f"Connect local DB: {source_db}", level=Qgis.Info)
+                    QgsMessageLog.logMessage(cls.tr("Connect local DB: {source_db}").format(source_db=source_db), level=Qgis.Info)
 
                     if not str(source_db).endswith(".duckdb"):
                         raise Exception(f"Source duckdb URL '{source_db}' is not a valid duckdb file (should end with .duckdb).")
@@ -1315,10 +1314,10 @@ class ANNCSUSettingsManager:
 
             except Exception as e:
                 duckdb_conn.execute("ROLLBACK;")
-                QgsMessageLog.logMessage(f"Error populating {table_name} table from source database: {e}", level=Qgis.Critical)
+                QgsMessageLog.logMessage(cls.tr("Error populating {table_name} table from source database: {e}").format(table_name=table_name, e=e), level=Qgis.Critical)
                 raise e
             else:
-                QgsMessageLog.logMessage(f"Populated {table_name} table from source database: {source_db}", level=Qgis.Info)
+                QgsMessageLog.logMessage(cls.tr("Populated {table_name} table from source database: {source_db}").format(table_name=table_name, source_db=source_db), level=Qgis.Info)
                 duckdb_conn.execute("COMMIT;")
                 return True
 
@@ -1337,7 +1336,7 @@ class ANNCSUSettingsManager:
             municipality_data (MunicipalityData): Municipality data associated with this scope.
         Returns:
             scope: ScopeData"""
-        QgsMessageLog.logMessage(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {source_db}...", level=Qgis.Info)
+        QgsMessageLog.logMessage(cls.tr("Creating new session for municipality {anncsu_id} from source db {source_db}...").format(anncsu_id=municipality_data.anncsu_id, source_db=source_db), level=Qgis.Info)
         print(f"Creating new session for municipality {municipality_data.anncsu_id} from source db {str(source_db)}...")
 
         # create remote repo url where to save session make it's name a correct url
@@ -1350,14 +1349,14 @@ class ANNCSUSettingsManager:
         try:
             AnyUrl(remote_git_repo)
         except Exception as e:
-            QgsMessageLog.logMessage(f"Invalid remote HTTP(S) git repo URL: {remote_git_repo} check if SSH. error: {e}", level=Qgis.Critical)
+            QgsMessageLog.logMessage(cls.tr("Invalid remote HTTP(S) git repo URL: {remote_git_repo} check if SSH. error: {e}").format(remote_git_repo=remote_git_repo, e=e), level=Qgis.Critical)
             parsed = urllib.parse.urlparse(remote_git_repo)
             if parsed.path == remote_git_repo and (parsed.scheme == "" or parsed.scheme is None):
                 # possibly a git ssh url
                 if "@" in remote_git_repo and ":" in remote_git_repo:
                     print(f"Assuming remote git repo is SSH URL: {remote_git_repo}")
                 else:
-                    QgsMessageLog.logMessage(f"Invalid remote git repo URL: {remote_git_repo}", level=Qgis.Critical)
+                    QgsMessageLog.logMessage(cls.tr("Invalid remote git repo URL: {remote_git_repo}").format(remote_git_repo=remote_git_repo), level=Qgis.Critical)
                     return None, None
             else:
                 return None, None
@@ -1386,7 +1385,7 @@ class ANNCSUSettingsManager:
         if clone_repo_task.repo is None:
             return None, None
 
-        QgsMessageLog.logMessage(f"Successfully cloned/pulled {remote_git_repo} into {local_path}", level=Qgis.Info)
+        QgsMessageLog.logMessage(cls.tr("Successfully cloned/pulled {remote_git_repo} into {local_path}").format(remote_git_repo=remote_git_repo, local_path=local_path), level=Qgis.Info)
         del clone_repo_task  # no more need to keep reference
 
         # update ANNCSU table in current session with source_db data, this operation can be time
@@ -1407,7 +1406,7 @@ class ANNCSUSettingsManager:
         # check if task has been terminated due to error or cancellation
         if update_anncsu_task.status() == QgsTask.Terminated:
             ANNCSUMessageManager().show_message(
-                f"Errore durante la creazione della nuova sessione: {str(update_anncsu_task.exception)}",
+                cls.tr("Error creating new session: {exception}").format(exception=str(update_anncsu_task.exception)),
                 "error",
             )
             return None, None

@@ -39,7 +39,7 @@ class ANNCSUWizardDialog(QDialog):
 
         self.setLayout(layout)
 
-        self.setWindowTitle("ANNCSU Wizard")
+        self.setWindowTitle(self.tr("ANNCSU Wizard"))
 
     def __del__(self) -> None:
         if self.content:
@@ -64,13 +64,13 @@ class ANNCSUWizard(QWidget, FORM_CLASS):
         self.menu_items = [
             # Icon: <a href="https://img.icons8.com/arcade/64/country-house.png">Rock</a>
             # icon by <a target="_blank" href="https://icons8.com">Icons8</a>
-            ("ANNCSU Manager", QIcon(os.path.join(PLUGIN_PATH, "resources/icons/icons8-country-house-64.png"))),
-            
-            # Icon by Icons8
-            ("Settings", QIcon(os.path.join(PLUGIN_PATH, "resources/icons/settings.svg"))),
+            (self.tr("ANNCSU Manager"), QIcon(os.path.join(PLUGIN_PATH, "resources/icons/icons8-country-house-64.png"))),
 
             # Icon by Icons8
-            ("About", QIcon(os.path.join(PLUGIN_PATH, "resources/icons/about.svg"))),
+            (self.tr("Settings"), QIcon(os.path.join(PLUGIN_PATH, "resources/icons/settings.svg"))),
+
+            # Icon by Icons8
+            (self.tr("About"), QIcon(os.path.join(PLUGIN_PATH, "resources/icons/about.svg"))),
         ]
 
         self.create_menu(minimize_text=False)

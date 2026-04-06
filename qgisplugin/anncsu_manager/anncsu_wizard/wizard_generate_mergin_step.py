@@ -76,7 +76,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         mergin_projects = mergin_utils.get_local_mergin_projects_info()
 
         self.mergin_project_cb.clear()
-        self.mergin_project_cb.addItem("-- Seleziona Progetto Mergin --", None)
+        self.mergin_project_cb.addItem(self.tr("-- Select Mergin Project --"), None)
         for mergin_project in mergin_projects:
             path, workspace, project_name, project_server = mergin_project
             self.mergin_project_cb.addItem(project_name, mergin_project)
@@ -89,7 +89,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         # if not mergin_projects then ask to setting up one before to proceed
         if not mergin_projects:
             ANNCSUMessageManager().show_message(
-                "Nessun progetto Mergin locale trovato. Configurare Mergin prima di procedere.",
+                self.tr("No local Mergin project found. Configure Mergin before proceeding."),
                 "error",
             )
 
@@ -119,7 +119,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         mergin_project_data = self.mergin_project_cb.currentData()
         if mergin_project_data is None:
             ANNCSUMessageManager().show_message(
-                "Selezionare un progetto Mergin valido prima di procedere.",
+                self.tr("Select a valid Mergin project before proceeding."),
                 "error",
             )
             return
@@ -134,8 +134,8 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             # ask user to confirm to proceed anyway
             reply = QMessageBox.question(
                 self,
-                "Contnua il salvataggio?",
-                f"Il progetto Mergin selezionato '{project_name}' non corrisponde al progetto QGIS aperto '{cur_project.baseName()}'. Procedere comunque?",
+                self.tr("Continue saving?"),
+                self.tr("The selected Mergin project '{project_name}' does not match the open QGIS project '{cur_project}'. Proceed anyway?").format(project_name=project_name, cur_project=cur_project.baseName()),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )
@@ -146,7 +146,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         anncsu_records, columns = ANNCSUSettingsManager.get_table(table_name="anncsu")
         if anncsu_records is None:
             ANNCSUMessageManager().show_message(
-                "Impossibile caricare la tabella ANNCSU. Assicurarsi che la tabella sia disponibile prima di procedere.",
+                self.tr("Unable to load the ANNCSU table. Make sure the table is available before proceeding."),
                 "error",
             )
             return
@@ -172,7 +172,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
 
             if self.include_geofence_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_geofence_polygon}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
                 remove_layer_by_name(layer_geofence_polygon)
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.geofence_polygon,
@@ -185,7 +185,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 self.feedback.pushInfo(f"info: Geofence polygon layer '{layer_geofence_polygon}' added to Mergin project '{project_name}'.")
 
             if self.include_success_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_name_success}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_success), level="info", duration=5)
                 remove_layer_by_name(layer_name_success)
 
                 # merge geocoded results with anncsu table
@@ -209,7 +209,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 self.feedback.pushInfo(f"info: Success layer '{layer_name_success}' added to Mergin project '{project_name}'.")
 
             if self.include_fails_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_name_fails}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_fails), level="info", duration=5)
                 remove_layer_by_name(layer_name_fails)
 
                 # merge fails results with anncsu table
@@ -232,7 +232,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 self.feedback.pushInfo(f"info: Fails layer '{layer_name_fails}' added to Mergin project '{project_name}'.")
 
             if self.include_out_of_geofence_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_name_out_of_geofence}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_out_of_geofence), level="info", duration=5)
                 remove_layer_by_name(layer_name_out_of_geofence)
 
                 # merge out of geofence results with anncsu table
@@ -255,7 +255,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                 self.feedback.pushInfo(f"info: Out of geofence layer '{layer_name_out_of_geofence}' added to Mergin project '{project_name}'.")
 
             ANNCSUMessageManager().show_message(
-                f"Added results for geocoder '{geocoder_name}' into Mergin project '{project_name}'.",
+                self.tr("Added results for geocoder '{geocoder_name}' into Mergin project '{project_name}'.").format(geocoder_name=geocoder_name, project_name=project_name),
                 level="success",
                 duration=5
             )
@@ -329,7 +329,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
 
             # save geocoded_anncsu_df as GPKG file into mergin project folder
             ANNCSUMessageManager().show_message(
-                f"Saving geocoded ANNCSU table into Mergin project '{project_name}'.",
+                self.tr("Saving geocoded ANNCSU table into Mergin project '{project_name}'.").format(project_name=project_name),
                 level="info",
                 duration=5
             )

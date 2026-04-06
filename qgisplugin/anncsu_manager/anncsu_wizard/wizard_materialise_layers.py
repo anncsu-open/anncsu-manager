@@ -93,7 +93,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
             self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
 
             if self.include_geofence_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_geofence_polygon}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
                 remove_layer_by_name(layer_geofence_polygon)
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.geofence_polygon,
@@ -110,7 +110,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 files_to_sync.append(geofence_file_path)
 
             if self.include_fails_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_name_fails}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_fails), level="info", duration=5)
                 remove_layer_by_name(layer_name_fails)
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.fails,
@@ -127,7 +127,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 files_to_sync.append(fails_file_path)
 
             if self.include_out_of_geofence_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_name_out_of_geofence}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_out_of_geofence), level="info", duration=5)
                 remove_layer_by_name(layer_name_out_of_geofence)
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.out_of_geofence,
@@ -144,7 +144,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 files_to_sync.append(out_of_geofence_file_path)
 
             if self.include_success_ckb.isChecked():
-                ANNCSUMessageManager().show_message(f"Loading: {layer_name_success}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_success), level="info", duration=5)
                 remove_layer_by_name(layer_name_success)
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.success,
@@ -168,7 +168,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                 raise QgsPluginException(f"Failed to sync geocoding results for geocoder '{geocoder_name}' to remote repo: {str(e)}") from e
 
             ANNCSUMessageManager().show_message(
-                f"Added results for geocoder '{geocoder_name}' into git repo.",
+                self.tr("Added results for geocoder '{geocoder_name}' into git repo.").format(geocoder_name=geocoder_name),
                 level="success",
                 duration=5
             )

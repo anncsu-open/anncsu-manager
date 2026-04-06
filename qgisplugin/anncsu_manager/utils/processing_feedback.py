@@ -1,5 +1,5 @@
 from qgis.core import QgsProcessingFeedback
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import pyqtSignal, QCoreApplication
 from qgis.PyQt.QtWidgets import QProgressBar, QTextEdit
 
 
@@ -34,13 +34,13 @@ class ANNCSUProcessingFeedback(QgsProcessingFeedback):
             self.text_signal.emit(info)
 
     def pushCommandInfo(self, info):
-        self.text_signal.emit(f"Command: {info}")
+        self.text_signal.emit(QCoreApplication.translate("ANNCSUProcessingFeedback", "Command: {info}").format(info=info))
 
     def pushDebugInfo(self, info):
-        self.text_signal.emit(f"Debug: {info}")
+        self.text_signal.emit(QCoreApplication.translate("ANNCSUProcessingFeedback", "Debug: {info}").format(info=info))
 
     def pushConsoleInfo(self, info):
-        self.text_signal.emit(f"Console: {info}")
+        self.text_signal.emit(QCoreApplication.translate("ANNCSUProcessingFeedback", "Console: {info}").format(info=info))
 
     def reportError(self, error, fatalError=False):
         self.no_errors = False
@@ -50,4 +50,4 @@ class ANNCSUProcessingFeedback(QgsProcessingFeedback):
         self.text_signal.emit(str(msg))
 
     def report_failed_run(self):
-        self.text_signal.emit("Processing failed.")
+        self.text_signal.emit(QCoreApplication.translate("ANNCSUProcessingFeedback", "Processing failed."))

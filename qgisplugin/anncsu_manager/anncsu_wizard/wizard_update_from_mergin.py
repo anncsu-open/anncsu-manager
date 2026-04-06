@@ -71,7 +71,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
         mergin_projects = mergin_utils.get_local_mergin_projects_info()
 
         self.mergin_project_cb.clear()
-        self.mergin_project_cb.addItem("-- Seleziona Progetto Mergin --", None)
+        self.mergin_project_cb.addItem(self.tr("-- Select Mergin Project --"), None)
         for mergin_project in mergin_projects:
             path, workspace, project_name, project_server = mergin_project
             self.mergin_project_cb.addItem(project_name, mergin_project)
@@ -84,7 +84,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
         # if not mergin_projects then ask to setting up one before to proceed
         if not mergin_projects:
             ANNCSUMessageManager().show_message(
-                "Nessun progetto Mergin locale trovato. Configurare Mergin prima di procedere.",
+                self.tr("No local Mergin project found. Configure Mergin before proceeding."),
                 "error",
             )
 
@@ -109,7 +109,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
         mergin_project_data = self.mergin_project_cb.currentData()
         if mergin_project_data is None:
             ANNCSUMessageManager().show_message(
-                "Selezionare un progetto Mergin valido prima di procedere.",
+                self.tr("Select a valid Mergin project before proceeding."),
                 "error",
             )
             return
@@ -125,8 +125,8 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
             # ask user to confirm to proceed anyway
             reply = QMessageBox.question(
                 self,
-                "Continua il salvataggio?",
-                f"Il progetto Mergin selezionato '{project_name}' non corrisponde al progetto QGIS aperto '{cur_project.baseName()}'. Procedere comunque?",
+                self.tr("Continue saving?"),
+                self.tr("The selected Mergin project '{project_name}' does not match the open QGIS project '{cur_project}'. Proceed anyway?").format(project_name=project_name, cur_project=cur_project.baseName()),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )

@@ -219,7 +219,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
 
             # load geofence polygon layer as first layer to avoid to cover other layers
             if not tab.geofence_polygon.empty:
-                ANNCSUMessageManager().show_message(f"Loading layer: {layer_geofence_polygon}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading layer: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
                 remove_layer_by_name(layer_geofence_polygon)
                 tab.geofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.geofence_polygon,
@@ -232,7 +232,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
 
             # load success layer
             if tab.success is not None and not tab.success.empty:
-                ANNCSUMessageManager().show_message(f"Loading layer: {layer_name_success}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading layer: {layer_name}").format(layer_name=layer_name_success), level="info", duration=5)
                 remove_layer_by_name(layer_name_success)
                 tab.successLayer = load_dataframe_as_layer(
                     dataframe=tab.success,
@@ -245,7 +245,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
 
             # load fails layer
             if tab.fails is not None and not tab.fails.empty:
-                ANNCSUMessageManager().show_message(f"Loading layer: {layer_name_fails}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading layer: {layer_name}").format(layer_name=layer_name_fails), level="info", duration=5)
                 remove_layer_by_name(layer_name_fails)
                 tab.failsLayer = load_dataframe_as_layer(
                     dataframe=tab.fails,
@@ -258,7 +258,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
 
             # load out_of_geofence layer
             if tab.out_of_geofence is not None and not tab.out_of_geofence.empty:
-                ANNCSUMessageManager().show_message(f"Loading layer: {layer_name_out_of_geofence}", level="info", duration=5)
+                ANNCSUMessageManager().show_message(self.tr("Loading layer: {layer_name}").format(layer_name=layer_name_out_of_geofence), level="info", duration=5)
                 remove_layer_by_name(layer_name_out_of_geofence)
                 tab.outOfGeofenceLayer = load_dataframe_as_layer(
                     dataframe=tab.out_of_geofence,

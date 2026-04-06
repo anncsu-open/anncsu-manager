@@ -154,7 +154,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         current_scope: Optional[ScopeData] = self.current_session.currentData()
         if current_scope is None:
             ANNCSUMessageManager().show_message(
-                "Nessuna sessione selezionata da sincronizzare.",
+                self.tr("No session selected to synchronize."),
                 "warning",
             )
             return
@@ -174,12 +174,12 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.save_settings()  # save settings to persist sync flag
 
             ANNCSUMessageManager().show_message(
-                f"Sessione '{self.current_session.currentText()}' sincronizzata con il repository remoto.",
+                self.tr("Session '{session}' synchronized with the remote repository.").format(session=self.current_session.currentText()),
                 "success",
             )
         except Exception as e:
             ANNCSUMessageManager().show_message(
-                f"Errore durante la sincronizzazione della sessione '{self.current_session.currentText()}': {str(e)}",
+                self.tr("Error synchronizing session '{session}': {error}").format(session=self.current_session.currentText(), error=str(e)),
                 "error",
             )
         finally:
@@ -192,7 +192,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         current_scope = self.current_session.currentData()
         if current_scope is None:
             ANNCSUMessageManager().show_message(
-                "Nessuna sessione selezionata da aggiornare.",
+                self.tr("No session selected to update."),
                 "warning",
             )
             return
@@ -220,23 +220,23 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # check if task has been terminated due to error or cancellation
         if update_anncsu_task.status() == QgsTask.Terminated:
             ANNCSUMessageManager().show_message(
-                f"Errore durante la creazione della nuova sessione: {str(update_anncsu_task.exception)}",
+                self.tr("Error creating new session: {exception}").format(exception=str(update_anncsu_task.exception)),
                 "error",
             )
             return
-        QgsMessageLog.logMessage(f"Successfully updated ANNCSU table for session {self.current_session.currentText()}", level=Qgis.Info)
+        QgsMessageLog.logMessage(self.tr("Successfully updated ANNCSU table for session {session}").format(session=self.current_session.currentText()), level=Qgis.Info)
 
         # now update current session with update ANNCSU data
         res = ANNCSUSettingsManager.update_current_session()
         if not res:
             ANNCSUMessageManager().show_message(
-                "Aggiornamento ANNCSU annullato.",
+                self.tr("ANNCSU update cancelled."),
                 "info",
             )
             return
 
         ANNCSUMessageManager().show_message(
-            "ANNCSU Aggiornato con successo per la sessione selezionata.",
+            self.tr("ANNCSU successfully updated for the selected session."),
             "success",
         )
 
@@ -245,14 +245,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         current_scope = self.current_session.currentData()
         if current_scope is None:
             ANNCSUMessageManager().show_message(
-                "Nessuna sessione selezionata da eliminare.",
+                self.tr("No session selected to delete."),
                 "warning",
             )
             return
 
         reply = QMessageBox.question(self,
-            "Eliminazione sessione ANNCSU",
-            f"Sei sicuro di voler eliminare la sessione '{self.current_session.currentText()}'?",
+            self.tr("Delete ANNCSU session"),
+            self.tr("Are you sure you want to delete session '{session}'?").format(session=self.current_session.currentText()),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -273,7 +273,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.manageSessionChange()
 
         ANNCSUMessageManager().show_message(
-            f"Sessione '{self.current_session.currentText()}' eliminata.",
+            self.tr("Session '{session}' deleted.").format(session=self.current_session.currentText()),
             "success",
         )
 
@@ -313,8 +313,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
             # no municipality is set yet, notity user to save settings to create a session
             ANNCSUMessageManager().show_message(
-                "Nessun codice comune associato alla sessione selezionata.\n" \
-                "Selezionane uno e salvare per creare una sessione di lavoro.",
+                self.tr("No municipality code associated with the selected session.\nSelect one and save to create a working session."),
                 "warning",
             )
 
@@ -375,7 +374,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         """)
                 
         self.comune_cb.clear()
-        self.comune_cb.addItem("Seleziona codice comune", "")
+        self.comune_cb.addItem(self.tr("Select municipality code"), "")
         for id, nome, provincia, regione, anncsu_id in codice_catastro.fetchall():
             municipality_data = MunicipalityData(
                 id=id,
@@ -390,7 +389,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # populate current_session combobox
         self.current_session.blockSignals(True)
         self.current_session.clear()
-        self.current_session.addItem("Seleziona sessione", None)
+        self.current_session.addItem(self.tr("Select session"), None)
         for scope_id, scope in self.scopes.items():
             self.current_session.addItem(scope_id, scope)
         self.current_session.blockSignals(False)
@@ -429,7 +428,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 GeocoderFactory().register_geocoder(geocoder_name, builder_class())
                 print(f"Registered geocoder {builder_name}")
             except (ImportError, AttributeError) as e:
-                ANNCSUMessageManager().show_message(f"Could not register geocoder '{geocoder_name}': {e}", "error")
+                ANNCSUMessageManager().show_message(self.tr("Could not register geocoder '{geocoder_name}': {e}").format(geocoder_name=geocoder_name, e=e), "error")
 
     def save_settings(self, force_creation_new_session: bool = False):
         """Save current selections and persist ANNCSU plugin settings.
@@ -454,7 +453,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         # need a municipality code to proceed
         if self.comune_cb.currentData() is None:
             ANNCSUMessageManager().show_message(
-                "Selezionare un codice comune per procedere.",
+                self.tr("Select a municipality code to proceed."),
                 "warning",
             )
             return
@@ -470,19 +469,18 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             if self.create_new_session_task is not None:
                 # avoid multiple task creation
                 ANNCSUMessageManager().show_message(
-                    "Task di creazione nuova sessione già in esecuzione.",
+                    self.tr("New session creation task already in progress."),
                     "warning",
                 )
                 return
 
             if force_creation_new_session:
-                message = "Forzando la creazione di una nuova sessione ANNCSU. Vuoi procedere?" \
+                message = self.tr("Forcing creation of a new ANNCSU session. Do you want to proceed?")
 
             else:
-                message = "Il codice comune o il database sorgente ANNCSU sono stati modificati rispetto alla sessione attuale.\n" \
-                    "Verrà generata una nuova sessione ANNCSU. Vuoi procedere?"
+                message = self.tr("The municipality code or ANNCSU source database have been modified compared to the current session.\nA new ANNCSU session will be generated. Do you want to proceed?")
             reply = QMessageBox.question(self,
-                "DB sorgente ANNUCSU o codice comune modificati",
+                self.tr("Source ANNCSU DB or municipality code modified"),
                 message,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -496,7 +494,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                     self.comune_cb.findText(current_municipality_code, Qt.MatchFlag.MatchContains)
                 )
 
-                ANNCSUMessageManager().show_message("Nessun cambio salvato", "success")
+                ANNCSUMessageManager().show_message(self.tr("No changes saved"), "success")
                 return  # user cancelled, do not save settings
 
             # proceed to create new session
@@ -532,7 +530,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 self.feedback.progress_bar.hide()
                 if new_scope_id is None or new_scope is None:
                     ANNCSUMessageManager().show_message(
-                        "Errore durante la creazione della nuova sessione",
+                        self.tr("Error creating new session"),
                         "error",
                     )
                     return
@@ -564,14 +562,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         scopes[self.current_session.currentText()] = current_scope
         ANNCSUSettingsManager.set_scopes(scopes)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-        ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+        ANNCSUMessageManager().show_message(self.tr("ANNCSU QGIS Plugin settings saved."), "success")
 
     def reset_settings_to_default(self):
         """Set selections to defaults. Does not save."""
         ANNCSUSettingsManager.reset_all()
         self.set_settings_gui()
         self.manageSessionChange()
-        ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings reset.", "info")
+        ANNCSUMessageManager().show_message(self.tr("ANNCSU QGIS Plugin settings reset."), "info")
 
     # def on_finished_create_new_session(self, exception, result=None):
     #     """Callback when finished creating a new session."""
