@@ -500,6 +500,511 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
   </context>
 
   <!-- ============================================================ -->
+  <!-- utils/message_manager.py                                    -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUMessageManager</name>
+
+    <message>
+      <location filename="../utils/message_manager.py" line="35"/>
+      <source>Success</source>
+      <translation>Successo</translation>
+    </message>
+    <message>
+      <location filename="../utils/message_manager.py" line="37"/>
+      <source>Info</source>
+      <translation>Info</translation>
+    </message>
+    <message>
+      <location filename="../utils/message_manager.py" line="39"/>
+      <source>Warning</source>
+      <translation>Avviso</translation>
+    </message>
+    <message>
+      <location filename="../utils/message_manager.py" line="43"/>
+      <source>Error</source>
+      <translation>Errore</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- utils/processing_feedback.py                                 -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUProcessingFeedback</name>
+
+    <message>
+      <location filename="../utils/processing_feedback.py" line="37"/>
+      <source>Command: {info}</source>
+      <translation>Comando: {info}</translation>
+    </message>
+    <message>
+      <location filename="../utils/processing_feedback.py" line="40"/>
+      <source>Debug: {info}</source>
+      <translation>Debug: {info}</translation>
+    </message>
+    <message>
+      <location filename="../utils/processing_feedback.py" line="43"/>
+      <source>Console: {info}</source>
+      <translation>Console: {info}</translation>
+    </message>
+    <message>
+      <location filename="../utils/processing_feedback.py" line="53"/>
+      <source>Processing failed.</source>
+      <translation>Elaborazione non riuscita.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_main.py                                 -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUWizardDialog</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_main.py" line="42"/>
+      <source>ANNCSU Wizard</source>
+      <translation>ANNCSU Wizard</translation>
+    </message>
+  </context>
+
+  <context>
+    <name>ANNCSUWizard</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_main.py" line="67"/>
+      <source>ANNCSU Manager</source>
+      <translation>ANNCSU Manager</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_main.py" line="70"/>
+      <source>Settings</source>
+      <translation>Impostazioni</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_main.py" line="73"/>
+      <source>About</source>
+      <translation>Info</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_geocoder_step.py                        -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUWizardRunGeocoders</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="66"/>
+      <source>Using scope: {current_scope_id}</source>
+      <translation>Utilizzo scope: {current_scope_id}</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="68"/>
+      <source>No scope is currently selected. Please select a scope in the settings before running geocoders.</source>
+      <translation>Nessuno scope selezionato. Selezionare uno scope nelle impostazioni prima di eseguire i geocoder.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="73"/>
+      <source>No DuckDB database path found in the current scope settings.</source>
+      <translation>Nessun percorso database DuckDB trovato nelle impostazioni dello scope corrente.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="78"/>
+      <source>Could not connect to DuckDB database at {duck_db_source}.</source>
+      <translation>Impossibile connettersi al database DuckDB in {duck_db_source}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="93"/>
+      <source>Skipping inactive geocoder {geocoder_name}...</source>
+      <translation>Geocoder inattivo ignorato: {geocoder_name}...</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="102"/>
+      <source>Could not instantiate geocoder &apos;{geocoder_name}&apos;.</source>
+      <translation>Impossibile istanziare il geocoder &apos;{geocoder_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="126"/>
+      <source>Geocoding {count} addresses using {geocoder_name}...</source>
+      <translation>Geocodifica di {count} indirizzi con {geocoder_name}...</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="129"/>
+      <source>Geocoding {count} bulk addresses to speedup process.</source>
+      <translation>Geocodifica massiva di {count} indirizzi per accelerare il processo.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="133"/>
+      <source>Geocoded {count} addresses in {elapsed} seconds using {geocoder_name}.</source>
+      <translation>Geocodificati {count} indirizzi in {elapsed} secondi con {geocoder_name}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="158"/>
+      <source>Saving geocoding results into table {result_table_name}...</source>
+      <translation>Salvataggio risultati geocodifica nella tabella {result_table_name}...</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="200"/>
+      <source>Geocoder &apos;{geocoder_name}&apos;: Geocodings saved into table {result_table_name}.</source>
+      <translation>Geocoder &apos;{geocoder_name}&apos;: geocodifiche salvate nella tabella {result_table_name}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="203"/>
+      <source>All geocoding processes completed.</source>
+      <translation>Tutti i processi di geocodifica completati.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="208"/>
+      <source>warning:  Scope repo locally updated need to be synched to remote repo.</source>
+      <translation>warning:  Repository scope aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_geocoder_step.py" line="218"/>
+      <source>An error occurred: {error}</source>
+      <translation>Si è verificato un errore: {error}</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_reduce_clusters_step.py                 -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUWizardReduceClustersStep</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="105"/>
+      <source>Table &apos;remaining_clusters&apos; or &apos;remaining_duplicates&apos; does not exist. Run Deduplicate step first.</source>
+      <translation>La tabella &apos;remaining_clusters&apos; o &apos;remaining_duplicates&apos; non esiste. Eseguire prima il passo di deduplicazione.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="106"/>
+      <source>N/A - run Deduplicate step</source>
+      <translation>N/D - eseguire il passo di deduplicazione</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="109"/>
+      <source>No DuckDB database path found in the current scope settings. Cannot update reduced clusters statistics.</source>
+      <translation>Nessun percorso database DuckDB trovato nelle impostazioni dello scope. Impossibile aggiornare le statistiche.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="110"/>
+      <source>N/A</source>
+      <translation>N/D</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="124"/>
+      <source>No DuckDB database path found in the current scope settings. Cannot run reduce clusters process.</source>
+      <translation>Nessun percorso database DuckDB trovato nelle impostazioni dello scope. Impossibile eseguire il processo di riduzione cluster.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="258"/>
+      <source>Error while running reduce clusters process: {error}</source>
+      <translation>Errore durante il processo di riduzione cluster: {error}</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="262"/>
+      <source>success: Reduce clusters process completed successfully.</source>
+      <translation>success: Processo di riduzione cluster completato con successo.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_evaluate_geocode_step.py (new strings)  -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCUGeocodeResultTab</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="135"/>
+      <source>{success_rate:.2f}% (Threshold: {threshold})</source>
+      <translation>{success_rate:.2f}% (Soglia: {threshold})</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="178"/>
+      <source>Error loading results: {error}</source>
+      <translation>Errore durante il caricamento dei risultati: {error}</translation>
+    </message>
+  </context>
+
+  <context>
+    <name>ANNCSUWizardEvaluateGeocode</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="296"/>
+      <source>Using scope: {current_scope_id}</source>
+      <translation>Utilizzo scope: {current_scope_id}</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="299"/>
+      <source>No scope is currently selected. Please select a scope in the settings before running geocoders.</source>
+      <translation>Nessuno scope selezionato. Selezionare uno scope nelle impostazioni prima di eseguire i geocoder.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="304"/>
+      <source>No DuckDB database path found in the current scope settings.</source>
+      <translation>Nessun percorso database DuckDB trovato nelle impostazioni dello scope corrente.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="309"/>
+      <source>Could not connect to DuckDB database at {duck_db_source}.</source>
+      <translation>Impossibile connettersi al database DuckDB in {duck_db_source}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_evaluate_geocode_step.py" line="325"/>
+      <source>Results table &apos;{result_table_name}&apos; does not exist. Skipping evaluation for geocoder &apos;{geocoder_name}&apos;.</source>
+      <translation>La tabella dei risultati &apos;{result_table_name}&apos; non esiste. Valutazione del geocoder &apos;{geocoder_name}&apos; ignorata.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_materialise_layers.py (new strings)     -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUWizardMaterialiseLayers</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="65"/>
+      <source>Using scope: {current_scope_id}</source>
+      <translation>Utilizzo scope: {current_scope_id}</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="67"/>
+      <source>No scope is currently selected. Please select a scope in the settings before running geocoders.</source>
+      <translation>Nessuno scope selezionato. Selezionare uno scope nelle impostazioni prima di eseguire i geocoder.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="73"/>
+      <source>Scope local repo path &apos;{out_path}&apos; does not exist. Please check your scope settings.</source>
+      <translation>Il percorso del repository locale dello scope &apos;{out_path}&apos; non esiste. Verificare le impostazioni dello scope.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="92"/>
+      <source>info: Preparing to add geocoding results for &apos;{geocoder_name}&apos; to local scope folder.</source>
+      <translation>info: Preparazione aggiunta risultati geocodifica per &apos;{geocoder_name}&apos; nella cartella locale dello scope.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="93"/>
+      <source>info: Adding results into folder: {out_path}.</source>
+      <translation>info: Aggiunta risultati nella cartella: {out_path}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="106"/>
+      <source>info: Geofence polygon layer &apos;{layer_geofence_polygon}&apos; added to local git repo.</source>
+      <translation>info: Layer poligono geofence &apos;{layer_geofence_polygon}&apos; aggiunto al repository git locale.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="123"/>
+      <source>info: Fails layer &apos;{layer_name_fails}&apos; added to local git repo.</source>
+      <translation>info: Layer dei fallimenti &apos;{layer_name_fails}&apos; aggiunto al repository git locale.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="140"/>
+      <source>info: Out of geofence layer &apos;{layer_name_out_of_geofence}&apos; added to local git repo.</source>
+      <translation>info: Layer fuori geofence &apos;{layer_name_out_of_geofence}&apos; aggiunto al repository git locale.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="157"/>
+      <source>info: Success layer &apos;{layer_name_success}&apos; added to local git repo.</source>
+      <translation>info: Layer dei successi &apos;{layer_name_success}&apos; aggiunto al repository git locale.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_materialise_layers.py" line="165"/>
+      <source>info: Commit and push layers into git repo.</source>
+      <translation>info: Commit e push dei layer nel repository git.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_generate_mergin_step.py (new strings)   -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUWizardGenerateMerginStep</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="83"/>
+      <source>info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.</source>
+      <translation>info: Trovato progetto Mergin: {project_name} workspace: {workspace} al percorso: {path} sul server: {project_server}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="106"/>
+      <source>info: Current QGIS project &apos;{cur_project}&apos; matches Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Il progetto QGIS corrente &apos;{cur_project}&apos; corrisponde al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="171"/>
+      <source>info: Preparing to add geocoding results for &apos;{geocoder_name}&apos; to Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Preparazione aggiunta risultati geocodifica per &apos;{geocoder_name}&apos; al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="172"/>
+      <source>info: Adding results into folder: {out_path}.</source>
+      <translation>info: Aggiunta risultati nella cartella: {out_path}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="185"/>
+      <source>info: Geofence polygon layer &apos;{layer_geofence_polygon}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Layer poligono geofence &apos;{layer_geofence_polygon}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="197"/>
+      <source>error: Unable to merge geocoded results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving success layer.</source>
+      <translation>error: Impossibile unire i risultati geocodificati con la tabella anncsu per il geocoder &apos;{geocoder_name}&apos;. Salvataggio layer successi ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="209"/>
+      <source>info: Success layer &apos;{layer_name_success}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Layer dei successi &apos;{layer_name_success}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="221"/>
+      <source>error: Unable to merge fails results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving fails layer.</source>
+      <translation>error: Impossibile unire i risultati dei fallimenti con la tabella anncsu per il geocoder &apos;{geocoder_name}&apos;. Salvataggio layer fallimenti ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="232"/>
+      <source>info: Fails layer &apos;{layer_name_fails}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Layer dei fallimenti &apos;{layer_name_fails}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="244"/>
+      <source>error: Unable to merge out of geofence results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving out of geofence layer.</source>
+      <translation>error: Impossibile unire i risultati fuori geofence con la tabella anncsu per il geocoder &apos;{geocoder_name}&apos;. Salvataggio layer fuori geofence ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="255"/>
+      <source>info: Out of geofence layer &apos;{layer_name_out_of_geofence}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Layer fuori geofence &apos;{layer_name_out_of_geofence}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- anncsu_wizard/wizard_update_from_mergin.py (new strings)     -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUWizardUpdateFromMergin</name>
+
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="78"/>
+      <source>info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.</source>
+      <translation>info: Trovato progetto Mergin: {project_name} workspace: {workspace} al percorso: {path} sul server: {project_server}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="101"/>
+      <source>info: Current QGIS project &apos;{cur_project}&apos; matches Mergin project &apos;{project_name}&apos;.</source>
+      <translation>info: Il progetto QGIS corrente &apos;{cur_project}&apos; corrisponde al progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="143"/>
+      <source>Current scope id &apos;{current_scope_id}&apos; not found among defined scopes.</source>
+      <translation>L&apos;id scope corrente &apos;{current_scope_id}&apos; non trovato tra gli scope definiti.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="146"/>
+      <source>Using scope: {current_scope_id}</source>
+      <translation>Utilizzo scope: {current_scope_id}</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="151"/>
+      <source>No DuckDB database path found in the current scope settings.</source>
+      <translation>Nessun percorso database DuckDB trovato nelle impostazioni dello scope corrente.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="155"/>
+      <source>Updating DuckDB database at {duck_db_source} from Mergin project &apos;{project_name}&apos;.</source>
+      <translation>Aggiornamento database DuckDB in {duck_db_source} dal progetto Mergin &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="157"/>
+      <source>Could not connect to DuckDB database at {duck_db_source}.</source>
+      <translation>Impossibile connettersi al database DuckDB in {duck_db_source}.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="171"/>
+      <source>info: Skipping inactive geocoder &apos;{geocoder_name}&apos;.</source>
+      <translation>info: Geocoder inattivo ignorato: &apos;{geocoder_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="182"/>
+      <source>info: Processing layer &apos;{layer_name}&apos; for geocoder &apos;{geocoder_name}&apos;.</source>
+      <translation>info: Elaborazione layer &apos;{layer_name}&apos; per il geocoder &apos;{geocoder_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="188"/>
+      <source>warning: Layer &apos;{layer_name}&apos; not found in the project. Skipping.</source>
+      <translation>warning: Layer &apos;{layer_name}&apos; non trovato nel progetto. Ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="193"/>
+      <source>warning: Layer file &apos;{layer_path}&apos; not found in Mergin project folder. Skipping.</source>
+      <translation>warning: File layer &apos;{layer_path}&apos; non trovato nella cartella del progetto Mergin. Ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="197"/>
+      <source>warning: Could not load layer from file &apos;{layer_path}&apos;. Skipping.</source>
+      <translation>warning: Impossibile caricare il layer dal file &apos;{layer_path}&apos;. Ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="200"/>
+      <source>info: Loaded layer &apos;{layer_name}&apos; from Mergin project folder.</source>
+      <translation>info: Layer &apos;{layer_name}&apos; caricato dalla cartella del progetto Mergin.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="220"/>
+      <source>info: Dumped layer &apos;{layer_name}&apos; into DuckDB table &apos;{table_name}&apos; with {count} records.</source>
+      <translation>info: Layer &apos;{layer_name}&apos; salvato nella tabella DuckDB &apos;{table_name}&apos; con {count} record.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="244"/>
+      <source>info: Dumped layer &apos;geocoded_anncsu&apos; into DuckDB table &apos;geocoded_anncsu&apos; with {count} records.</source>
+      <translation>info: Layer &apos;geocoded_anncsu&apos; salvato nella tabella DuckDB &apos;geocoded_anncsu&apos; con {count} record.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="246"/>
+      <source>info: &apos;geocoded_anncsu.gpkg&apos; file not found in Mergin project folder. Skipping.</source>
+      <translation>info: File &apos;geocoded_anncsu.gpkg&apos; non trovato nella cartella del progetto Mergin. Ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="250"/>
+      <source>Error while updating from Mergin: {error}</source>
+      <translation>Errore durante l&apos;aggiornamento da Mergin: {error}</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="257"/>
+      <source>info: Reopened DuckDB database to consolidate changes.</source>
+      <translation>info: Database DuckDB riaperto per consolidare le modifiche.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="261"/>
+      <source>info: Update from Mergin completed successfully.</source>
+      <translation>info: Aggiornamento da Mergin completato con successo.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="266"/>
+      <source>warning:  Scope repo locally updated need to be synched to remote repo.</source>
+      <translation>warning:  Repository scope aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- utils/settings_manager.py (new strings)                      -->
+  <!-- ============================================================ -->
+  <context>
+    <name>ANNCSUSettingsManager</name>
+
+    <message>
+      <location filename="../utils/settings_manager.py" line="469"/>
+      <source>Failed to load default scopes. Reset to default values. {e}</source>
+      <translation>Impossibile caricare gli scope predefiniti. Ripristino ai valori predefiniti. {e}</translation>
+    </message>
+    <message>
+      <location filename="../utils/settings_manager.py" line="1259"/>
+      <source>Failed to download source database: {error_msg}</source>
+      <translation>Impossibile scaricare il database sorgente: {error_msg}</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
   <!-- resources/ui/wizard_settings.ui                             -->
   <!-- ============================================================ -->
   <context>

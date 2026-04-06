@@ -80,7 +80,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
         for mergin_project in mergin_projects:
             path, workspace, project_name, project_server = mergin_project
             self.mergin_project_cb.addItem(project_name, mergin_project)
-            self.feedback.pushInfo(f"info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.")
+            self.feedback.pushInfo(self.tr("info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.").format(project_name=project_name, workspace=workspace, path=path, project_server=project_server))
 
     def set_mergin_project(self):
         """Populate Mergin projects combobox."""
@@ -103,7 +103,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             if project_name == cur_project.baseName():
                 index = self.mergin_project_cb.findText(project_name)
                 if index != -1:
-                    self.feedback.pushInfo(f"info: Current QGIS project '{cur_project.baseName()}' matches Mergin project '{project_name}'.")
+                    self.feedback.pushInfo(self.tr("info: Current QGIS project '{cur_project}' matches Mergin project '{project_name}'.").format(cur_project=cur_project.baseName(), project_name=project_name))
                     self.mergin_project_cb.setCurrentIndex(index)
                 else:
                     self.mergin_project_cb.setCurrentIndex(0)
@@ -168,8 +168,8 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
             layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
 
             # add before layer_geofence_polygon to remain under the other layers
-            self.feedback.pushInfo(f"info: Preparing to add geocoding results for '{geocoder_name}' to Mergin project '{project_name}'.")
-            self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
+            self.feedback.pushInfo(self.tr("info: Preparing to add geocoding results for '{geocoder_name}' to Mergin project '{project_name}'.").format(geocoder_name=geocoder_name, project_name=project_name))
+            self.feedback.pushInfo(self.tr("info: Adding results into folder: {out_path}.").format(out_path=out_path))
 
             if self.include_geofence_ckb.isChecked():
                 ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
@@ -182,7 +182,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"info: Geofence polygon layer '{layer_geofence_polygon}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(self.tr("info: Geofence polygon layer '{layer_geofence_polygon}' added to Mergin project '{project_name}'.").format(layer_geofence_polygon=layer_geofence_polygon, project_name=project_name))
 
             if self.include_success_ckb.isChecked():
                 ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_success), level="info", duration=5)
@@ -194,7 +194,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     anncsu_dataframe=anncsu_df
                 )
                 if merged_success_df is None:
-                    self.feedback.pushInfo(f"error: Unable to merge geocoded results with anncsu table for geocoder '{geocoder_name}'. Skipping saving success layer.")
+                    self.feedback.pushInfo(self.tr("error: Unable to merge geocoded results with anncsu table for geocoder '{geocoder_name}'. Skipping saving success layer.").format(geocoder_name=geocoder_name))
                     continue
 
                  # load merged success dataframe as layer into qgis and save into mergin project folder
@@ -206,7 +206,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"info: Success layer '{layer_name_success}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(self.tr("info: Success layer '{layer_name_success}' added to Mergin project '{project_name}'.").format(layer_name_success=layer_name_success, project_name=project_name))
 
             if self.include_fails_ckb.isChecked():
                 ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_fails), level="info", duration=5)
@@ -218,7 +218,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     anncsu_dataframe=anncsu_df
                 )
                 if merged_fails_df is None:
-                    self.feedback.pushInfo(f"error: Unable to merge fails results with anncsu table for geocoder '{geocoder_name}'. Skipping saving fails layer.")
+                    self.feedback.pushInfo(self.tr("error: Unable to merge fails results with anncsu table for geocoder '{geocoder_name}'. Skipping saving fails layer.").format(geocoder_name=geocoder_name))
                     continue
 
                 tab.geofenceLayer = load_dataframe_as_layer(
@@ -229,7 +229,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"info: Fails layer '{layer_name_fails}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(self.tr("info: Fails layer '{layer_name_fails}' added to Mergin project '{project_name}'.").format(layer_name_fails=layer_name_fails, project_name=project_name))
 
             if self.include_out_of_geofence_ckb.isChecked():
                 ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_out_of_geofence), level="info", duration=5)
@@ -241,7 +241,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     anncsu_dataframe=anncsu_df
                 )
                 if merged_out_of_geofence_df is None:
-                    self.feedback.pushInfo(f"error: Unable to merge out of geofence results with anncsu table for geocoder '{geocoder_name}'. Skipping saving out of geofence layer.")
+                    self.feedback.pushInfo(self.tr("error: Unable to merge out of geofence results with anncsu table for geocoder '{geocoder_name}'. Skipping saving out of geofence layer.").format(geocoder_name=geocoder_name))
                     continue
 
                 tab.geofenceLayer = load_dataframe_as_layer(
@@ -252,7 +252,7 @@ class ANNCUWizardGenerateMerginStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current Mergin local repo
                 )
-                self.feedback.pushInfo(f"info: Out of geofence layer '{layer_name_out_of_geofence}' added to Mergin project '{project_name}'.")
+                self.feedback.pushInfo(self.tr("info: Out of geofence layer '{layer_name_out_of_geofence}' added to Mergin project '{project_name}'.").format(layer_name_out_of_geofence=layer_name_out_of_geofence, project_name=project_name))
 
             ANNCSUMessageManager().show_message(
                 self.tr("Added results for geocoder '{geocoder_name}' into Mergin project '{project_name}'.").format(geocoder_name=geocoder_name, project_name=project_name),

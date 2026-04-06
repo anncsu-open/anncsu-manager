@@ -132,7 +132,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                 success_rate = (num_of_success / total_records) * 100
             else:
                 success_rate = 0.0
-            self.statistics_geocode_score.setText(f"{success_rate:.2f}% (Threshold: {success_score_threshold})")
+            self.statistics_geocode_score.setText(self.tr("{success_rate:.2f}% (Threshold: {threshold})").format(success_rate=success_rate, threshold=success_score_threshold))
 
             # calculate clusters of geocoded addresses with the same coordinates
             cluster_table_name = f"{self.geocoder_name}_clusters"
@@ -175,7 +175,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             self.statistics_num_of_overlapped_addresses.setText(str(self.overlapped_addresses.shape[0]))
 
         except Exception as e:
-            self.feedback.reportError(f"Error loading results: {str(e)}")
+            self.feedback.reportError(self.tr("Error loading results: {error}").format(error=str(e)))
 
 
 FORM_CLASS: QWizardPage = load_ui("wizard_evaluate_geocode_page.ui")
@@ -293,20 +293,20 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
         current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
         scopes = ANNCSUSettingsManager.get_scopes()
         current_scope = scopes.get(current_scope_id, {})
-        self.feedback.pushInfo(f"Using scope: {current_scope_id}")
+        self.feedback.pushInfo(self.tr("Using scope: {current_scope_id}").format(current_scope_id=current_scope_id))
         print(f"Current scope: {current_scope}")
         if not current_scope:
-            self.feedback.reportError("No scope is currently selected. Please select a scope in the settings before running geocoders.")
+            self.feedback.reportError(self.tr("No scope is currently selected. Please select a scope in the settings before running geocoders."))
             return
 
         duck_db_source = current_scope.to_dict().get("duckdb_path", "")
         if not duck_db_source:
-            self.feedback.reportError("No DuckDB database path found in the current scope settings.")
+            self.feedback.reportError(self.tr("No DuckDB database path found in the current scope settings."))
             return
 
         scopedb = duckdb.connect(duck_db_source)
         if scopedb is None:
-            self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
+            self.feedback.reportError(self.tr("Could not connect to DuckDB database at {duck_db_source}.").format(duck_db_source=duck_db_source))
             return
 
         # load statial extension
@@ -322,7 +322,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
             try:
                 scopedb.execute(f"SELECT * FROM {result_table_name} LIMIT 1;")
             except Exception as e:
-                self.feedback.pushWarning(f"Results table '{result_table_name}' does not exist. Skipping evaluation for geocoder '{geocoder_name}'.")
+                self.feedback.pushWarning(self.tr("Results table '{result_table_name}' does not exist. Skipping evaluation for geocoder '{geocoder_name}'.").format(result_table_name=result_table_name, geocoder_name=geocoder_name))
                 continue
 
             # create a new tab for this geocoder

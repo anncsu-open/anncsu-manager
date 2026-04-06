@@ -63,19 +63,19 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
         current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
         scopes = ANNCSUSettingsManager.get_scopes()
         current_scope = scopes[current_scope_id] if current_scope_id in scopes else None
-        self.feedback.pushInfo(f"Using scope: {current_scope_id}")
+        self.feedback.pushInfo(self.tr("Using scope: {current_scope_id}").format(current_scope_id=current_scope_id))
         if not current_scope:
-            self.feedback.reportError("No scope is currently selected. Please select a scope in the settings before running geocoders.")
+            self.feedback.reportError(self.tr("No scope is currently selected. Please select a scope in the settings before running geocoders."))
             return
 
         duck_db_source = current_scope.to_dict().get("duckdb_path", "")
         if not duck_db_source:
-            self.feedback.reportError("No DuckDB database path found in the current scope settings.")
+            self.feedback.reportError(self.tr("No DuckDB database path found in the current scope settings."))
             return
 
         with duckdb.connect(duck_db_source) as scopedb:
             if scopedb is None:
-                self.feedback.reportError(f"Could not connect to DuckDB database at {duck_db_source}.")
+                self.feedback.reportError(self.tr("Could not connect to DuckDB database at {duck_db_source}.").format(duck_db_source=duck_db_source))
                 return
 
             # load statial extension
@@ -90,7 +90,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 for geocoder_name, geocoder_config in geocoders_configs.items():
                     # skip geocoder if not active
                     if geocoder_config.get("active", False) in [False, "False", "false"]:
-                        self.feedback.pushInfo(f"Skiping inactive geocoder {geocoder_name}...")
+                        self.feedback.pushInfo(self.tr("Skipping inactive geocoder {geocoder_name}...").format(geocoder_name=geocoder_name))
                         continue
 
                     # isntanciate geocoder
@@ -99,7 +99,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         **geocoder_config
                     )
                     if geocoder is None:
-                        self.feedback.reportError(f"Could not instantiate geocoder '{geocoder_name}'.")
+                        self.feedback.reportError(self.tr("Could not instantiate geocoder '{geocoder_name}'.").format(geocoder_name=geocoder_name))
                         continue
 
                     addresses_to_geocode = []
@@ -123,14 +123,14 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
                     self.feedback.progress_signal.emit(0)
                     self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
-                    self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} addresses using {geocoder_name}...")
+                    self.feedback.pushInfo(self.tr("Geocoding {count} addresses using {geocoder_name}...").format(count=len(addresses_to_geocode), geocoder_name=geocoder_name))
 
                     # do bulk geocode using WhereAbouts to do it faster
-                    self.feedback.pushInfo(f"Geocoding {len(addresses_to_geocode)} bulk addresses to speedup process. ")
+                    self.feedback.pushInfo(self.tr("Geocoding {count} bulk addresses to speedup process.").format(count=len(addresses_to_geocode)))
                     start = time.time()
                     geocoded = geocoder.geocode(addresses=addresses_to_geocode)
                     end = time.time()
-                    self.feedback.pushInfo(f"Geocoded {len(addresses_to_geocode)} addresses in {end - start} seconds using {geocoder_name}. ")
+                    self.feedback.pushInfo(self.tr("Geocoded {count} addresses in {elapsed} seconds using {geocoder_name}.").format(count=len(addresses_to_geocode), elapsed=end - start, geocoder_name=geocoder_name))
 
                     # combine geocoded results with anncsu addresses to mantain relation with
                     # anncsu unique identifications
@@ -155,7 +155,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         )
                     """)
 
-                    self.feedback.pushInfo(f"Saving geocoding results into table {result_table_name}...")
+                    self.feedback.pushInfo(self.tr("Saving geocoding results into table {result_table_name}...").format(result_table_name=result_table_name))
                     for idx, result in enumerate(geocoded):
                         self.feedback.progress_signal.emit(idx + 1)
                         if result:
@@ -197,15 +197,15 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                                 message = f"Geocoded {result.get('address_id', idx)}: '{result.get('address', '')}' to: ({result.get('latitude', None)}, {result.get('longitude', None)}) score: {result.get('similarity', 0.0)}"
                                 self.feedback.pushInfo(message)
 
-                    self.feedback.pushInfo(f"Geocoder '{geocoder_name}': Geocodings saved into table {result_table_name}.")
+                    self.feedback.pushInfo(self.tr("Geocoder '{geocoder_name}': Geocodings saved into table {result_table_name}.").format(geocoder_name=geocoder_name, result_table_name=result_table_name))
 
                 self.feedback.progress_signal.emit(100)
-                self.feedback.pushInfo("All geocoding processes completed.")
+                self.feedback.pushInfo(self.tr("All geocoding processes completed."))
 
                 # because of new results mark scope as ditry that need synchronization
                 current_scope.syncked = False
                 current_scope.sync_changed.emit()
-                self.feedback.pushInfo("warning:  Scope repo locally updated need to be synched to remote repo.")
+                self.feedback.pushInfo(self.tr("warning:  Scope repo locally updated need to be synched to remote repo."))
 
                 # update scope modification data
                 current_scope.update_date = datetime.now()
@@ -215,7 +215,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 ANNCSUSettingsManager.set_scopes(scopes)
 
             except QgsPluginException as e:
-                self.feedback.reportError(f"An error occurred: {str(e)}")
+                self.feedback.reportError(self.tr("An error occurred: {error}").format(error=str(e)))
             finally:
                 self.feedback.progress_bar.setVisible(False)
 

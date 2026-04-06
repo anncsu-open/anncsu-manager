@@ -62,15 +62,15 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
         current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
         scopes = ANNCSUSettingsManager.get_scopes()
         current_scope = scopes[current_scope_id] if current_scope_id in scopes else None
-        self.feedback.pushInfo(f"Using scope: {current_scope_id}")
+        self.feedback.pushInfo(self.tr("Using scope: {current_scope_id}").format(current_scope_id=current_scope_id))
         if not current_scope:
-            self.feedback.reportError("No scope is currently selected. Please select a scope in the settings before running geocoders.")
+            self.feedback.reportError(self.tr("No scope is currently selected. Please select a scope in the settings before running geocoders."))
             return
 
         # get local repo folder where to save layers
         out_path = current_scope.get_local_repo_path()
         if not out_path or not Path(out_path).exists():
-            self.feedback.reportError(f"Scope local repo path '{out_path}' does not exist. Please check your scope settings.")
+            self.feedback.reportError(self.tr("Scope local repo path '{out_path}' does not exist. Please check your scope settings.").format(out_path=out_path))
             return
 
         # collect all files to sync after added to the local repo
@@ -89,8 +89,8 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
             layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
 
             # add before layer_geofence_polygon to remain under the other layers
-            self.feedback.pushInfo(f"info: Preparing to add geocoding results for '{geocoder_name}' to local scope folder.")
-            self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
+            self.feedback.pushInfo(self.tr("info: Preparing to add geocoding results for '{geocoder_name}' to local scope folder.").format(geocoder_name=geocoder_name))
+            self.feedback.pushInfo(self.tr("info: Adding results into folder: {out_path}.").format(out_path=out_path))
 
             if self.include_geofence_ckb.isChecked():
                 ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
@@ -103,7 +103,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"info: Geofence polygon layer '{layer_geofence_polygon}' added to local git repo.")
+                self.feedback.pushInfo(self.tr("info: Geofence polygon layer '{layer_geofence_polygon}' added to local git repo.").format(layer_geofence_polygon=layer_geofence_polygon))
 
                 # add geofence polygon file to the list of files to sync
                 geofence_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -120,7 +120,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"info: Fails layer '{layer_name_fails}' added to local git repo.")
+                self.feedback.pushInfo(self.tr("info: Fails layer '{layer_name_fails}' added to local git repo.").format(layer_name_fails=layer_name_fails))
 
                 # add fails file to the list of files to sync
                 fails_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -137,7 +137,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"info: Out of geofence layer '{layer_name_out_of_geofence}' added to local git repo.")
+                self.feedback.pushInfo(self.tr("info: Out of geofence layer '{layer_name_out_of_geofence}' added to local git repo.").format(layer_name_out_of_geofence=layer_name_out_of_geofence))
 
                 # add out_of_geofence file to the list of files to sync
                 out_of_geofence_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -154,7 +154,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
                     crs_epsg=4326,  # assuming WGS84, adjust as needed
                     out_path=out_path  # save in current local repo
                 )
-                self.feedback.pushInfo(f"info: Success layer '{layer_name_success}' added to local git repo.")
+                self.feedback.pushInfo(self.tr("info: Success layer '{layer_name_success}' added to local git repo.").format(layer_name_success=layer_name_success))
 
                 # add success file to the list of files to sync
                 success_file_path = Path(tab.geofenceLayer.source().split("|")[0])
@@ -162,7 +162,7 @@ class ANNCUWizardMaterialiseLayersStep(QWizardPage, FORM_CLASS):
 
             # sync all added files to the remote git repo of the current scope
             try:
-                self.feedback.pushInfo(f"info: Commit and push layers into git repo'.")
+                self.feedback.pushInfo(self.tr("info: Commit and push layers into git repo."))
                 current_scope.sync(files_to_sync=files_to_sync)
             except Exception as e:
                 raise QgsPluginException(f"Failed to sync geocoding results for geocoder '{geocoder_name}' to remote repo: {str(e)}") from e

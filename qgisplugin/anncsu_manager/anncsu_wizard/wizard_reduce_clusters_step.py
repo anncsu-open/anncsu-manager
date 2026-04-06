@@ -102,13 +102,13 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                     self.statistics_num_of_clusters.setText(f"{num_of_clusters} - better {effectiveness:.2f}%")
                     self.statistics_num_of_overlapped.setText(f"{num_of_overlapped} - better {effectiveness_overlapped:.2f}%")
                 except Exception as e:
-                    self.feedback.pushWarning(f"Table 'remaining_clusters' or 'remaining_duplicates' does not exist. Run Deduplicate step first.")
-                    self.statistics_num_of_clusters.setText("N/A - run Deduplicate step")
-                    self.statistics_num_of_overlapped.setText("N/A - run Deduplicate step")
+                    self.feedback.pushWarning(self.tr("Table 'remaining_clusters' or 'remaining_duplicates' does not exist. Run Deduplicate step first."))
+                    self.statistics_num_of_clusters.setText(self.tr("N/A - run Deduplicate step"))
+                    self.statistics_num_of_overlapped.setText(self.tr("N/A - run Deduplicate step"))
         else:
-            self.feedback.pushWarning("No DuckDB database path found in the current scope settings. Cannot update reduced clusters statistics.")
-            self.statistics_num_of_clusters.setText("N/A")
-            self.statistics_num_of_overlapped.setText("N/A")
+            self.feedback.pushWarning(self.tr("No DuckDB database path found in the current scope settings. Cannot update reduced clusters statistics."))
+            self.statistics_num_of_clusters.setText(self.tr("N/A"))
+            self.statistics_num_of_overlapped.setText(self.tr("N/A"))
 
 
     def run_reduce_clusters_process(self):
@@ -121,7 +121,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
         current_scope = scopes.get(current_scope_id, {})
         duck_db_source = current_scope.to_dict().get("duckdb_path", "")
         if not duck_db_source:
-            self.feedback.pushError("No DuckDB database path found in the current scope settings. Cannot run reduce clusters process.")
+            self.feedback.pushError(self.tr("No DuckDB database path found in the current scope settings. Cannot run reduce clusters process."))
             return
 
         # order geocoders basing on the number of overlapped addresses to have the geocoder
@@ -255,11 +255,11 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
 
             except Exception as e:
                 conn.execute("ROLLBACK;")
-                self.feedback.reportError(f"Error while running reduce clusters process for geocoder: {str(e)}")
+                self.feedback.reportError(self.tr("Error while running reduce clusters process: {error}").format(error=str(e)))
                 return
             else:
                 conn.execute("COMMIT;")
-                self.feedback.pushInfo("Reduce clusters process completed successfully.")
+                self.feedback.pushInfo(self.tr("success: Reduce clusters process completed successfully."))
                 self.update_statistics()
 
 
