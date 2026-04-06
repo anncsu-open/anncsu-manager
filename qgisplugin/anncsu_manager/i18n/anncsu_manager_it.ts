@@ -1007,9 +1007,29 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
   <!-- ============================================================ -->
   <!-- resources/ui/wizard_settings.ui                             -->
   <!-- ============================================================ -->
+  <!-- ============================================================ -->
+  <!-- resources/ui/wizard_settings.ui + wizard_about.ui           -->
+  <!-- + geocode_results_tab.ui (all class="Form")                 -->
+  <!-- ============================================================ -->
   <context>
     <name>Form</name>
 
+    <!-- wizard_settings.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>ANNCSU Wizard settings</source>
+      <translation>Impostazioni ANNCSU Wizard</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>ANNCSU</source>
+      <translation>ANNCSU</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>DB:</source>
+      <translation>DB:</translation>
+    </message>
     <message>
       <location filename="../resources/ui/wizard_settings.ui"/>
       <source>Municipality:</source>
@@ -1022,13 +1042,18 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>Remove Session</source>
+      <translation>Rimuovi Sessione</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
       <source>Session URL:</source>
       <translation>URL Sessione:</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_settings.ui"/>
-      <source>Remove Session</source>
-      <translation>Rimuovi Sessione</translation>
+      <source>Sync</source>
+      <translation>Sincronizza</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_settings.ui"/>
@@ -1039,6 +1064,355 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
       <location filename="../resources/ui/wizard_settings.ui"/>
       <source>Create New Session</source>
       <translation>Crea Nuova Sessione</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>Geocoders</source>
+      <translation>Geocoder</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>Mergin project</source>
+      <translation>Progetto Mergin</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>Workspace:</source>
+      <translation>Area di lavoro:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_settings.ui"/>
+      <source>ANNCSU layer will be saved in the Mergin project path</source>
+      <translation>Il layer ANNCSU verrà salvato nel percorso del progetto Mergin</translation>
+    </message>
+
+    <!-- geocode_results_tab.ui -->
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Statistics</source>
+      <translation>Statistiche</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Records: </source>
+      <translation>Record: </translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Successes: </source>
+      <translation>Successi: </translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Fails: </source>
+      <translation>Fallimenti: </translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Out of  geofence:</source>
+      <translation>Fuori geofence:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Score: </source>
+      <translation>Punteggio: </translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Clusters:</source>
+      <translation>Cluster:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/geocode_results_tab.ui"/>
+      <source>Overlapped:</source>
+      <translation>Sovrapposti:</translation>
+    </message>
+
+    <!-- wizard_about.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>Getting started</source>
+      <translation>Per iniziare</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>To run any tools of ANNCSU QGIS Plugin, you need to install ANNCSU Toolkit. ANNCSU Toolkit needs to be installed separately from ANNCSU QGIS Plugin due to package incompabilities between ANNCSU Toolkit and QGIS.</source>
+      <translation>Per utilizzare gli strumenti del plugin ANNCSU QGIS, è necessario installare ANNCSU Toolkit. ANNCSU Toolkit va installato separatamente dal plugin ANNCSU QGIS a causa di incompatibilità di pacchetti tra ANNCSU Toolkit e QGIS.</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>You can install ANNCSU Toolkit in any Python environment, but using a clean Conda environment or venv is recommended. For detailed installation instructions, see ANNCSU Toolkit GitHub (link below). After installation, set the location of your Python environment on Settings page.</source>
+      <translation>È possibile installare ANNCSU Toolkit in qualsiasi ambiente Python, ma si consiglia di utilizzare un ambiente Conda o venv pulito. Per istruzioni dettagliate sull&apos;installazione, consultare il repository GitHub di ANNCSU Toolkit (link in basso). Dopo l&apos;installazione, impostare il percorso dell&apos;ambiente Python nella pagina Impostazioni.</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>Sources and help</source>
+      <translation>Risorse e assistenza</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>ANNCSU QGIS Plugin GitHub repository</source>
+      <translation>Repository GitHub ANNCSU QGIS Plugin</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>ANNCSU Toolkit GitHub repository</source>
+      <translation>Repository GitHub ANNCSU Toolkit</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>User manual / guide</source>
+      <translation>Manuale utente / guida</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>License</source>
+      <translation>Licenza</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_about.ui"/>
+      <source>This QGIS plugin is licensed under GPL version 2.</source>
+      <translation>Questo plugin QGIS è rilasciato con licenza GPL versione 2.</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- resources/ui/wizard_run_geocoders_page.ui +                  -->
+  <!-- wizard_materialise_layers.ui + wizard_evaluate_geocode_page.ui-->
+  <!-- wizard_reduce_clusters_page.ui + wizard_generate_mergin_page -->
+  <!-- wizard_update_from_mergin.ui  (all class="WizardPage")       -->
+  <!-- ============================================================ -->
+  <context>
+    <name>WizardPage</name>
+
+    <!-- wizard_run_geocoders_page.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_run_geocoders_page.ui"/>
+      <source>Geocode</source>
+      <translation>Geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_run_geocoders_page.ui"/>
+      <source>Run configured geocoders</source>
+      <translation>Esegui i geocoder configurati</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_run_geocoders_page.ui"/>
+      <source>Run geocoders</source>
+      <translation>Esegui geocoder</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_run_geocoders_page.ui"/>
+      <source>Show details</source>
+      <translation>Mostra dettagli</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_run_geocoders_page.ui"/>
+      <source>progress log</source>
+      <translation>log di avanzamento</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_run_geocoders_page.ui"/>
+      <source>Clear</source>
+      <translation>Cancella</translation>
+    </message>
+
+    <!-- wizard_materialise_layers.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_materialise_layers.ui"/>
+      <source>Materialize layers</source>
+      <translation>Materializza layer</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_materialise_layers.ui"/>
+      <source>Include Fails</source>
+      <translation>Includi fallimenti</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_materialise_layers.ui"/>
+      <source>Include Success</source>
+      <translation>Includi successi</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_materialise_layers.ui"/>
+      <source>Include Out of Geofence</source>
+      <translation>Includi fuori geofence</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_materialise_layers.ui"/>
+      <source>Include Geofence</source>
+      <translation>Includi geofence</translation>
+    </message>
+
+    <!-- wizard_evaluate_geocode_page.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_evaluate_geocode_page.ui"/>
+      <source>Evaluate Geocode</source>
+      <translation>Valuta geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_evaluate_geocode_page.ui"/>
+      <source>Evalute geocoding results</source>
+      <translation>Valuta i risultati della geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_evaluate_geocode_page.ui"/>
+      <source>Load all (memory) layers</source>
+      <translation>Carica tutti i layer (in memoria)</translation>
+    </message>
+
+    <!-- wizard_reduce_clusters_page.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Reduce Clusters</source>
+      <translation>Riduci cluster</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Reduce ovelapped addresses mixig geocoding results</source>
+      <translation>Riduci indirizzi sovrapposti combinando risultati geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Reduce overlapped clusters</source>
+      <translation>Riduci cluster sovrapposti</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Records: </source>
+      <translation>Record: </translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Previous clusters:</source>
+      <translation>Cluster precedenti:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Previous overlapped:</source>
+      <translation>Sovrapposti precedenti:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Clusters:</source>
+      <translation>Cluster:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Overlapped:</source>
+      <translation>Sovrapposti:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Statistics</source>
+      <translation>Statistiche</translation>
+    </message>
+
+    <!-- wizard_generate_mergin_page.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <source>Add layers to Mering</source>
+      <translation>Aggiungi layer a Mergin</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <source>Export geocoded layers to a Mergin project</source>
+      <translation>Esporta layer geocodificati in un progetto Mergin</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <source>Add layers to mergin</source>
+      <translation>Aggiungi layer a Mergin</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <source>Mergin project:</source>
+      <translation>Progetto Mergin:</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <source>geocoded</source>
+      <translation>geocodificato</translation>
+    </message>
+
+    <!-- wizard_update_from_mergin.ui -->
+    <message>
+      <location filename="../resources/ui/wizard_update_from_mergin.ui"/>
+      <source>Update from Mergin</source>
+      <translation>Aggiorna da Mergin</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_update_from_mergin.ui"/>
+      <source>Merge modified Mergin layers into geocoded results</source>
+      <translation>Unisci layer Mergin modificati nei risultati geocodificati</translation>
+    </message>
+  </context>
+
+  <!-- ============================================================ -->
+  <!-- resources/ui/wizard_manager.ui (class="Wizard")              -->
+  <!-- ============================================================ -->
+  <context>
+    <name>Wizard</name>
+
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Geocode</source>
+      <translation>Geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Run configured geocoders</source>
+      <translation>Esegui i geocoder configurati</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Run geocoders</source>
+      <translation>Esegui geocoder</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Evaluate Geocode</source>
+      <translation>Valuta geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Evalute geocoding results</source>
+      <translation>Valuta i risultati della geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Load layers</source>
+      <translation>Carica layer</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Statistics</source>
+      <translation>Statistiche</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Preview</source>
+      <translation>Anteprima</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Select results</source>
+      <translation>Seleziona risultati</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Decide gocoding results accepting rule</source>
+      <translation>Definisci le regole di accettazione dei risultati geocodifica</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Update session</source>
+      <translation>Aggiorna sessione</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_manager.ui"/>
+      <source>Update current session with geocoded results</source>
+      <translation>Aggiorna la sessione corrente con i risultati geocodificati</translation>
     </message>
   </context>
 
