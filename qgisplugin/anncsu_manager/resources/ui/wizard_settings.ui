@@ -213,45 +213,6 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="groupBox_3">
-             <property name="title">
-              <string>Mergin project</string>
-             </property>
-             <layout class="QFormLayout" name="formLayout">
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_3">
-                <property name="text">
-                 <string>Workspace:</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-                <property name="textInteractionFlags">
-                 <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="label_7">
-                <property name="text">
-                 <string>ANNCSU layer will be saved in the Mergin project path</string>
-                </property>
-                <property name="textInteractionFlags">
-                 <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLabel" name="mergin_project_l">
-                <property name="text">
-                 <string>TextLabel</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
             <widget class="QDialogButtonBox" name="settings_button_box">
              <property name="standardButtons">
               <set>QDialogButtonBox::RestoreDefaults|QDialogButtonBox::Save</set>
