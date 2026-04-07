@@ -1,18 +1,21 @@
 [general]
 name=ANNCSU Manager
-description=Plugin to help to update the Italian ANNCSU database of the portal numbers
+description=Plugin to help to update the Italian ANNCSU database of the portal numbers.
+    See instruction of to setup running environment into https://github.com/anncsu-open/anncsu-manager
+    or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
+    The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
 version=0.0.1
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=  
+changelog=https://github.com/anncsu-open/anncsu-manager/blob/main/CHANGELOG.md
 tags=Italy, portal, geocode, ANNCSU, official, Italiano, sdk
 repository=https://github.com/anncsu-open/anncsu-manager
 tracker=https://github.com/anncsu-open/anncsu-manager/issues
 homepage=https://github.com/anncsu-open/anncsu-manager
-icon=resources/icons/icon4.png
+icon=anncsu_manager/resources/icons/icons8-country-house-64.png
 category=Plugins
 experimental=True
 deprecated=False
