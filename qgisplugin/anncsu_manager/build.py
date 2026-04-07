@@ -17,11 +17,11 @@ py_files = [
     for fil in glob.glob("**/*.py", recursive=True)
     if "test/" not in fil and "test\\" not in fil
 ]
-locales = ["fi"]
+locales = ["it"]
 profile = "ANNCSU"
 ui_files = list(glob.glob("**/*.ui", recursive=True))
 resources = list(glob.glob("**/*.qrc", recursive=True))
-extra_dirs = ["resources"]
+extra_dirs = ["resources", "whereabouts"]
 compiled_resources: List[str] = []
 
 PluginMaker(
