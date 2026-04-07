@@ -1,0 +1,5 @@
+pixi.lock export-ignore
+.qgis-plugin-ci export-ignore
+./qgisplugin/.vscode/ export-ignore
+./qgisplugin/.claude/ export-ignore
+./qgisplugin/.pytest_cache export-ignore
