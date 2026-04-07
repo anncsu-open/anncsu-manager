@@ -1,7 +1,7 @@
 [general]
 name=ANNCSU Manager
-description=Plugin to geocode the Italian ANNCSU database of the portal numbers
-about=Plugin to geocode the Italian ANNCSU database of the portal numbers. 
+description=Plugin to help to update the Italian ANNCSU database of the portal numbers
+about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
 version=0.0.1
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
