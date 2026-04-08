@@ -262,14 +262,14 @@ def load_dataframe_as_layer(
     provider.addFeatures(feats)
     vl.updateExtents()
 
-    # save layer to the current Mergin project as parquet file if requested
+    # save layer to the current Mergin project as GeoPackage file if requested
     if out_path is not None:
         # session_folder = ANNCSUSettingsManager.get_session_repo_local_path()
         # if session_folder is None:
         #     raise ValueError("No active session found. Please select a session before materializing the layer.")
         output_file_path = out_path / f"{layer_name}.gpkg"
 
-        # Materialize layer as Parquet file
+        # Materialize layer as GeoPackage file
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.fileEncoding = 'UTF-8'
         options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
