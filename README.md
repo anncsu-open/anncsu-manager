@@ -27,16 +27,36 @@ The Scope session is committed/synced in the municipality Git repository. After 
 Each commit extracts a diff from the previous commit on a specific configured table using the [geodiff](https://github.com/MerginMaps/geodiff) tool.
 New, deleted, or updated records drive updates to the ANNCSU database using [ANNCSU-SDK](https://github.com/anncsu-open/anncsu-sdk) and GitHub Actions infrastructure.
 
+### User workflow to update ANNCSU db
+
+Actually the workflow need a Mergin project locally. In the future these dependecy could be overrided.
+The steps of a common workflow are:
+1) Install the plugin
+2) (optional) Install Whereabouts matcher db
+3) Run the plugin
+4) Configure active geocoders in plugin settings
+5) Create a new scope session in plugin settings. Thiso will create a new DuckDB session into `anncsu_manager/resources/data` folder.
+6) Run geocoders
+7) Save generated layers in a Merging project folder
+8) (optional) modify Success/Fails/Out Of Fence layers to match real coordinates
+9) Update scope session with Success/Fails/Out Of Fence layers from mergin project folder.
+10) Sync current scope session with remote git repo
+11) Remote git repo actions will be in charge to extract modifications from porios commits and update ANNCSU official DB.
+12) (optional) A scope session can be aligned with the actual ANNCSU database with "Update from ANNCSU" button in plugin settings.
+
 ## Installation/Setup
 
 ### Setup pixi environment and install anncsu_manager QGIS plugin
-This section explains how to install the QGIS plugin that lives in the local folder `qgisplugin` and how to configure the Pixi virtual environment defined in `qgisenv`.
+This section explains how to install the QGIS plugin that lives in the local folder `qgisplugin` and how to configure the Pixi virtual environment defined in `qgisenv` folder.
 
 1. Install Pixi as described at https://pixi.sh/latest/
 
 2. Set up the Pixi virtual environment
     - `cd qgisenv`
     - Run `pixi install`
+
+Notes:
+all dependencies are described into `./qgisenv/pixi.toml`
 
 3. Run QGIS installed in the Pixi environment
     - `cd qgisenv`
@@ -55,11 +75,7 @@ This section explains how to install the QGIS plugin that lives in the local fol
                 `Copy-Item -Recurse C:\path\to\anncsu-manager\qgisplugin\anncsu_manager $env:APPDATA\QGIS\QGIS3\profiles\default\python\plugins\`
     - Restart QGIS and enable the plugin in Plugins -> Manage and Install Plugins -> Installed.
 
-    - Option B TODO - install from a ZIP (if you prefer)
-        - Create a ZIP:
-            - `cd /mnt/data/PROGRAMMING/AUTONOMO/GeoBeyond/Civici/anncsu-manager/qgisplugin`
-            - `zip -r anncsu_manager.zip anncsu_manager`
-        - In QGIS: Plugins -> Manage and Install Plugins -> Install from ZIP -> select anncsu_manager.zip -> Install -> enable.
+    - Option B - install from QGIS plugin repo as usual
 
 Notes:
 - Keep the plugin folder name unchanged when copying it into the plugins directory.
@@ -68,7 +84,13 @@ Notes:
 
 The plugin includes the WhereAbouts library, which allows offline and local geocoding from Overture Maps extracted data.
 To make it work, it is necessary to create a WhereAbouts DB.
-The included WhereAbouts code is here: https://github.com/geobeyond/anncsu-manager/tree/main/qgisplugin/anncsu_manager/whereabouts
+The included WhereAbouts code is here: https://github.com/anncsu-open/anncsu-manager/tree/main/qgisplugin/anncsu_manager/whereabouts
+
+### Precompiled whereabouts DB
+
+A precompiled version of DB is available (here)[https://github.com/anncsu-open/anncsu-data/blob/main/italia_whereabouts.db.zip], download it and unzip the file in the `anncsu_manager/whereabouts/models`
+plugin folder configuring it's name as `italia_whereabouts` in `matcher_db` key into WhereAbout geocoder
+configuration.
 
 ### WhereAbout disclaimer
 
