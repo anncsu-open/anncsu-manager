@@ -1,6 +1,7 @@
 import os
 
-from qgis.gui import QgsDockWidget, QgsMessageBar
+from qgis.PyQt.QtCore import pyqtSignal
+from qgis.gui import QgsMessageBar
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
@@ -31,6 +32,9 @@ class ANNCSUWizardDialog(QDialog):
         self.resize(1000, 850)
 
         self.content = ANNCSUWizard(with_message_bar = True)
+        self.content.on_close.connect(self.close_plugin)
+        self.content.on_close.connect(self.close_plugin)
+
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.closeEvent = self.__del__
 
@@ -41,6 +45,9 @@ class ANNCSUWizardDialog(QDialog):
 
         self.setWindowTitle(self.tr("ANNCSU Wizard"))
 
+    def close_plugin(self):
+        self.close()
+
     def __del__(self) -> None:
         if self.content:
             del self.content
@@ -49,6 +56,8 @@ class ANNCSUWizardDialog(QDialog):
 FORM_CLASS: QWidget = load_ui("wizard.ui")
 
 class ANNCSUWizard(QWidget, FORM_CLASS):
+
+    on_close = pyqtSignal()
 
     def __init__(self, with_message_bar: bool = False) -> None:
         super().__init__()
@@ -91,6 +100,10 @@ class ANNCSUWizard(QWidget, FORM_CLASS):
         # Create Settings page first
         self.manager_page = ANNCSUWizardManager(self, self.progress_bar)
         self.pages_widget.insertWidget(4, self.manager_page)
+
+        # manage close or finish from wizard closing the plugin gui
+        self.manager_page.accepted.connect(lambda: self.on_close.emit())
+        self.manager_page.rejected.connect(lambda: self.on_close.emit())
 
         self.settings_page = ANNCSUWizardSettings(self, self.progress_bar)
         self.pages_widget.insertWidget(5, self.settings_page)
