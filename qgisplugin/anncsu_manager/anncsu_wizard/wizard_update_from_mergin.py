@@ -63,6 +63,16 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
 
     def initializePage(self):
         """Called when the page is about to be shown."""
+        # check that mergin plugin is available
+        try:
+            from Mergin import utils as mergin_utils
+        except ImportError:
+            ANNCSUMessageManager().show_message(
+                self.tr("No Mergin plugin available. Load it to use this feature."),
+                "error",
+            )
+            return
+
         self.populate_mergin_projects()
         self.set_mergin_project()
 
