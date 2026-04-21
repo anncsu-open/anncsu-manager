@@ -1127,7 +1127,7 @@ class ANNCSUSettingsManager:
                 # save involved tables to trace modifications
                 conn.execute("""
                     CREATE OR REPLACE TABLE previous_geocoded_anncsu AS
-                    SELECT * FROM updated_anncsu;
+                    SELECT * FROM geocoded_anncsu;
                 """)
                 conn.execute("""
                     CREATE OR REPLACE TABLE source_updated_anncsu AS
