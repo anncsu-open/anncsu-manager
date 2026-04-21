@@ -969,6 +969,10 @@ class ANNCSUSettingsManager:
                 # change from new_anncsu to anncsu ans source of truth
                 conn.execute("CREATE OR REPLACE TABLE anncsu AS SELECT * FROM new_anncsu;")
 
+                # drop new_anncsu table that is not needed anymore
+                # was used to download new anncsu data
+                conn.execute("DROP TABLE IF EXISTS new_anncsu;")
+
                 # then work on current geocoded_anncsu table that is the table where operators
                 # work on settin new geocoding values, so we need to update only the values of
                 # this table that are present in temp table
