@@ -921,6 +921,25 @@ class ANNCSUSettingsManager:
         cls,
     ) -> bool:
         """Update current session data in SCOPES.
+
+        This method checks if the current session is synchronized with the remote git repository
+        and if the duckdb_path is changed, if so it warns the user about potential loss of
+        unsynchronized changes.
+        Then it merges the updated values with the current anncsu table and updates the current
+        duckdb file. It also updates the update_date of the session in SCOPES and saves the updated
+        SCOPES in QGIS settings.
+
+        The update starts from the table "new_anncsu" dowunlaoded before the call of this function
+        The update process leaves some backup of the previous anncsu table in case of errors during
+        the update process, and it updates only the values of the geocoded_anncsu table that are
+        present in the temp table generated during the update from merging,
+        matching by PK (PROGRESSIVO_ACCESSO, PROGRESSIVO_NAZIONALE), if a row in temp table is
+        not present in anncsu table, it is inserted.
+
+        the backup tables are:
+        - anncsu_backup: a backup of the anncsu table before the update.
+        - previous_geocoded_anncsu: a table that contains the geocoded_anncsu data before the update.
+        - source_geocoded_anncsu: a table that contains the geocoded_anncsu modified with new anncsu values.
         """
         scope_id: str = cls.get_current_scope_id()
         scopes: Dict[str, ScopeData] = cls.get_scopes()
