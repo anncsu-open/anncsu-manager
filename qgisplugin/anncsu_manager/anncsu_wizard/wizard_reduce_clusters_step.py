@@ -264,6 +264,15 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                 # if user specified to update geocoded_anncsu with the reduced clusters,
                 # update geocoded_anncsu table with deoverlapped_geocoded_anncsu
                 if self.update_geocoded_anncsu_ckb.isChecked():
+                    # save a backup of geocoded_anncsu before updating it with the reduced
+                    # clusters in case user want to restore it later
+                    backup_geocoded_anncsu_query = f"""
+                        CREATE OR REPLACE TABLE geocoded_anncsu_not_deoverlapped AS
+                        SELECT * FROM geocoded_anncsu;
+                    """
+                    conn.execute(backup_geocoded_anncsu_query)
+
+                    # update geocoded_anncsu with deoverlapped_geocoded_anncsu
                     update_geocoded_anncsu_query = f"""
                         UPDATE geocoded_anncsu
                         SET
