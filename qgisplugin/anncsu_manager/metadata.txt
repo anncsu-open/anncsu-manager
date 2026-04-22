@@ -5,7 +5,7 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.4
+version=v0.0.5
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
