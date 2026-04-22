@@ -4,6 +4,7 @@ from qgis.PyQt.QtWidgets import (
     QTextEdit,
     QLabel,
     QPushButton,
+    QCheckBox,
 )
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
@@ -25,6 +26,8 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
         # gui elements
         self.reduce_clusters_pb: QPushButton
         self.reduce_clusters_pb.clicked.connect(self.run_reduce_clusters_process)
+        self.update_geocoded_anncsu_ckb: QCheckBox
+        self.update_geocoded_anncsu_ckb.setChecked(True)
         self.progress_text: QTextEdit
         self.statistics_num_of_records: QLabel
         self.statistics_sum_of_previous_clusters: QLabel
@@ -57,24 +60,29 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
         # and statistics as value to be used later in the reduce clusters process
         sum_of_previous_clusters = 0
         sum_of_previous_overlapped = 0
+        sum_num_of_records = 0
         for i in range(geocode_page.geocoders_tabs.count()):
             tab: ANNCUGeocodeResultTab = geocode_page.geocoders_tabs.widget(i)
             geocoder_name = geocode_page.geocoders_tabs.tabText(i)
+            num_of_records = tab.statistics_num_of_records.text()
             num_of_previous_clusters = tab.statistics_num_of_clusters.text()
             num_of_previous_overlapped = tab.statistics_num_of_overlapped_addresses.text()
 
             self.statistics[geocoder_name] = {
                 "num_of_previous_clusters": num_of_previous_clusters,
                 "num_of_previous_overlapped": num_of_previous_overlapped,
+                "num_of_records": num_of_records,
             }
 
             sum_of_previous_clusters += int(num_of_previous_clusters)
             sum_of_previous_overlapped += int(num_of_previous_overlapped)
+            sum_num_of_records += int(num_of_records)
             # # add before layer_geofence_polygon to remain under the other layers
             # self.feedback.pushInfo(f"info: Preparing to add geocoding results for '{geocoder_name}' to Mergin project '{project_name}'.")
             # self.feedback.pushInfo(f"info: Adding results into folder: {out_path}.")
 
         # update total statistics labels with sum of all geocoders
+        self.statistics_num_of_records.setText(f"{str(sum_num_of_records)} ({int(sum_num_of_records/geocode_page.geocoders_tabs.count())} addresses)")
         self.statistics_sum_of_previous_clusters.setText(str(sum_of_previous_clusters))
         self.statistics_sum_of_previous_overlapped.setText(str(sum_of_previous_overlapped))
 
@@ -94,10 +102,10 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                     # calc effectiveness of reduce clusters process as percentage of reduced clusters over previous clusters
                     if sum_of_previous_clusters > 0:
                         effectiveness = ((sum_of_previous_clusters - num_of_clusters) / sum_of_previous_clusters) * 100
-                        self.feedback.pushInfo(f"info: Reduce clusters process effectiveness: {effectiveness:.2f}% of clusters reduced.")
+                        self.feedback.pushInfo(self.tr("info: Reduce clusters process effectiveness: {effectiveness:.2f}% of clusters reduced.").format(effectiveness=effectiveness))
                     if sum_of_previous_overlapped > 0:
                         effectiveness_overlapped = ((sum_of_previous_overlapped - num_of_overlapped) / sum_of_previous_overlapped) * 100
-                        self.feedback.pushInfo(f"info: Reduce clusters process effectiveness: {effectiveness_overlapped:.2f}% of overlapped addresses reduced.")
+                        self.feedback.pushInfo(self.tr("info: Reduce clusters process effectiveness: {effectiveness:.2f}% of overlapped addresses reduced.").format(effectiveness=effectiveness_overlapped))
 
                     self.statistics_num_of_clusters.setText(f"{num_of_clusters} - better {effectiveness:.2f}%")
                     self.statistics_num_of_overlapped.setText(f"{num_of_overlapped} - better {effectiveness_overlapped:.2f}%")
@@ -127,8 +135,8 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
         # order geocoders basing on the number of overlapped addresses to have the geocoder
         # with the lowest overlapped addresses on top
         sorted_geocoders = sorted(self.statistics.items(), key=lambda x: int(x[1]["num_of_previous_overlapped"]), reverse=False)
-        self.feedback.pushInfo(f"info: geocoders order  ed by number of overlapped addresses from min to max")
-        self.feedback.pushInfo(f"info: geocoders order: {', '.join([g[0] for g in sorted_geocoders])}")
+        self.feedback.pushInfo(self.tr("info: geocoders ordered by number of overlapped addresses from min to max"))
+        self.feedback.pushInfo(self.tr("info: geocoders order: {geocoders_order}").format(geocoders_order=', '.join([g[0] for g in sorted_geocoders])))
 
         with duckdb.connect(duck_db_source) as conn:
             # begin transaction
@@ -142,7 +150,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                 """
                 conn.execute(setup_unoverlapped_query)
 
-                # loop on every ordered geocoder fixing the duplicated addresses if any can be fixed with 
+                # loop on every ordered geocoder fixing the duplicated addresses if any can be fixed with
                 # that in the list of geocoded in the next geocoder in the list with more overlapped addresses,
                 # then move to the next geocoder in the list and so on until the end of the list is reached
                 lowest_geocoder_index = 0
@@ -252,6 +260,21 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                     );
                 """
                 conn.execute(remaining_duplicates_query)
+
+                # if user specified to update geocoded_anncsu with the reduced clusters,
+                # update geocoded_anncsu table with deoverlapped_geocoded_anncsu
+                if self.update_geocoded_anncsu_ckb.isChecked():
+                    update_geocoded_anncsu_query = f"""
+                        UPDATE geocoded_anncsu
+                        SET
+                            COORD_X_COMUNE = D.COORD_X_COMUNE,
+                            COORD_Y_COMUNE = D.COORD_Y_COMUNE
+                        FROM
+                            deoverlapped_geocoded_anncsu D
+                        WHERE
+                            geocoded_anncsu.PROGRESSIVO_ACCESSO = D.PROGRESSIVO_ACCESSO;
+                    """
+                    conn.execute(update_geocoded_anncsu_query)
 
             except Exception as e:
                 conn.execute("ROLLBACK;")

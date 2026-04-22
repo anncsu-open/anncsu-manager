@@ -707,6 +707,26 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
       <source>success: Reduce clusters process completed successfully.</source>
       <translation>success: Processo di riduzione cluster completato con successo.</translation>
     </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="105"/>
+      <source>info: Reduce clusters process effectiveness: {effectiveness:.2f}% of clusters reduced.</source>
+      <translation>info: Efficacia del processo di riduzione cluster: {effectiveness:.2f}% di cluster ridotti.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="108"/>
+      <source>info: Reduce clusters process effectiveness: {effectiveness:.2f}% of overlapped addresses reduced.</source>
+      <translation>info: Efficacia del processo di riduzione cluster: {effectiveness:.2f}% di indirizzi sovrapposti ridotti.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="138"/>
+      <source>info: geocoders ordered by number of overlapped addresses from min to max</source>
+      <translation>info: geocoder ordinati per numero di indirizzi sovrapposti dal minore al maggiore</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_reduce_clusters_step.py" line="139"/>
+      <source>info: geocoders order: {geocoders_order}</source>
+      <translation>info: ordine geocoder: {geocoders_order}</translation>
+    </message>
   </context>
 
   <!-- ============================================================ -->
@@ -1309,8 +1329,13 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
     </message>
     <message>
       <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
-      <source>Statistics</source>
-      <translation>Statistiche</translation>
+      <source>Statistics (on all geocoders)</source>
+      <translation>Statistiche (su tutti i geocoder)</translation>
+    </message>
+    <message>
+      <location filename="../resources/ui/wizard_reduce_clusters_page.ui"/>
+      <source>Update geocoded ANNCSU table</source>
+      <translation>Aggiorna tabella ANNCSU geocodificata</translation>
     </message>
 
     <!-- wizard_generate_mergin_page.ui -->

@@ -31,9 +31,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="update_geocoded_anncsu_ckb">
+     <property name="text">
+      <string>Update geocoded ANNCSU table</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="statistics_gb">
      <property name="title">
-      <string>Statistics</string>
+      <string>Statistics (on all geocoders)</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
