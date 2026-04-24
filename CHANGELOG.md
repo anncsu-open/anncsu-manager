@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] - 2026-04-24
+
+### Changed
+
+- Fixed bandit stuffs also for included lib
+
 ## [0.0.6] - 2026-04-24
 
 ### Changed
 
-- Fixed some sectet warning to and bumped version due to issue in qguis plugin repo
+- Fixed some secret warning to and bumped version due to issue in qguis plugin repo
   that is not able to reload same version with fixed issues
 
 ## [0.0.5] - 2026-04-22
