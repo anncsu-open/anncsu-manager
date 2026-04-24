@@ -188,7 +188,7 @@ class SimpleMessageBarProxy(QObject):
                     level=level,
                     duration=duration,
                 )
-        except Exception:
+        except Exception:  # nosec B110 - intentionally pass
             pass
 
 
