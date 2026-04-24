@@ -150,7 +150,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
 
             try:
                 # check if geocoded_anncsu table exists that is generated when updating from Mergin
-                exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
+                exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()  # nosec B608
                 if len(exists) == 0:
                     QgsMessageLog.logMessage(QCoreApplication.translate("ANNCSUSettingsManager", "Table 'geocoded_anncsu' not found. Cannot update session."), level=Qgis.Warning)
                     QMessageBox.warning(
