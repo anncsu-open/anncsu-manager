@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Fixed wrong table name during roundtrip updating from ANNCSU
+- Fixed all SQL for possible SQL injections to make Bandit happy
 
 ## [0.0.4] - 2026-04-15
 
