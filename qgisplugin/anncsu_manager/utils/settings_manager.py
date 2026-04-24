@@ -331,11 +331,11 @@ class ANNCSUSettingsManager:
     SCOPES_KEY = "anncsu_manager/scopes"
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
-    # Git credential keys (stored in QGIS settings)
-    GIT_TOKEN_KEY = "anncsu_manager/git_token"
-    GIT_USER_KEY = "anncsu_manager/git_user"
-    GIT_PASSWORD_KEY = "anncsu_manager/git_password"
-    GIT_SSH_KEY_KEY = "anncsu_manager/git_ssh_key"
+    # Git credential keys to get from environment variables (preferred) or QGIS settings (fallback)
+    GIT_TOKEN_KEY = "anncsu_manager/git_token"  # pragma: allowlist secret - no secter at all but obly a key
+    GIT_USER_KEY = "anncsu_manager/git_user"  # pragma: allowlist secret - no secter at all but obly a key
+    GIT_PASSWORD_KEY = "anncsu_manager/git_password"  # pragma: allowlist secret - no secter at all but obly a key
+    GIT_SSH_KEY_KEY = "anncsu_manager/git_ssh_key"  # pragma: allowlist secret - no secter at all but obly a key
 
     # add defaults for credentials
     DEFAULTS = {
