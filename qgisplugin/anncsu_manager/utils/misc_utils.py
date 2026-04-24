@@ -152,7 +152,7 @@ class DownloadFileTask(QgsTask):
             bool: True if successful, False otherwise
         """
         try:
-            response = requests.get(self.url, stream=True)
+            response = requests.get(self.url, stream=True, timeout=600)
             if response.status_code != 200:
                 self.exception = Exception(f"Failed to download from {self.url}. Status code: {response.status_code}")
                 return False
@@ -264,7 +264,7 @@ def download_file_with_progress(
     Raises:
         Exception: If download fails
     """
-    response = requests.get(url, stream=True)
+    response = requests.get(url, stream=True, timeout=600)
     if response.status_code != 200:
         raise Exception(f"Failed to download from {url}. Status code: {response.status_code}")
 
@@ -447,7 +447,7 @@ def clone_or_pull_git_repo(
                 if temp_url_changed:
                     try:
                         origin.set_url(original_url)
-                    except Exception:
+                    except Exception:  # nosec B110 - intentionally pass
                         pass
                 if ssh_key:
                     if old_git_ssh is None:
@@ -486,7 +486,7 @@ def clone_or_pull_git_repo(
                     try:
                         origin = repo.remotes.origin
                         origin.set_url(remote_git_repo)
-                    except Exception:
+                    except Exception:  # nosec B110 - intentionally pass
                         pass
                 if ssh_key:
                     if old_git_ssh is None:
