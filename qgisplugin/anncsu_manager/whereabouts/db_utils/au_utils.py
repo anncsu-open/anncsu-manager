@@ -3,6 +3,7 @@
 # Alex Lee
 # 17 05 24
 import os
+import re
 import polars as pl 
 import numpy as np
 
@@ -26,15 +27,19 @@ def load_state_data(db, folder, state_name):
     for filename in filenames_state:
         table_name = '_'.join(filename.split('_')[1:-1])
         print(f"Loading data for table: {table_name}")
+        if not re.match(r"^[a-zA-Z_]\w*$", table_name):
+            raise ValueError(f"Invalid table name: {table_name} SQL injection risk.")
         filename = f'{folder}/{state_name}_{table_name}_psv.psv'
-        db.execute(f"insert into {table_name} select * from read_csv('{filename}', delim='|')")
+        db.execute(f"insert into \"{table_name}\" select * from read_csv('{filename}', delim='|')")  # nosec B608
 
 def load_auth_data(db, folder):
     filenames_auth = os.listdir(folder)
     for filename in filenames_auth:
         table_name = '_'.join(filename.split('_')[2:-1])
+        if not re.match(r"^[a-zA-Z_]\w*$", table_name):
+            raise ValueError(f"Invalid table name: {table_name} SQL injection risk.")
         filename = f'{folder}/Authority_Code_{table_name}_psv.psv'
-        db.execute(f"insert into {table_name} select * from read_csv('{filename}', delim='|')")
+        db.execute(f"insert into \"{table_name}\" select * from read_csv('{filename}', delim='|')")  # nosec B608
 
 def create_view(db, view_file):
     with open(view_file, 'r') as f:

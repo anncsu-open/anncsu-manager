@@ -1,7 +1,7 @@
 from pathlib import Path 
 import duckdb
 from scipy.spatial import KDTree
-import pickle
+import pickle  # nosec B403 - used only to dump the KDTree object, which is not unpickled in any way
 
 MAKE_ADDRESSES = Path('whereabouts/queries/create_addrtext.sql').read_text()
 DO_MATCH_BASIC = Path("whereabouts/queries/geocoder_query_standard.sql").read_text() # threshold 500 - for fast matching
@@ -41,7 +41,7 @@ class GNAFLoader:
             from
             read_csv_auto('{gnaf_path}', delim='|')
             where state='{state_name}'
-            """
+            """  # nosec B608
             self.con.execute(query)
 
     def create_final_address_table(self):

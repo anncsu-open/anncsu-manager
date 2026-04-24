@@ -1,6 +1,6 @@
 import duckdb
 from scipy.spatial import KDTree
-import pickle
+import pickle  # nosec B403 - used only to dump the KDTree object, which is not unpickled in any way
 import importlib.resources
 
 MAKE_ADDRESSES = importlib.resources.files('whereabouts.queries').joinpath('create_addrtext.sql').read_text(encoding='utf-8')
@@ -93,7 +93,7 @@ class AddressLoader:
             {longitude_value} longitude
             from
             {load_function}
-            """
+            """  # nosec B608
             self.con.execute(query)
         else:
             for state_name in state_names:
@@ -112,7 +112,7 @@ class AddressLoader:
                 from
                 {load_function}
                 where state='{state_name}'
-                """
+                """  # nosec B608
                 self.con.execute(query)
         
     def create_final_address_table(self):

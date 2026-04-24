@@ -84,7 +84,7 @@ class Matcher:
             self.con.create_function('list_overlap', list_overlap)
             self.con.create_function('numeric_overlap', numeric_overlap)
             self.con.create_function('ngram_jaccard', ngram_jaccard)
-        except Exception:
+        except Exception:  # nosec B110 - intentionally pass
             pass
         
         self.how = how

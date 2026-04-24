@@ -187,7 +187,7 @@ def download(db_name, repo_id):
         # the path to download the file from
         filename = f"{db_name.split('.')[0]}.joblib"
         url = f'https://huggingface.co/{repo_id}/resolve/main/{filename}'
-        response = requests.get(url, stream=True)
+        response = requests.get(url, stream=True, timeout=600)
         total_size = int(response.headers.get('content-length', 0))
 
         # define the path and filename for the output file

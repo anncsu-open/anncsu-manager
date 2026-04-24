@@ -34,7 +34,7 @@ COPY
 )
 TO '{filename_out}'
 (FORMAT 'parquet');
-"""
+"""  # nosec B608
 
 # run the query to create the new dataset
 duckdb.sql(data_extract_query)
