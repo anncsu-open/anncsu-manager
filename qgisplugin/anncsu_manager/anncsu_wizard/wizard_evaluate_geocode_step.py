@@ -1,3 +1,4 @@
+import re
 import geopandas
 import pandas
 from qgis.utils import iface
@@ -79,8 +80,15 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             # display results basing on configured threshold
             success_score_threshold = self.geocoder_config.get("threshold", 0.88)
 
+            # validate table and geocoder names to prevent SQL injection
+            if not re.match(r"^[a-zA-Z_]\w*$", self.result_table_name):
+                raise ValueError(f"Invalid table name: {self.result_table_name}")
+            if not re.match(r"^[a-zA-Z_]\w*$", self.geocoder_name):
+                raise ValueError(f"Invalid geocoder name: {self.geocoder_name}")
+
             # get geocoded result as GeoDataFrame and to do this have to convert internal spatial format to WKT
-            results_df = self.scopedb.execute(f"SELECT *, ST_AsText(geom) as newgeom FROM {self.result_table_name};").df()
+            create_geom_query = f'SELECT *, ST_AsText(geom) as newgeom FROM "{self.result_table_name}";'  # nosec B608 - table name is already validated to avoid SQL injection
+            results_df = self.scopedb.execute(create_geom_query).df()
             results_df.drop(columns=["geom"], inplace=True)
             results_df.rename(columns={"newgeom": "geom"}, inplace=True)
             results_df['geom'] = geopandas.GeoSeries.from_wkt(results_df['geom'])
@@ -105,7 +113,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
                 FROM
                     geofence_polygon
                 LIMIT 1;
-            """).df()
+            """).df()  # nosec B608 no sql injection due to static query and no user input
             geofence_df['geom'] = geopandas.GeoSeries.from_wkt(geofence_df['wktgeom'])
             self.geofence_polygon = geopandas.GeoDataFrame(geofence_df, geometry='geom', crs="EPSG:4326")
 
@@ -135,42 +143,45 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             self.statistics_geocode_score.setText(self.tr("{success_rate:.2f}% (Threshold: {threshold})").format(success_rate=success_rate, threshold=success_score_threshold))
 
             # calculate clusters of geocoded addresses with the same coordinates
+            # table names are already checked to avoid SQL injection
             cluster_table_name = f"{self.geocoder_name}_clusters"
             cluster_query = f"""
-                CREATE OR REPLACE TABLE {cluster_table_name} AS (
+                CREATE OR REPLACE TABLE "{cluster_table_name}" AS (
                     SELECT
                         longitude AS COORD_X_COMUNE,
                         latitude AS COORD_Y_COMUNE,
                         COUNT(*) AS record_count
-                    FROM {self.result_table_name}
+                    FROM "{self.result_table_name}"
                     GROUP BY longitude, latitude
                     HAVING record_count > 1
                     ORDER BY record_count DESC
                 );
-                SELECT * FROM {cluster_table_name};
-            """
+                SELECT * FROM "{cluster_table_name}";
+            """  # nosec B608 - table name is already validated to avoid SQL injection
             self.clusters = self.scopedb.execute(cluster_query).df()
             self.statistics_num_of_clusters.setText(str(self.clusters.shape[0]))
 
             # calculate overlapped addresses (i.e. with same address and different geocoding result)
+            # table names are already checked to avoid SQL injection
             overlapped_table_name = f"{self.geocoder_name}_overlapped"
             overlapped_query = f"""
-                CREATE OR REPLACE TABLE {overlapped_table_name} AS (
+                CREATE OR REPLACE TABLE "{overlapped_table_name}" AS (
                     SELECT
                         A.address_id AS PROGRESSIVO_ACCESSO,
                         A.longitude AS COORD_X_COMUNE,
                         A.latitude AS COORD_Y_COMUNE
                     FROM
-                        {self.result_table_name} A,
-                        {cluster_table_name} B
+                        "{self.result_table_name}" A,
+                        "{cluster_table_name}" B
                     WHERE
                         A.longitude = B.COORD_X_COMUNE AND
                         A.latitude = B.COORD_Y_COMUNE
                     ORDER BY
                         A.address_id
                 );
-                SELECT * FROM {overlapped_table_name};
-            """
+                SELECT * FROM "{overlapped_table_name}";
+            """  # nosec B608 - table names are already validated to avoid SQL injection
+
             self.overlapped_addresses = self.scopedb.execute(overlapped_query).df()
             self.statistics_num_of_overlapped_addresses.setText(str(self.overlapped_addresses.shape[0]))
 
@@ -319,8 +330,11 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
         for geocoder_name, geocoder_config in geocoders_configs.items():
             # check if results table exists
             result_table_name = f"geocoding_results_{geocoder_name}"
+            if not re.match(r"^[a-zA-Z_]\w*$", geocoder_name):
+                self.feedback.pushWarning(self.tr("Invalid geocoder name: '{geocoder_name}'. Skipping.").format(geocoder_name=geocoder_name))
+                continue
             try:
-                scopedb.execute(f"SELECT * FROM {result_table_name} LIMIT 1;")
+                scopedb.execute(f'SELECT * FROM "{result_table_name}" LIMIT 1;')  # nosec B608
             except Exception as e:
                 self.feedback.pushWarning(self.tr("Results table '{result_table_name}' does not exist. Skipping evaluation for geocoder '{geocoder_name}'.").format(result_table_name=result_table_name, geocoder_name=geocoder_name))
                 continue
