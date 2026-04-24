@@ -1,1 +1,140 @@
-{"AzureMaps": {"active": "False", "builder": "GeopyGeocoderBuilder", "builder_module": "geopy_geocoder", "default_score": 0.9, "domain": "atlas.microsoft.com", "kw_clean": ["active", "builder", "builder_module", "service_name", "default_score", "threshold"], "scheme": "https", "service_name": "azure", "subscription_key": "", "threshold": 0.5, "timeout": 5, "user_agent": "geopy/2.4.1"}, "GoogleV3": {"active": "False", "api_key": "", "builder": "GeopyGeocoderBuilder", "builder_module": "geopy_geocoder", "dedupe": "True", "default_score": 0.9, "default_timeout": 5, "default_user_agent": "geopy/2.4.1", "domain": "maps.googleapis.com", "kw_clean": ["active", "builder", "builder_module", "service_name", "dedupe", "scheme", "default_timeout", "default_user_agent", "default_score", "threshold"], "scheme": "https", "service_name": "GoogleV3", "threshold": 0.8}, "HereV7": {"active": "False", "apikey": "", "builder": "GeopyGeocoderBuilder", "builder_module": "geopy_geocoder", "default_score": 0.9, "domain": "search.hereapi.com", "kw_clean": ["active", "builder", "builder_module", "service_name", "default_score", "threshold"], "scheme": "https", "service_name": "HEREv7", "threshold": 0.5, "timeout": 5, "user_agent": "anncsu_manager/0.1"}, "MapBox": {"active": "False", "api_key": "", "builder": "GeopyGeocoderBuilder", "builder_module": "geopy_geocoder", "default_score": 0.9, "domain": "api.mapbox.com", "kw_clean": ["active", "builder", "builder_module", "service_name", "default_score", "threshold"], "scheme": "https", "service_name": "MapBox", "threshold": 0.4, "timeout": 5, "user_agent": "geopy/2.4.1"}, "Nominatim": {"active": "False", "builder": "GeopyGeocoderBuilder", "builder_module": "geopy_geocoder", "default_score": 0.9, "domain": "nominatim.openstreetmap.org", "kw_clean": ["active", "builder", "builder_module", "service_name", "default_score", "threshold"], "scheme": "https", "service_name": "Nominatim", "threshold": 0.8, "timeout": 5, "user_agent": "anncsu_manager/0.1"}, "OpenCage": {"active": "False", "api_key": "", "builder": "GeopyGeocoderBuilder", "builder_module": "geopy_geocoder", "default_score": 0.5, "domain": "api.opencagedata.com", "kw_clean": ["active", "builder", "builder_module", "service_name", "default_score", "threshold"], "scheme": "https", "service_name": "OpenCage", "threshold": 0.5, "timeout": 5, "user_agent": "geopy/2.4.1"}, "WhereAbouts": {"active": "True", "builder": "WhereaboutsGeocoderBuilder", "builder_module": "whereabouts_geocoder", "how": "standard", "matcher_db": "italia_whereabouts", "threshold": 0.5}}
+{
+    "AzureMaps": {
+        "active": "False",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.9,
+        "domain": "atlas.microsoft.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "azure",
+        "subscription_key": "",
+        "threshold": 0.5,
+        "timeout": 5,
+        "user_agent": "geopy/2.4.1"
+    },
+    "GoogleV3": {
+        "active": "False",
+        "api_key": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "dedupe": "True",
+        "default_score": 0.9,
+        "default_timeout": 5,
+        "default_user_agent": "geopy/2.4.1",
+        "domain": "maps.googleapis.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "dedupe",
+            "scheme",
+            "default_timeout",
+            "default_user_agent",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "GoogleV3",
+        "threshold": 0.8
+    },
+    "HereV7": {
+        "active": "False",
+        "apikey": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.9,
+        "domain": "search.hereapi.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "HEREv7",
+        "threshold": 0.5,
+        "timeout": 5,
+        "user_agent": "anncsu_manager/0.1"
+    },
+    "MapBox": {
+        "active": "True",
+        "api_key": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.9,
+        "domain": "api.mapbox.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "MapBox",
+        "threshold": 0.4,
+        "timeout": 5,
+        "user_agent": "geopy/2.4.1"
+    },
+    "Nominatim": {
+        "active": "False",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.9,
+        "domain": "nominatim.openstreetmap.org",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "Nominatim",
+        "threshold": 0.8,
+        "timeout": 5,
+        "user_agent": "anncsu_manager/0.1"
+    },
+    "OpenCage": {
+        "active": "False",
+        "api_key": "",
+        "builder": "GeopyGeocoderBuilder",
+        "builder_module": "geopy_geocoder",
+        "default_score": 0.5,
+        "domain": "api.opencagedata.com",
+        "kw_clean": [
+            "active",
+            "builder",
+            "builder_module",
+            "service_name",
+            "default_score",
+            "threshold"
+        ],
+        "scheme": "https",
+        "service_name": "OpenCage",
+        "threshold": 0.5,
+        "timeout": 5,
+        "user_agent": "geopy/2.4.1"
+    },
+    "WhereAbouts": {
+        "active": "False",
+        "builder": "WhereaboutsGeocoderBuilder",
+        "builder_module": "whereabouts_geocoder",
+        "how": "standard",
+        "matcher_db": "italia_whereabouts",
+        "threshold": 0.5
+    }
+}

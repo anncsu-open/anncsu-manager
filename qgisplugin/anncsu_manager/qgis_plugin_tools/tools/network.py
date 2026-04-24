@@ -149,7 +149,7 @@ def download_to_file(
         # https://stackoverflow.com/a/39217788/10068922
 
         try:
-            with requests.get(url, stream=True, timeout=30) as r:
+            with requests.get(url, stream=True) as r:
                 try:
                     r.raise_for_status()
                 except Exception:

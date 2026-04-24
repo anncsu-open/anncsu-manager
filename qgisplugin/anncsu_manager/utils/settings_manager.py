@@ -1,4 +1,3 @@
-import re
 from time import sleep
 
 import geopandas
@@ -182,7 +181,7 @@ class ScopeData:
                 if temp_url_changed:
                     try:
                         origin.set_url(original_url)
-                    except Exception:  # nosec B110 - intentiaonally pass exception
+                    except Exception:
                         pass
                 if ssh_key:
                     if old_git_ssh is None:
@@ -333,10 +332,10 @@ class ANNCSUSettingsManager:
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
 
     # Git credential keys to get from environment variables (preferred) or QGIS settings (fallback)
-    GIT_TOKEN_KEY = "anncsu_manager/git_token"  # nosec B105 - allowlist secret - no secret at all but only a key
-    GIT_USER_KEY = "anncsu_manager/git_user"  # nosec B105 - allowlist secret - no secret at all but only a key
-    GIT_PASSWORD_KEY = "anncsu_manager/git_password"  # nosec B105 - allowlist secret - no secret at all but only a key
-    GIT_SSH_KEY_KEY = "anncsu_manager/git_ssh_key"  # nosec B105 - allowlist secret - no secret at all but only a key
+    GIT_TOKEN_KEY = "anncsu_manager/git_token"  # pragma: allowlist secret - no secter at all but obly a key
+    GIT_USER_KEY = "anncsu_manager/git_user"  # pragma: allowlist secret - no secter at all but obly a key
+    GIT_PASSWORD_KEY = "anncsu_manager/git_password"  # pragma: allowlist secret - no secter at all but obly a key
+    GIT_SSH_KEY_KEY = "anncsu_manager/git_ssh_key"  # pragma: allowlist secret - no secter at all but obly a key
 
     # add defaults for credentials
     DEFAULTS = {
@@ -738,26 +737,22 @@ class ANNCSUSettingsManager:
                 scopedb.execute("INSTALL spatial;")
                 scopedb.execute("LOAD spatial;")
 
-                # validate table and geocoder names to prevent SQL injection
-                if not re.match(r"^[a-zA-Z_]\w*$", table_name):
-                    raise ValueError(f"Invalid table name: {table_name}")
-
                 # check if table exists
-                exists = scopedb.execute(f"""SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';"""  ).df()  # nosec B608 - table name is already validated to avoid SQL injection
+                exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()
                 if len(exists) == 0:
                     QgsMessageLog.logMessage(cls.tr("Table '{table_name}' not found in duckdb at {duckdb_path}.").format(table_name=table_name, duckdb_path=scope.duckdb_path), level=Qgis.Warning)
                     return None, None
 
                 # get columns names from duckdb
-                columns = scopedb.execute(f"""SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
+                columns = scopedb.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';").fetchall()
                 columns = [col[0] for col in columns]
 
                 try:
-                    records = scopedb.execute(f"""SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
+                    records = scopedb.execute(f"SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM '{table_name}'").fetchall()
                 except Exception as e:
                     # in case no geom column is present or geom column is already in WKB format just ignore and keep original table                    if 'ST_AsWKB(WKB_BLOB)' in str(e):
                     QgsMessageLog.logMessage(cls.tr("Error: {e}").format(e=e), level=Qgis.Warning)
-                    records = scopedb.execute(f"""SELECT * FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
+                    records = scopedb.execute(f"SELECT * FROM '{table_name}'").fetchall()
 
                 return records, columns
 
@@ -787,12 +782,8 @@ class ANNCSUSettingsManager:
         # connect to duckdb and read anncsu table
         with duckdb.connect(database=str(scope.duckdb_path)) as scopedb:
             try:
-                # validate table and geocoder names to prevent SQL injection
-                if not re.match(r"^[a-zA-Z_]\w*$", table_name):
-                    raise ValueError(f"Invalid table name: {table_name}")
-
                 # check if table exists
-                exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()  # nosec B608 - table name is already validated to avoid SQL injection
+                exists = scopedb.execute(f"SELECT * FROM information_schema.tables WHERE table_name = '{table_name}';").df()
                 if len(exists) == 0:
                     QgsMessageLog.logMessage(cls.tr("Table '{table_name}' not found in duckdb at {duckdb_path}.").format(table_name=table_name, duckdb_path=scope.duckdb_path), level=Qgis.Warning)
                     return None, None
@@ -800,11 +791,7 @@ class ANNCSUSettingsManager:
                 scopedb.execute("INSTALL spatial;")
                 scopedb.execute("LOAD spatial;")
 
-                # validate table and geocoder names to prevent SQL injection
-                if not re.match(r"^[a-zA-Z_]\w*$", table_name):
-                    raise ValueError(f"Invalid table name: {table_name}")
-
-                df = scopedb.execute(f"""SELECT * FROM "{table_name}";""").df()  # nosec B608 - table name is already validated to avoid SQL injection
+                df = scopedb.execute(f"SELECT * FROM '{table_name}'").df()
 
                 # clean 'nan' strings to None to avoid to have numeric columns with 'nan' string
                 # values that cannot be converted to numeric types
@@ -982,7 +969,7 @@ class ANNCSUSettingsManager:
 
             # check if geocoded_anncsu table exists that is generated when updateing
             # from merging
-            exists = conn.execute("SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
+            exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
             if len(exists) == 0:
                 QgsMessageLog.logMessage(cls.tr("Table 'geocoded_anncsu' not found in duckdb at {duckdb_path}. Cannot update session.").format(duckdb_path=scope.duckdb_path), level=Qgis.Warning)
                 QMessageBox.warning(
@@ -1259,10 +1246,6 @@ class ANNCSUSettingsManager:
 
             duckdb_conn.execute("BEGIN;")
             try:
-                # validate table and geocoder names to prevent SQL injection
-                if not re.match(r"^[a-zA-Z_]\w*$", table_name):
-                    raise ValueError(f"Invalid table name: {table_name} SQL injection risk.")
-
                 # depending if source_db is remote or local file path
                 if 'agenziaentrate.gov.it' in str(source_db):
                     QgsMessageLog.logMessage(cls.tr("Connect remote DB: {source_db}").format(source_db=source_db), level=Qgis.Info)
@@ -1273,7 +1256,7 @@ class ANNCSUSettingsManager:
 
                     # download source db because it is not possible to attach remote duckdb
                     # Get filename from Content-Disposition header or use fallback
-                    response_head = requests.head(str(source_db), timeout=30)
+                    response_head = requests.head(str(source_db))
                     fallout_temp_filename = f"fallout_anncsu.zip"
                     remote_filename = fallout_temp_filename
                     if response_head.status_code == 200 and response_head.headers.get('Content-Disposition'):
@@ -1309,7 +1292,7 @@ class ANNCSUSettingsManager:
                     # create local duckdb with only data for selected municipality_code
                     force_column_types = "{'CODICE_COMUNALE_ACCESSO': 'VARCHAR', 'QUOTA': 'FLOAT', 'COORD_X_COMUNE': 'FLOAT', 'COORD_Y_COMUNE': 'FLOAT'}"
                     duckdb_conn.execute(f"""
-                        CREATE OR REPLACE TABLE "{table_name}" AS
+                        CREATE OR REPLACE TABLE {table_name} AS
                         SELECT
                             $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
                             $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
@@ -1325,7 +1308,7 @@ class ANNCSUSettingsManager:
                                 types={force_column_types}
                             )
                         WHERE codice_comune = '{municipality_data.anncsu_id}';
-                    """)  # nosec B608 - table name is already validated to avoid SQL injection
+                    """)
 
                     # remove temporary downloaded duckdb
                     os.remove(temp_duckdb_path)
@@ -1339,7 +1322,7 @@ class ANNCSUSettingsManager:
                     # query from a remote duckdb
                     duckdb_conn.execute(f"ATTACH DATABASE '{str(source_db)}' AS indirizzarioItalia;")
                     duckdb_conn.execute(f"""
-                        CREATE OR REPLACE TABLE "{table_name}" AS
+                        CREATE OR REPLACE TABLE {table_name} AS
                         SELECT
                             $tag$'{municipality_data.nome}'$tag$ as PLUGIN_COMUNE,
                             $tag$'{municipality_data.provincia}'$tag$ as PLUGIN_PROVINCIA,
@@ -1349,7 +1332,7 @@ class ANNCSUSettingsManager:
                             indirizzarioItalia.anncsu_global
                         WHERE
                             CODICE_COMUNE == '{municipality_data.anncsu_id}';
-                    """)  # nosec B608 - table name is already validated to avoid SQL injection
+                    """)
                     duckdb_conn.execute("DETACH DATABASE indirizzarioItalia;")
 
             except Exception as e:
@@ -1465,7 +1448,7 @@ class ANNCSUSettingsManager:
             # QgsMessageLog.logMessage(f"Get geofence polygon for municipality '{municipality_data.nome}'...", level=Qgis.Info)
             # feedback.pushInfo(f"Get geofence polygon for municipality '{municipality_data.nome}'...")
             duckdb_conn.execute(f"""
-                CREATE OR REPLACE TABLE "geofence_polygon" AS (
+                CREATE OR REPLACE TABLE geofence_polygon AS (
                     SELECT
                         ST_Transform(
                             geometry,
@@ -1478,7 +1461,7 @@ class ANNCSUSettingsManager:
                     WHERE
                         COMUNE == '{municipality_data.nome}'
                 );
-            """)  # nosec B608
+            """)
             # QgsMessageLog.logMessage(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.", level=Qgis.Info)
             # feedback.pushInfo(f"Geofence polygon for municipality '{municipality_data.nome}' loaded into table 'geofence_polygon'.")
         # feedback.setProgress(100)
