@@ -7,7 +7,11 @@ from qgis.PyQt.QtWidgets import (
     QLabel,
     QPushButton,
     QCheckBox,
+    QMessageBox,
 )
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.core import QgsMessageLog, Qgis
+from qgis.utils import iface
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
@@ -145,6 +149,17 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
             conn.execute("BEGIN;")
 
             try:
+                # check if geocoded_anncsu table exists that is generated when updating from Mergin
+                exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
+                if len(exists) == 0:
+                    QgsMessageLog.logMessage(QCoreApplication.translate("ANNCSUSettingsManager", "Table 'geocoded_anncsu' not found. Cannot update session."), level=Qgis.Warning)
+                    QMessageBox.warning(
+                        iface.mainWindow(),
+                        QCoreApplication.translate("ANNCSUSettingsManager", "Update not possible"),
+                        QCoreApplication.translate("ANNCSUSettingsManager", "The 'geocoded_anncsu' table was not found in the session database.\nMake sure you have performed the update from Mergin.")
+                    )
+                    return
+
                 # fist copy geocoded_anncsu as base to solve overlapped
                 setup_unoverlapped_query = f"""
                     CREATE OR REPLACE TABLE deoverlapped_geocoded_anncsu AS
