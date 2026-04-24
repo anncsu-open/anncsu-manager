@@ -140,7 +140,7 @@ class GeocoderModel(QAbstractItemModel):
             document (dict): JSON-compatible dictionary
         """
 
-        assert isinstance(
+        assert isinstance(  # nosec B101 - intentionally use assert for type checking
             document, (dict, list, tuple)
         ), "`document` must be of dict, list or tuple, " f"not {type(document)}"
 
