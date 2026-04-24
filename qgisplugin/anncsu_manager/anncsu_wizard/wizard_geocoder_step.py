@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 import time
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
@@ -138,10 +139,17 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         result["address_id"] = anncsu_addresses[idx].get("PROGRESSIVO_ACCESSO", idx)
                         result["road_id"] = anncsu_addresses[idx].get("PROGRESSIVO_NAZIONALE", idx)
 
+                    # validate geocoder name to be used as table name in duckdb to
+                    # avoid SQL injection and syntax errors
+                    # if not valid skip saving results for that geocoder
+                    if not re.match(r"^[a-zA-Z_]\w*$", geocoder_name):
+                        self.feedback.reportError(self.tr("Invalid geocoder name: '{geocoder_name}'. Skipping.").format(geocoder_name=geocoder_name))
+                        continue
+
                     # save results in a result table where result table is related with geocoder name
                     result_table_name = f"geocoding_results_{geocoder_name}"
                     scopedb.execute(f"""
-                        CREATE OR REPLACE TABLE {result_table_name} (
+                        CREATE OR REPLACE TABLE "{result_table_name}" (
                             address_id INTEGER,
                             road_id INTEGER,
                             input_address TEXT,
@@ -153,7 +161,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                             score DOUBLE,
                             geom GEOMETRY
                         )
-                    """)
+                    """)  # nosec B608
 
                     self.feedback.pushInfo(self.tr("Saving geocoding results into table {result_table_name}...").format(result_table_name=result_table_name))
                     for idx, result in enumerate(geocoded):
@@ -165,8 +173,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                             if result.get("longitude") is not None:
                                 result["longitude"] = round(result["longitude"], 9)
 
-                            scopedb.execute(f"""
-                                    INSERT INTO {result_table_name} (
+                            insert_query = f"""
+                                    INSERT INTO "{result_table_name}" (
                                         address_id,
                                         road_id,
                                         input_address,
@@ -178,7 +186,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                                         score,
                                         geom
                                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ST_Point(?, ?))
-                                """, (
+                                """  # nosec B608
+                            scopedb.execute(insert_query, (
                                     result.get("address_id", idx),
                                     result.get("road_id", idx),
                                     result.get("address", ""),

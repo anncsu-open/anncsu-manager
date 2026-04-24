@@ -371,8 +371,8 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 delim=';',
                 header = true)
             ORDER BY nome ASC;
-        """)
-                
+        """)  # nosec B608 - inly static query on local file, no user input, no risk of SQL injection
+
         self.comune_cb.clear()
         self.comune_cb.addItem(self.tr("Select municipality code"), "")
         for id, nome, provincia, regione, anncsu_id in codice_catastro.fetchall():

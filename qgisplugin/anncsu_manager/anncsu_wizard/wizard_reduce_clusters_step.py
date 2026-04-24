@@ -1,3 +1,5 @@
+import re
+
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QProgressBar,
@@ -147,7 +149,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                 setup_unoverlapped_query = f"""
                     CREATE OR REPLACE TABLE deoverlapped_geocoded_anncsu AS
                     SELECT * FROM geocoded_anncsu;
-                """
+                """  # nosec B608 - static query without user input
                 conn.execute(setup_unoverlapped_query)
 
                 # loop on every ordered geocoder fixing the duplicated addresses if any can be fixed with
@@ -158,45 +160,57 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                     current_geocoder_name = sorted_geocoders[lowest_geocoder_index][0]
                     next_geocoder_name = sorted_geocoders[lowest_geocoder_index+1][0]
 
+                    # validate geocoder name to be used as table name in duckdb to
+                    # avoid SQL injection and syntax errors
+                    # if not valid skip saving results for that geocoder
+                    if not re.match(r"^[a-zA-Z_]\w*$", current_geocoder_name):
+                        self.feedback.reportError(self.tr("Invalid geocoder name: '{current_geocoder_name}' possible SQL injection.").format(current_geocoder_name=current_geocoder_name))
+                        # breack andy further process and return since the order of geocoders is important in the process and if one is invalid the process cannot continue
+                        return
+                    if not re.match(r"^[a-zA-Z_]\w*$", next_geocoder_name):
+                        self.feedback.reportError(self.tr("Invalid geocoder name: '{next_geocoder_name}' possible SQL injection.").format(next_geocoder_name=next_geocoder_name))
+                        # breack andy further process and return since the order of geocoders is important in the process and if one is invalid the process cannot continue
+                        return
+
                     # find cluster of coordinates with more than 1 record in the current geocoder success table
                     geocoder_clusters_query = f"""
-                        CREATE OR REPLACE TABLE {current_geocoder_name}_clusters AS (
+                        CREATE OR REPLACE TABLE "{current_geocoder_name}_clusters" AS (
                             SELECT
                                 COORD_X_COMUNE,
                                 COORD_Y_COMUNE,
                                 COUNT(*) AS record_count
-                            FROM {current_geocoder_name}_success
+                            FROM "{current_geocoder_name}_success"
                             GROUP BY COORD_X_COMUNE, COORD_Y_COMUNE
                             HAVING record_count > 1
                             ORDER BY record_count DESC
-                        );"""
+                        );"""  # nosec B608
                     conn.execute(geocoder_clusters_query)
 
                     # find all addresses belogns to the clusters
                     geocoder_overlapped_query = f"""
-                        CREATE OR REPLACE TABLE {current_geocoder_name}_overlapped AS (
+                        CREATE OR REPLACE TABLE "{current_geocoder_name}_overlapped" AS (
                             SELECT
                                 A.PROGRESSIVO_ACCESSO,
                                 A.COORD_X_COMUNE,
                                 A.COORD_Y_COMUNE
                             FROM
-                                main.{current_geocoder_name}_success A,
-                                {current_geocoder_name}_clusters B
+                                main."{current_geocoder_name}_success" A,
+                                "{current_geocoder_name}_clusters" B
                             WHERE
                                 A.COORD_X_COMUNE = B.COORD_X_COMUNE AND
                                 A.COORD_Y_COMUNE = B.COORD_Y_COMUNE
-                        );"""
+                        );"""  # nosec B608
                     conn.execute(geocoder_overlapped_query)
 
                     # solve overlapped addresses in current geocoder with that in the next geocoder success table
                     solved_by_next_geocoder_query = f"""
-                        CREATE OR REPLACE TABLE solved_by_{next_geocoder_name} AS (
+                        CREATE OR REPLACE TABLE "solved_by_{next_geocoder_name}" AS (
                             WITH
                                 same_ids_from_{next_geocoder_name} AS (
                                     SELECT *
                                     FROM
-                                        {next_geocoder_name}_success A,
-                                        {current_geocoder_name}_overlapped B
+                                        "{next_geocoder_name}_success" A,
+                                        "{current_geocoder_name}_overlapped" B
                                     WHERE A.PROGRESSIVO_ACCESSO = B.PROGRESSIVO_ACCESSO
                                 )
                             SELECT
@@ -204,13 +218,13 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                                 COORD_X_COMUNE,
                                 COORD_Y_COMUNE,
                                 COUNT(*) AS record_count
-                            FROM same_ids_from_{next_geocoder_name}
+                            FROM "same_ids_from_{next_geocoder_name}"
                             GROUP BY
                                 PROGRESSIVO_ACCESSO,
                                 COORD_X_COMUNE,
                                 COORD_Y_COMUNE
                             HAVING record_count = 1
-                        );"""
+                        );"""  # nosec B608
                     conn.execute(solved_by_next_geocoder_query)
 
                     # update deoverlapped_geocoded_anncsu table with the solved addresses by the next geocoder
@@ -220,10 +234,10 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                             COORD_X_COMUNE = S.COORD_X_COMUNE,
                             COORD_Y_COMUNE = S.COORD_Y_COMUNE
                         FROM
-                            solved_by_{next_geocoder_name} S
+                            "solved_by_{next_geocoder_name}" S
                         WHERE
                             deoverlapped_geocoded_anncsu.PROGRESSIVO_ACCESSO = S.PROGRESSIVO_ACCESSO;
-                    """
+                    """  # nosec B608
                     conn.execute(update_deoverlapped_query)
 
                     # continue to the next pair of geocoders
@@ -232,7 +246,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                 # after the loop is finished, create remaining_clusters table with the reduced clusters and
                 # remaining_duplicates table with the still duplicated addresses
                 remaining_clusters_query = f"""
-                    CREATE OR REPLACE TABLE remaining_clusters AS (
+                    CREATE OR REPLACE TABLE "remaining_clusters" AS (
                         SELECT
                             COORD_X_COMUNE,
                             COORD_Y_COMUNE,
@@ -242,23 +256,23 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                         HAVING record_count > 1
                         ORDER BY record_count DESC
                     );
-                """
+                """  # nosec B608
                 conn.execute(remaining_clusters_query)
 
                 remaining_duplicates_query = f"""
-                    CREATE OR REPLACE TABLE remaining_duplicates AS (
+                    CREATE OR REPLACE TABLE "remaining_duplicates" AS (
                         SELECT
                             A.PROGRESSIVO_ACCESSO,
                             A.COORD_X_COMUNE,
                             A.COORD_Y_COMUNE
                         FROM
                             deoverlapped_geocoded_anncsu A,
-                            remaining_clusters B
+                            "remaining_clusters" B
                         WHERE
                             A.COORD_X_COMUNE = B.COORD_X_COMUNE AND
                             A.COORD_Y_COMUNE = B.COORD_Y_COMUNE
                     );
-                """
+                """  # nosec B608
                 conn.execute(remaining_duplicates_query)
 
                 # if user specified to update geocoded_anncsu with the reduced clusters,
@@ -267,22 +281,22 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                     # save a backup of geocoded_anncsu before updating it with the reduced
                     # clusters in case user want to restore it later
                     backup_geocoded_anncsu_query = f"""
-                        CREATE OR REPLACE TABLE geocoded_anncsu_not_deoverlapped AS
-                        SELECT * FROM geocoded_anncsu;
-                    """
+                        CREATE OR REPLACE TABLE "geocoded_anncsu_not_deoverlapped" AS
+                        SELECT * FROM "geocoded_anncsu";
+                    """  # nosec B608
                     conn.execute(backup_geocoded_anncsu_query)
 
                     # update geocoded_anncsu with deoverlapped_geocoded_anncsu
                     update_geocoded_anncsu_query = f"""
-                        UPDATE geocoded_anncsu
+                        UPDATE "geocoded_anncsu"
                         SET
                             COORD_X_COMUNE = D.COORD_X_COMUNE,
                             COORD_Y_COMUNE = D.COORD_Y_COMUNE
                         FROM
-                            deoverlapped_geocoded_anncsu D
+                            "deoverlapped_geocoded_anncsu" D
                         WHERE
-                            geocoded_anncsu.PROGRESSIVO_ACCESSO = D.PROGRESSIVO_ACCESSO;
-                    """
+                            "geocoded_anncsu".PROGRESSIVO_ACCESSO = D.PROGRESSIVO_ACCESSO;
+                    """  # nosec B608
                     conn.execute(update_geocoded_anncsu_query)
 
             except Exception as e:
