@@ -294,7 +294,14 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 geocoded_anncsu_df = tuple_to_dataframe(list_of_tuples=geocoded_anncsu_records, columns=geocoded_anncsu_columns) if geocoded_anncsu_records is not None else None
 
             # cast SCORE to float
-            geocoded_anncsu_df['PLUGIN_SCORE'] = geocoded_anncsu_df['PLUGIN_SCORE'].astype(float)
+            if 'PLUGIN_SCORE' in geocoded_anncsu_df.columns:
+                geocoded_anncsu_df['PLUGIN_SCORE'] = geocoded_anncsu_df['PLUGIN_SCORE'].astype(float)
+            else:
+                geocoded_anncsu_df['PLUGIN_SCORE'] = None
+            if 'PLUGIN_GEOCODER' not in geocoded_anncsu_df.columns:
+                geocoded_anncsu_df['PLUGIN_GEOCODER'] = None
+            if 'geom' not in geocoded_anncsu_df.columns:
+                geocoded_anncsu_df['geom'] = None
 
             # create a geocoded_anncsu table getting the geocode result from that with highest score for
             # each record in anncsu table OR mantain the geocoded record if alreay present in anncsu table
