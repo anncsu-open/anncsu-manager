@@ -226,10 +226,15 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
             layer_name_success = f"{geocoder_name}_success"
             layer_name_fails = f"{geocoder_name}_fails"
             layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
-            layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
+            layer_geofence_polygon = f"geofence_polygon"
 
             # load geofence polygon layer as first layer to avoid to cover other layers
             if not tab.geofence_polygon.empty:
+                # avoid to add layer with same name multiple times checking if layer is
+                # already in the qgis project
+                if QgsProject.instance().mapLayersByName(layer_geofence_polygon):
+                    continue
+
                 ANNCSUMessageManager().show_message(self.tr("Loading layer: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
                 remove_layer_by_name(layer_geofence_polygon)
                 tab.geofenceLayer = load_dataframe_as_layer(
