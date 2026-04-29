@@ -325,7 +325,6 @@ class ANNCSUSettingsManager:
     SCOPES_KEY = "anncsu_manager/geocoders_json_path"
     GEOCODERS_JSON_PATH_KEY = "anncsu_manager/geocoders_json_path"
     ANNCSU_REPO_URL_KEY = "anncsu_manager/anncsu_repo_url"
-    MUNICIPALITY_KEY = "anncsu_manager/default_municipality"
     MUNICIPALITY_CODE_KEY = "anncsu_manager/default_municipality_code"
     GEOCODERS_CONFIGS_KEY = "anncsu_manager/geocoders_configs" # unused in QGIS.ini because saved in geocoders.json
     SCOPES_KEY = "anncsu_manager/scopes"
@@ -344,7 +343,6 @@ class ANNCSUSettingsManager:
         GEOFENCE_POLYGONS_SOURCE_KEY: DEFAULT_GEOFENCE_POLYGONS_SOURCE,
         GEOCODERS_JSON_PATH_KEY: str(DEFAULT_GEOCODERS_JSON_PATH),
         ANNCSU_REPO_URL_KEY: DEFAULT_ANNCSU_REPO_URL,
-        MUNICIPALITY_KEY: DEFAULT_MUNICIPALITY,
         MUNICIPALITY_CODE_KEY: DEFAULT_MUNICIPALITY_CODE,
         GEOCODERS_CONFIGS_KEY: DEFAULT_GEOCODERS_CONFIGS,
         SCOPES_KEY: DEFAULT_SCOPES,
@@ -388,11 +386,6 @@ class ANNCSUSettingsManager:
     @classmethod
     def get_anncsu_repo(cls) -> str:
         key = cls.ANNCSU_REPO_URL_KEY
-        return QgsSettings().value(key, cls.DEFAULTS[key])
-
-    @classmethod
-    def get_municipality(cls) -> str:
-        key = cls.MUNICIPALITY_KEY
         return QgsSettings().value(key, cls.DEFAULTS[key])
 
     @classmethod
@@ -605,11 +598,6 @@ class ANNCSUSettingsManager:
         QgsSettings().setValue(cls.ANNCSU_REPO_URL_KEY, anncsu_repo)
 
     @classmethod
-    def set_municipality(cls, municipality: str):
-        print(f"Setting municipality code to {municipality}")
-        QgsSettings().setValue(cls.MUNICIPALITY_KEY, municipality)
-
-    @classmethod
     def set_municipality_code(cls, municipality_code: str):
         print(f"Setting municipality code to {municipality_code}")
         QgsSettings().setValue(cls.MUNICIPALITY_CODE_KEY, municipality_code)
@@ -649,10 +637,6 @@ class ANNCSUSettingsManager:
     @classmethod
     def reset_anncsu_repo(cls):
         QgsSettings().setValue(cls.ANNCSU_REPO_URL_KEY, cls.DEFAULTS[cls.ANNCSU_REPO_URL_KEY])
-
-    @classmethod
-    def reset_municipality(cls):
-        QgsSettings().setValue(cls.MUNICIPALITY_KEY, cls.DEFAULTS[cls.MUNICIPALITY_KEY])
 
     @classmethod
     def reset_municipality_code(cls):
