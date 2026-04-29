@@ -215,7 +215,6 @@ class ANNCSUSettingsManager:
     DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
     DEFAULT_ANNCSU_REPO_URL = "https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/indirizzarioItalia.duckdb"
-    DEFAULT_MUNICIPALITY = "NoName"
     DEFAULT_MUNICIPALITY_CODE = "0000000"
     DEFAULT_GEOCODERS_CONFIGS = {
         "Nominatim": {

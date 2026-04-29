@@ -119,9 +119,6 @@ class TestSettingsManagerDefaults:
         result = ANNCSUSettingsManager.get_anncsu_repo()
         assert "duckdb" in result or "anncsu" in result.lower()
 
-    def test_default_municipality(self):
-        assert ANNCSUSettingsManager.get_municipality() == "NoName"
-
     def test_default_municipality_code(self):
         assert ANNCSUSettingsManager.get_municipality_code() == "0000000"
 
@@ -153,10 +150,6 @@ class TestSettingsManagerGettersSetters:
         ANNCSUSettingsManager.set_anncsu_repo(repo)
         assert ANNCSUSettingsManager.get_anncsu_repo() == repo
 
-    def test_set_and_get_municipality(self):
-        ANNCSUSettingsManager.set_municipality("Milano")
-        assert ANNCSUSettingsManager.get_municipality() == "Milano"
-
     def test_set_and_get_municipality_code(self):
         ANNCSUSettingsManager.set_municipality_code("1234567")
         assert ANNCSUSettingsManager.get_municipality_code() == "1234567"
@@ -186,22 +179,15 @@ class TestSettingsManagerResets:
         ANNCSUSettingsManager.reset_anncsu_repo()
         assert ANNCSUSettingsManager.get_anncsu_repo() == ANNCSUSettingsManager.DEFAULT_ANNCSU_REPO_URL
 
-    def test_reset_municipality(self):
-        ANNCSUSettingsManager.set_municipality("Napoli")
-        ANNCSUSettingsManager.reset_municipality()
-        assert ANNCSUSettingsManager.get_municipality() == "NoName"
-
     def test_reset_municipality_code(self):
         ANNCSUSettingsManager.set_municipality_code("9999999")
         ANNCSUSettingsManager.reset_municipality_code()
         assert ANNCSUSettingsManager.get_municipality_code() == "0000000"
 
     def test_reset_all_restores_defaults(self):
-        ANNCSUSettingsManager.set_municipality("Torino")
         ANNCSUSettingsManager.set_municipality_code("1111111")
         ANNCSUSettingsManager.set_anncsu_repo("custom_repo")
         ANNCSUSettingsManager.reset_all()
-        assert ANNCSUSettingsManager.get_municipality() == "NoName"
         assert ANNCSUSettingsManager.get_municipality_code() == "0000000"
         assert ANNCSUSettingsManager.get_anncsu_repo() == ANNCSUSettingsManager.DEFAULT_ANNCSU_REPO_URL
 
@@ -489,7 +475,6 @@ class TestConstants:
 
     def test_defaults_dict_has_expected_keys(self):
         defaults = ANNCSUSettingsManager.DEFAULTS
-        assert ANNCSUSettingsManager.MUNICIPALITY_KEY in defaults
         assert ANNCSUSettingsManager.MUNICIPALITY_CODE_KEY in defaults
         assert ANNCSUSettingsManager.ANNCSU_REPO_URL_KEY in defaults
         assert ANNCSUSettingsManager.SCOPES_KEY in defaults
