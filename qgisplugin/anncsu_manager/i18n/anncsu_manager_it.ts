@@ -1341,7 +1341,7 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
     <!-- wizard_generate_mergin_page.ui -->
     <message>
       <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
-      <source>Add layers to Mering</source>
+      <source>Add layers to Mergin</source>
       <translation>Aggiungi layer a Mergin</translation>
     </message>
     <message>
