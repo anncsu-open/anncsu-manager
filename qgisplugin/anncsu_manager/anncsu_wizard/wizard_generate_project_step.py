@@ -120,14 +120,15 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         """
         cur_project: QgsProject = QgsProject.instance()
         if not mergin_available or self.mergin_project_cb.currentData() is None:
-            out_path = Path(cur_project.homePath())
-            project_name = cur_project.baseName()
-            if not out_path.exists():
+            out_path = cur_project.homePath()
+            if out_path == "":
                 ANNCSUMessageManager().show_message(
                     self.tr("Current project does not have a valid home path. Please save the project before proceeding."),
                     "error",
                 )
                 return
+            out_path = Path(out_path)
+            project_name = cur_project.baseName()
         else:
             # get  select mergin project to get folder where to save results
             mergin_project_data = self.mergin_project_cb.currentData()
