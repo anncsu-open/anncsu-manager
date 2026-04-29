@@ -383,88 +383,98 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
   </context>
 
   <!-- ============================================================ -->
-  <!-- anncsu_wizard/wizard_update_from_mergin.py                   -->
+  <!-- anncsu_wizard/wizard_update_from_project.py                   -->
   <!-- ============================================================ -->
   <context>
-    <name>ANNCSUWizardUpdateFromMergin</name>
+    <name>ANNCUWizardUpdateFromProjectStep</name>
 
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="74"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="78"/>
       <source>-- Select Mergin Project --</source>
       <translation>-- Seleziona Progetto Mergin --</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="87"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="91"/>
       <source>No local Mergin project found. Configure Mergin before proceeding.</source>
       <translation>Nessun progetto Mergin locale trovato. Configurare Mergin prima di procedere.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="112"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="130"/>
       <source>Select a valid Mergin project before proceeding.</source>
       <translation>Selezionare un progetto Mergin valido prima di procedere.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="128"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="146"/>
       <source>Continue saving?</source>
       <translation>Continuare il salvataggio?</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="129"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="147"/>
       <source>The selected Mergin project &apos;{project_name}&apos; does not match the open QGIS project &apos;{cur_project}&apos;. Proceed anyway?</source>
       <translation>Il progetto Mergin selezionato &apos;{project_name}&apos; non corrisponde al progetto QGIS aperto &apos;{cur_project}&apos;. Procedere comunque?</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="121"/>
+      <source>Current project does not have a valid home path. Please save the project before proceeding.</source>
+      <translation>Il progetto corrente non ha un percorso valido. Salvare il progetto prima di procedere.</translation>
     </message>
   </context>
 
   <!-- ============================================================ -->
-  <!-- anncsu_wizard/wizard_generate_mergin_step.py                 -->
+  <!-- anncsu_wizard/wizard_generate_project_step.py                 -->
   <!-- ============================================================ -->
   <context>
-    <name>ANNCSUWizardGenerateMerginStep</name>
+    <name>ANNCUWizardGenerateProjectStep</name>
 
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="79"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="84"/>
       <source>-- Select Mergin Project --</source>
       <translation>-- Seleziona Progetto Mergin --</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="92"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="97"/>
       <source>No local Mergin project found. Configure Mergin before proceeding.</source>
       <translation>Nessun progetto Mergin locale trovato. Configurare Mergin prima di procedere.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="122"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="136"/>
       <source>Select a valid Mergin project before proceeding.</source>
       <translation>Selezionare un progetto Mergin valido prima di procedere.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="137"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="150"/>
       <source>Continue saving?</source>
       <translation>Continuare il salvataggio?</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="138"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="151"/>
       <source>The selected Mergin project &apos;{project_name}&apos; does not match the open QGIS project &apos;{cur_project}&apos;. Proceed anyway?</source>
       <translation>Il progetto Mergin selezionato &apos;{project_name}&apos; non corrisponde al progetto QGIS aperto &apos;{cur_project}&apos;. Procedere comunque?</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="149"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="162"/>
       <source>Unable to load the ANNCSU table. Make sure the table is available before proceeding.</source>
       <translation>Impossibile caricare la tabella ANNCSU. Assicurarsi che la tabella sia disponibile prima di procedere.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="175"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="188"/>
       <source>Loading: {layer_name}</source>
       <translation>Caricamento: {layer_name}</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="257"/>
-      <source>Added results for geocoder &apos;{geocoder_name}&apos; into Mergin project &apos;{project_name}&apos;.</source>
-      <translation>Risultati per il geocoder &apos;{geocoder_name}&apos; aggiunti al progetto Mergin &apos;{project_name}&apos;.</translation>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="271"/>
+      <source>Added results for geocoder &apos;{geocoder_name}&apos; into project &apos;{project_name}&apos;.</source>
+      <translation>Risultati per il geocoder &apos;{geocoder_name}&apos; aggiunti al progetto &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="331"/>
-      <source>Saving geocoded ANNCSU table into Mergin project &apos;{project_name}&apos;.</source>
-      <translation>Salvataggio della tabella ANNCSU geocodificata nel progetto Mergin &apos;{project_name}&apos;.</translation>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="345"/>
+      <source>Saving geocoded ANNCSU table into project &apos;{project_name}&apos;.</source>
+      <translation>Salvataggio della tabella ANNCSU geocodificata nel progetto &apos;{project_name}&apos;.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="127"/>
+      <source>Current project does not have a valid home path. Please save the project before proceeding.</source>
+      <translation>Il progetto corrente non ha un percorso valido. Salvare il progetto prima di procedere.</translation>
     </message>
   </context>
 
@@ -836,171 +846,176 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
   </context>
 
   <!-- ============================================================ -->
-  <!-- anncsu_wizard/wizard_generate_mergin_step.py (new strings)   -->
+  <!-- anncsu_wizard/wizard_generate_project_step.py (new strings)   -->
   <!-- ============================================================ -->
   <context>
-    <name>ANNCSUWizardGenerateMerginStep</name>
+    <name>ANNCUWizardGenerateProjectStep</name>
 
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="83"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="88"/>
       <source>info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.</source>
       <translation>info: Trovato progetto Mergin: {project_name} workspace: {workspace} al percorso: {path} sul server: {project_server}.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="106"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="111"/>
       <source>info: Current QGIS project &apos;{cur_project}&apos; matches Mergin project &apos;{project_name}&apos;.</source>
       <translation>info: Il progetto QGIS corrente &apos;{cur_project}&apos; corrisponde al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="171"/>
-      <source>info: Preparing to add geocoding results for &apos;{geocoder_name}&apos; to Mergin project &apos;{project_name}&apos;.</source>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="184"/>
+      <source>info: Preparing to add geocoding results for &apos;{geocoder_name}&apos; to project &apos;{project_name}&apos;.</source>
       <translation>info: Preparazione aggiunta risultati geocodifica per &apos;{geocoder_name}&apos; al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="172"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="185"/>
       <source>info: Adding results into folder: {out_path}.</source>
       <translation>info: Aggiunta risultati nella cartella: {out_path}.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="185"/>
-      <source>info: Geofence polygon layer &apos;{layer_geofence_polygon}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="198"/>
+      <source>info: Geofence polygon layer &apos;{layer_geofence_polygon}&apos; added to project &apos;{project_name}&apos;.</source>
       <translation>info: Layer poligono geofence &apos;{layer_geofence_polygon}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="197"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="210"/>
       <source>error: Unable to merge geocoded results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving success layer.</source>
       <translation>error: Impossibile unire i risultati geocodificati con la tabella anncsu per il geocoder &apos;{geocoder_name}&apos;. Salvataggio layer successi ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="209"/>
-      <source>info: Success layer &apos;{layer_name_success}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="222"/>
+      <source>info: Success layer &apos;{layer_name_success}&apos; added to project &apos;{project_name}&apos;.</source>
       <translation>info: Layer dei successi &apos;{layer_name_success}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="221"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="234"/>
       <source>error: Unable to merge fails results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving fails layer.</source>
       <translation>error: Impossibile unire i risultati dei fallimenti con la tabella anncsu per il geocoder &apos;{geocoder_name}&apos;. Salvataggio layer fallimenti ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="232"/>
-      <source>info: Fails layer &apos;{layer_name_fails}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="245"/>
+      <source>info: Fails layer &apos;{layer_name_fails}&apos; added to project &apos;{project_name}&apos;.</source>
       <translation>info: Layer dei fallimenti &apos;{layer_name_fails}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="244"/>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="257"/>
       <source>error: Unable to merge out of geofence results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving out of geofence layer.</source>
       <translation>error: Impossibile unire i risultati fuori geofence con la tabella anncsu per il geocoder &apos;{geocoder_name}&apos;. Salvataggio layer fuori geofence ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_generate_mergin_step.py" line="255"/>
-      <source>info: Out of geofence layer &apos;{layer_name_out_of_geofence}&apos; added to Mergin project &apos;{project_name}&apos;.</source>
+      <location filename="../anncsu_wizard/wizard_generate_project_step.py" line="268"/>
+      <source>info: Out of geofence layer &apos;{layer_name_out_of_geofence}&apos; added to project &apos;{project_name}&apos;.</source>
       <translation>info: Layer fuori geofence &apos;{layer_name_out_of_geofence}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
   </context>
 
   <!-- ============================================================ -->
-  <!-- anncsu_wizard/wizard_update_from_mergin.py (new strings)     -->
+  <!-- anncsu_wizard/wizard_update_from_project.py (new strings)     -->
   <!-- ============================================================ -->
   <context>
-    <name>ANNCSUWizardUpdateFromMergin</name>
+    <name>ANNCUWizardUpdateFromProjectStep</name>
 
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="78"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="82"/>
       <source>info: Found Mergin project: {project_name} workspace: {workspace} at path: {path} on server: {project_server}.</source>
       <translation>info: Trovato progetto Mergin: {project_name} workspace: {workspace} al percorso: {path} sul server: {project_server}.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="101"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="105"/>
       <source>info: Current QGIS project &apos;{cur_project}&apos; matches Mergin project &apos;{project_name}&apos;.</source>
       <translation>info: Il progetto QGIS corrente &apos;{cur_project}&apos; corrisponde al progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="143"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="161"/>
       <source>Current scope id &apos;{current_scope_id}&apos; not found among defined scopes.</source>
       <translation>L&apos;id scope corrente &apos;{current_scope_id}&apos; non trovato tra gli scope definiti.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="146"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="164"/>
       <source>Using scope: {current_scope_id}</source>
       <translation>Utilizzo scope: {current_scope_id}</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="151"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="169"/>
       <source>No DuckDB database path found in the current scope settings.</source>
       <translation>Nessun percorso database DuckDB trovato nelle impostazioni dello scope corrente.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="155"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="173"/>
       <source>Updating DuckDB database at {duck_db_source} from Mergin project &apos;{project_name}&apos;.</source>
       <translation>Aggiornamento database DuckDB in {duck_db_source} dal progetto Mergin &apos;{project_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="157"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="175"/>
       <source>Could not connect to DuckDB database at {duck_db_source}.</source>
       <translation>Impossibile connettersi al database DuckDB in {duck_db_source}.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="171"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="189"/>
       <source>info: Skipping inactive geocoder &apos;{geocoder_name}&apos;.</source>
       <translation>info: Geocoder inattivo ignorato: &apos;{geocoder_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="182"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="200"/>
       <source>info: Processing layer &apos;{layer_name}&apos; for geocoder &apos;{geocoder_name}&apos;.</source>
       <translation>info: Elaborazione layer &apos;{layer_name}&apos; per il geocoder &apos;{geocoder_name}&apos;.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="188"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="206"/>
       <source>warning: Layer &apos;{layer_name}&apos; not found in the project. Skipping.</source>
       <translation>warning: Layer &apos;{layer_name}&apos; non trovato nel progetto. Ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="193"/>
-      <source>warning: Layer file &apos;{layer_path}&apos; not found in Mergin project folder. Skipping.</source>
-      <translation>warning: File layer &apos;{layer_path}&apos; non trovato nella cartella del progetto Mergin. Ignorato.</translation>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="211"/>
+      <source>warning: Layer file &apos;{layer_path}&apos; not found in project folder. Skipping.</source>
+      <translation>warning: File layer &apos;{layer_path}&apos; non trovato nella cartella del progetto. Ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="197"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="215"/>
       <source>warning: Could not load layer from file &apos;{layer_path}&apos;. Skipping.</source>
       <translation>warning: Impossibile caricare il layer dal file &apos;{layer_path}&apos;. Ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="200"/>
-      <source>info: Loaded layer &apos;{layer_name}&apos; from Mergin project folder.</source>
-      <translation>info: Layer &apos;{layer_name}&apos; caricato dalla cartella del progetto Mergin.</translation>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="218"/>
+      <source>info: Loaded layer &apos;{layer_name}&apos; from project folder.</source>
+      <translation>info: Layer &apos;{layer_name}&apos; caricato dalla cartella del progetto.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="220"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="230"/>
+      <source>Invalid geocoder name: &apos;{table_name}&apos;. Skipping.</source>
+      <translation>Nome geocoder non valido: &apos;{table_name}&apos;. Ignorato.</translation>
+    </message>
+    <message>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="249"/>
       <source>info: Dumped layer &apos;{layer_name}&apos; into DuckDB table &apos;{table_name}&apos; with {count} records.</source>
       <translation>info: Layer &apos;{layer_name}&apos; salvato nella tabella DuckDB &apos;{table_name}&apos; con {count} record.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="244"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="273"/>
       <source>info: Dumped layer &apos;geocoded_anncsu&apos; into DuckDB table &apos;geocoded_anncsu&apos; with {count} records.</source>
       <translation>info: Layer &apos;geocoded_anncsu&apos; salvato nella tabella DuckDB &apos;geocoded_anncsu&apos; con {count} record.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="246"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="275"/>
       <source>info: &apos;geocoded_anncsu.gpkg&apos; file not found in Mergin project folder. Skipping.</source>
       <translation>info: File &apos;geocoded_anncsu.gpkg&apos; non trovato nella cartella del progetto Mergin. Ignorato.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="250"/>
-      <source>Error while updating from Mergin: {error}</source>
-      <translation>Errore durante l&apos;aggiornamento da Mergin: {error}</translation>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="279"/>
+      <source>Error while updating from project: {error}</source>
+      <translation>Errore durante l&apos;aggiornamento dal progetto: {error}</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="257"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="286"/>
       <source>info: Reopened DuckDB database to consolidate changes.</source>
       <translation>info: Database DuckDB riaperto per consolidare le modifiche.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="261"/>
-      <source>info: Update from Mergin completed successfully.</source>
-      <translation>info: Aggiornamento da Mergin completato con successo.</translation>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="290"/>
+      <source>info: Update from project completed successfully.</source>
+      <translation>info: Aggiornamento dal progetto completato con successo.</translation>
     </message>
     <message>
-      <location filename="../anncsu_wizard/wizard_update_from_mergin.py" line="266"/>
+      <location filename="../anncsu_wizard/wizard_update_from_project.py" line="295"/>
       <source>warning:  Scope repo locally updated need to be synched to remote repo.</source>
       <translation>warning:  Repository scope aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
     </message>
@@ -1204,8 +1219,8 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
   <!-- ============================================================ -->
   <!-- resources/ui/wizard_run_geocoders_page.ui +                  -->
   <!-- wizard_materialise_layers.ui + wizard_evaluate_geocode_page.ui-->
-  <!-- wizard_reduce_clusters_page.ui + wizard_generate_mergin_page -->
-  <!-- wizard_update_from_mergin.ui  (all class="WizardPage")       -->
+  <!-- wizard_reduce_clusters_page.ui + wizard_generate_project_page -->
+  <!-- wizard_update_from_project.ui  (all class="WizardPage")       -->
   <!-- ============================================================ -->
   <context>
     <name>WizardPage</name>
@@ -1338,43 +1353,43 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
       <translation>Aggiorna tabella ANNCSU geocodificata</translation>
     </message>
 
-    <!-- wizard_generate_mergin_page.ui -->
+    <!-- wizard_generate_project_page.ui -->
     <message>
-      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
-      <source>Add layers to Mergin</source>
-      <translation>Aggiungi layer a Mergin</translation>
+      <location filename="../resources/ui/wizard_generate_project_page.ui"/>
+      <source>Add layers to a project</source>
+      <translation>Aggiungi layer a un progetto</translation>
     </message>
     <message>
-      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <location filename="../resources/ui/wizard_generate_project_page.ui"/>
       <source>Export geocoded layers to a Mergin project</source>
       <translation>Esporta layer geocodificati in un progetto Mergin</translation>
     </message>
     <message>
-      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
-      <source>Add layers to mergin</source>
-      <translation>Aggiungi layer a Mergin</translation>
+      <location filename="../resources/ui/wizard_generate_project_page.ui"/>
+      <source>Add layers to a project</source>
+      <translation>Aggiungi layer a un progetto</translation>
     </message>
     <message>
-      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <location filename="../resources/ui/wizard_generate_project_page.ui"/>
       <source>Mergin project:</source>
       <translation>Progetto Mergin:</translation>
     </message>
     <message>
-      <location filename="../resources/ui/wizard_generate_mergin_page.ui"/>
+      <location filename="../resources/ui/wizard_generate_project_page.ui"/>
       <source>geocoded</source>
       <translation>geocodificato</translation>
     </message>
 
-    <!-- wizard_update_from_mergin.ui -->
+    <!-- wizard_update_from_project.ui -->
     <message>
-      <location filename="../resources/ui/wizard_update_from_mergin.ui"/>
-      <source>Update from Mergin</source>
-      <translation>Aggiorna da Mergin</translation>
+      <location filename="../resources/ui/wizard_update_from_project.ui"/>
+      <source>Update from project</source>
+      <translation>Aggiorna da progetto</translation>
     </message>
     <message>
-      <location filename="../resources/ui/wizard_update_from_mergin.ui"/>
-      <source>Merge modified Mergin layers into geocoded results</source>
-      <translation>Unisci layer Mergin modificati nei risultati geocodificati</translation>
+      <location filename="../resources/ui/wizard_update_from_project.ui"/>
+      <source>Merge modified project layers into geocoded results</source>
+      <translation>Unisci layer del progetto modificati nei risultati geocodificati</translation>
     </message>
   </context>
 

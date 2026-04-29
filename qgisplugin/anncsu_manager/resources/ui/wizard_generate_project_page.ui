@@ -7,14 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>705</width>
-    <height>477</height>
+    <height>540</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>WizardPage</string>
   </property>
   <property name="title">
-   <string>Add layers to Mergin</string>
+   <string>Add layers to Mering</string>
   </property>
   <property name="subTitle">
    <string>Export geocoded layers to a Mergin project</string>
@@ -24,9 +24,9 @@
   </attribute>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QPushButton" name="add_to_mergin_pb">
+    <widget class="QPushButton" name="add_to_project_pb">
      <property name="text">
-      <string>Add layers to mergin</string>
+      <string>Add layers to a Project</string>
      </property>
     </widget>
    </item>

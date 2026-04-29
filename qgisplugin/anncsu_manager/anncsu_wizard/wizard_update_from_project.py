@@ -27,22 +27,24 @@ import duckdb
 # add Mergin dependcies but do not  trigger error if Mergin is not installed
 # the reason is to allow to check Mergin installed during plugin loading in a
 # controlled way
+mergin_available: bool = False
 try:
     from Mergin import utils as mergin_utils
+    mergin_available = True
 except ImportError:
     pass
 
-FORM_CLASS: QWizardPage = load_ui("wizard_update_from_mergin.ui")
-class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
-    """Class container to create mergin project starting from resuls of geocodings."""
+FORM_CLASS: QWizardPage = load_ui("wizard_update_from_project.ui")
+class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
+    """Class container to create project starting from results of geocodings."""
 
     def __init__(self, parent=None, progress_bar: QProgressBar = QProgressBar()) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
         # gui elements
-        self.update_from_mergin_pb: QPushButton
-        self.update_from_mergin_pb.clicked.connect(self.update_from_mergin)
+        self.update_from_project_pb: QPushButton
+        self.update_from_project_pb.clicked.connect(self.update_from_project)
         self.progress_text: QTextEdit
         self.mergin_project_cb: QComboBox
         self.include_fails_ckb: QCheckBox
@@ -64,18 +66,9 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
 
     def initializePage(self):
         """Called when the page is about to be shown."""
-        # check that mergin plugin is available
-        try:
-            from Mergin import utils as mergin_utils
-        except ImportError:
-            ANNCSUMessageManager().show_message(
-                self.tr("No Mergin plugin available. Load it to use this feature."),
-                "error",
-            )
-            return
-
-        self.populate_mergin_projects()
-        self.set_mergin_project()
+        if mergin_available:
+            self.populate_mergin_projects()
+            self.set_mergin_project()
 
     def populate_mergin_projects(self):
         """Populate Mergin projects combobox."""
@@ -102,7 +95,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
         # infer what is the current mergin project reading the current loaded project
         # and checking if it is among local mergin projects
         # then setup current configured project in the combobox
-        cur_project = QgsProject.instance()
+        cur_project: QgsProject = QgsProject.instance()
 
         # check if qgis project is among local mergin projects
         for path, workspace, project_name, project_server in mergin_projects:
@@ -115,37 +108,51 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                     self.mergin_project_cb.setCurrentIndex(0)
                 break
 
-    def update_from_mergin(self):
-        # get  select mergin project to get folder where to save results
-        mergin_project_data = self.mergin_project_cb.currentData()
-        if mergin_project_data is None:
-            ANNCSUMessageManager().show_message(
-                self.tr("Select a valid Mergin project before proceeding."),
-                "error",
-            )
-            return
-        
-        # get mergin project info
-        path, workspace, project_name, project_server = mergin_project_data
-        out_path = Path(path)
-
-        # check if selected mergin project refers to the current loaded qgis project
-        cur_project = QgsProject.instance()
-        get_from_mergin_folder: bool = False
-        if project_name != cur_project.baseName():
-            # ask user to confirm to proceed anyway
-            reply = QMessageBox.question(
-                self,
-                self.tr("Continue saving?"),
-                self.tr("The selected Mergin project '{project_name}' does not match the open QGIS project '{cur_project}'. Proceed anyway?").format(project_name=project_name, cur_project=cur_project.baseName()),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-            if reply == QMessageBox.No:
+    def update_from_project(self):
+        """Update geocoded results in the current scope duckdb database with modified layers
+        in the selected Mergin project or current QGIS project if no Mergin project is selected.
+        """
+        cur_project: QgsProject = QgsProject.instance()
+        if not mergin_available or self.mergin_project_cb.currentData() is None:
+            out_path = Path(cur_project.homePath())
+            project_name = cur_project.baseName()
+            if not out_path.exists():
+                ANNCSUMessageManager().show_message(
+                    self.tr("Current project does not have a valid home path. Please save the project before proceeding."),
+                    "error",
+                )
                 return
+        else:
+        # get  select mergin project to get folder where to save results
+            mergin_project_data = self.mergin_project_cb.currentData()
+            if mergin_project_data is None:
+                ANNCSUMessageManager().show_message(
+                    self.tr("Select a valid Mergin project before proceeding."),
+                    "error",
+                )
+                return
+            
+            # get mergin project info
+            path, workspace, project_name, project_server = mergin_project_data
+            out_path = Path(path)
 
-            # remember to get the files from folder and not from project
-            get_from_mergin_folder = True
+            # check if selected mergin project refers to the current loaded qgis project
+            cur_project = QgsProject.instance()
+            get_from_mergin_folder: bool = False
+            if project_name != cur_project.baseName():
+                # ask user to confirm to proceed anyway
+                reply = QMessageBox.question(
+                    self,
+                    self.tr("Continue saving?"),
+                    self.tr("The selected Mergin project '{project_name}' does not match the open QGIS project '{cur_project}'. Proceed anyway?").format(project_name=project_name, cur_project=cur_project.baseName()),
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+
+                # remember to get the files from folder and not from project
+                get_from_mergin_folder = True
 
         # get current scope
         current_scope_id = ANNCSUSettingsManager.get_current_scope_id()
@@ -187,7 +194,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                     layer_name_fails = f"{geocoder_name}_fails"
                     layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
 
-                    # for all mergin layers
+                    # for all layers
                     layer_names = [layer_name_success, layer_name_fails, layer_name_out_of_geofence]
                     for layer_name in layer_names:
                         self.feedback.pushInfo(self.tr("info: Processing layer '{layer_name}' for geocoder '{geocoder_name}'.").format(layer_name=layer_name, geocoder_name=geocoder_name))
@@ -198,17 +205,17 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                             if not get_from_mergin_folder:
                                 self.feedback.pushInfo(self.tr("warning: Layer '{layer_name}' not found in the project. Skipping.").format(layer_name=layer_name))
                                 continue
-                            # try to load layer from mergin project folder
+                            # try to load layer from project folder
                             layer_path = out_path / f"{layer_name}.gpkg"
                             if not layer_path.exists():
-                                self.feedback.pushInfo(self.tr("warning: Layer file '{layer_path}' not found in Mergin project folder. Skipping.").format(layer_path=layer_path))
+                                self.feedback.pushInfo(self.tr("warning: Layer file '{layer_path}' not found in project folder. Skipping.").format(layer_path=layer_path))
                                 continue
                             layer = QgsVectorLayer(str(layer_path), layer_name, "ogr")
                             if layer is None:
                                 self.feedback.pushInfo(self.tr("warning: Could not load layer from file '{layer_path}'. Skipping.").format(layer_path=layer_path))
                                 continue
                             layers = [layer]
-                            self.feedback.pushInfo(self.tr("info: Loaded layer '{layer_name}' from Mergin project folder.").format(layer_name=layer_name))
+                            self.feedback.pushInfo(self.tr("info: Loaded layer '{layer_name}' from project folder.").format(layer_name=layer_name))
                         layer = layers[0]
                         layer_path = layer.source()
 
@@ -218,7 +225,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
 
                         # validate geocoder name to be used as table name in duckdb to
                         # avoid SQL injection and syntax errors
-                        # if not valid breack the loop and do not proceed with update from mergin
+                        # if not valid break the loop and do not proceed with update from project
                         if not re.match(r"^[a-zA-Z_]\w*$", table_name):
                             self.feedback.reportError(self.tr("Invalid geocoder name: '{table_name}'. Skipping.").format(table_name=table_name))
                             return
@@ -241,7 +248,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
                             pass
                         self.feedback.pushInfo(self.tr("info: Dumped layer '{layer_name}' into DuckDB table '{table_name}' with {count} records.").format(layer_name=layer_name, table_name=table_name, count=layer.featureCount()))
 
-                # add  table from mergin project if exists
+                # add table from project if exists
                 geocoded_anncsu_path = out_path / "geocoded_anncsu.gpkg"
                 geocoded_anncsu_layer_name = "geocoded_anncsu"
                 if geocoded_anncsu_path.exists():
@@ -269,7 +276,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
 
             except Exception as e:
                 scopedb.execute("ROLLBACK;")
-                self.feedback.reportError(self.tr("Error while updating from Mergin: {error}").format(error=str(e)))
+                self.feedback.reportError(self.tr("Error while updating from project: {error}").format(error=str(e)))
                 return
             else:
                 scopedb.execute("COMMIT;")
@@ -280,7 +287,7 @@ class ANNCUWizardUpdateFromMerginStep(QWizardPage, FORM_CLASS):
             scopedb.execute("PRAGMA force_checkpoint;")
             scopedb.execute("CHECKPOINT;")
 
-        self.feedback.pushInfo(self.tr("info: Update from Mergin completed successfully."))
+        self.feedback.pushInfo(self.tr("info: Update from project completed successfully."))
 
         # notify to sync the scope folder to push changes to server
         current_scope.syncked = False

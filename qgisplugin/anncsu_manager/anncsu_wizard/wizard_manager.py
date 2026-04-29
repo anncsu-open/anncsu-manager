@@ -15,9 +15,9 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 # wizard pages
 from anncsu_manager.anncsu_wizard.wizard_geocoder_step import ANNCSUWizardRunGeocoders
 from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCSUWizardEvaluateGeocode
-from anncsu_manager.anncsu_wizard.wizard_generate_mergin_step import ANNCUWizardGenerateMerginStep
+from anncsu_manager.anncsu_wizard.wizard_generate_project_step import ANNCUWizardGenerateProjectStep
 # from anncsu_manager.anncsu_wizard.wizard_materialise_layers import ANNCUWizardMaterialiseLayersStep
-from anncsu_manager.anncsu_wizard.wizard_update_from_mergin import ANNCUWizardUpdateFromMerginStep
+from qgisplugin.anncsu_manager.anncsu_wizard.wizard_update_from_project import ANNCUWizardUpdateFromProjectStep
 from anncsu_manager.anncsu_wizard.wizard_reduce_clusters_step import ANNCSUWizardReduceClustersStep
 
 FORM_CLASS: QWizard = load_ui("wizard_manager.ui")
@@ -48,11 +48,11 @@ class ANNCSUWizardManager(QWizard, FORM_CLASS):
         # self.materialize_layers_page_id = self.addPage(self.materialize_layers_page)
 
         # add Mergin wizard page
-        self.generate_mergin_page = ANNCUWizardGenerateMerginStep(parent=self, progress_bar=self.progressBar)
+        self.generate_mergin_page = ANNCUWizardGenerateProjectStep(parent=self, progress_bar=self.progressBar)
         self.generate_mergin_page_id = self.addPage(self.generate_mergin_page)
 
         # add update from Mergin wizard page
-        self.update_from_mergin_page = ANNCUWizardUpdateFromMerginStep(parent=self, progress_bar=self.progressBar)
+        self.update_from_mergin_page = ANNCUWizardUpdateFromProjectStep(parent=self, progress_bar=self.progressBar)
         self.update_from_mergin_page_id = self.addPage(self.update_from_mergin_page)
 
         # add reduce clusters wizard page

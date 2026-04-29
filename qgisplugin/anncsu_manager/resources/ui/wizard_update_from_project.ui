@@ -24,9 +24,9 @@
   </attribute>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QPushButton" name="update_from_mergin_pb">
+    <widget class="QPushButton" name="update_from_project_pb">
      <property name="text">
-      <string>Update from Mergin</string>
+      <string>Update from project</string>
      </property>
     </widget>
    </item>
