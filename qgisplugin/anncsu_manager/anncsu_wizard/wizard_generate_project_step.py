@@ -179,24 +179,27 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
             layer_name_success = f"{geocoder_name}_success"
             layer_name_fails = f"{geocoder_name}_fails"
             layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
-            layer_geofence_polygon = f"{geocoder_name}_geofence_polygon"
+            layer_geofence_polygon = f"geofence_polygon"
 
             # add before layer_geofence_polygon to remain under the other layers
             self.feedback.pushInfo(self.tr("info: Preparing to add geocoding results for '{geocoder_name}' to project '{project_name}'.").format(geocoder_name=geocoder_name, project_name=project_name))
             self.feedback.pushInfo(self.tr("info: Adding results into folder: {out_path}.").format(out_path=out_path))
 
             if self.include_geofence_ckb.isChecked():
-                ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
-                remove_layer_by_name(layer_geofence_polygon)
-                tab.geofenceLayer = load_dataframe_as_layer(
-                    dataframe=tab.geofence_polygon,
-                    layer_name=layer_geofence_polygon,
-                    column_types={},
-                    geometry_column="geom",
-                    crs_epsg=4326,  # assuming WGS84, adjust as needed
-                    out_path=out_path  # save in current local repo
-                )
-                self.feedback.pushInfo(self.tr("info: Geofence polygon layer '{layer_geofence_polygon}' added to project '{project_name}'.").format(layer_geofence_polygon=layer_geofence_polygon, project_name=project_name))
+                # avoid to add layer with same name multiple times checking if layer is
+                # already in the qgis project
+                if QgsProject.instance().mapLayersByName(layer_geofence_polygon) == []:
+                    ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)
+                    remove_layer_by_name(layer_geofence_polygon)
+                    tab.geofenceLayer = load_dataframe_as_layer(
+                        dataframe=tab.geofence_polygon,
+                        layer_name=layer_geofence_polygon,
+                        column_types={},
+                        geometry_column="geom",
+                        crs_epsg=4326,  # assuming WGS84, adjust as needed
+                        out_path=out_path  # save in current local repo
+                    )
+                    self.feedback.pushInfo(self.tr("info: Geofence polygon layer '{layer_geofence_polygon}' added to project '{project_name}'.").format(layer_geofence_polygon=layer_geofence_polygon, project_name=project_name))
 
             if self.include_success_ckb.isChecked():
                 ANNCSUMessageManager().show_message(self.tr("Loading: {layer_name}").format(layer_name=layer_name_success), level="info", duration=5)

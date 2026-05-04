@@ -232,7 +232,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
             if not tab.geofence_polygon.empty:
                 # avoid to add layer with same name multiple times checking if layer is
                 # already in the qgis project
-                if QgsProject.instance().mapLayersByName(layer_geofence_polygon):
+                if QgsProject.instance().mapLayersByName(layer_geofence_polygon) != []:
                     continue
 
                 ANNCSUMessageManager().show_message(self.tr("Loading layer: {layer_name}").format(layer_name=layer_geofence_polygon), level="info", duration=5)

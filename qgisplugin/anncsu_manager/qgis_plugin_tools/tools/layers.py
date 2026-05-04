@@ -135,7 +135,7 @@ def load_dataframe_as_layer(
     Returns:
         QgsVectorLayer: The created QGIS vector layer.
     """
-    # temprary fix to avoid error when geometry column is missing.
+    # temporary fix to avoid error when geometry column is missing.
     # due to changed whay to create into duckdb that can have geometry o geom
     if geometry_column not in dataframe.columns:
         QgsMessageLog.logMessage(
@@ -262,7 +262,7 @@ def load_dataframe_as_layer(
     provider.addFeatures(feats)
     vl.updateExtents()
 
-    # save layer to the current Mergin project as GeoPackage file if requested
+    # save layer to the current project as GeoPackage file if requested
     if out_path is not None:
         # session_folder = ANNCSUSettingsManager.get_session_repo_local_path()
         # if session_folder is None:
@@ -288,13 +288,21 @@ def load_dataframe_as_layer(
         else:
             vl = QgsVectorLayer(str(output_file_path), layer_name, "ogr")
 
-    # apply related style if exists
-    named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / f"{layer_name}_style.qml"
-    vl.updateExtents()
-    if named_style_path.exists():
-        vl.loadNamedStyle(str(named_style_path))
+    # apply related style if exists where style is composed by
+    # <geocoder>_[fail|success|outs_of_geofence]_style.qml or
+    # geofence_polygon_style.qml for geofence polygon layer
+    if "geofence" in layer_name:
+        named_style = "geofence_polygon_style.qml"
+        named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / named_style
     else:
-        print(f"Style file not found: {named_style_path}")
+        geocoder_name = layer_name.split("_")[0]
+        named_style = "_".join(layer_name.split("_")[1:]) + "_style.qml"
+        named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / geocoder_name / named_style
+    vl.updateExtents()
+    if not named_style_path.exists():
+        print(f"Style file not found: {named_style_path} applying fallback for '{layer_name}'")
+        named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / "Fallback" / named_style
+    vl.loadNamedStyle(str(named_style_path))
 
     # show the layer in QGIS
     QgsProject.instance().addMapLayer(vl)
