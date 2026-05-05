@@ -1,9 +1,13 @@
 import math
 from pathlib import Path
+import random
 
 import shapely
 from qgis.utils import iface
-from qgis.core import QgsProject
+from qgis.core import (
+    QgsProject,
+    QgsDefaultValue
+)
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QProgressBar,
@@ -366,6 +370,71 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 crs_epsg=4326,  # assuming WGS84, adjust as needed
                 out_path=out_path  # save in current local repo
             )
+
+            # setup default values for repetetive columns in geocoded_anncsu to facilitate manual editing
+            self.setup_default_values_for_geocoded_anncsu()
+
+    def setup_default_values_for_geocoded_anncsu(self):
+        """This function sets up default QGIS form values for the geocoded_anncsu layer."""
+        # get layer named "geocoded_anncsu"
+        layer = QgsProject.instance().mapLayersByName("geocoded_anncsu")
+        if not layer:
+            return
+        layer = layer[0]
+
+        # for each field set default value from the previous record value for a set of columns
+        field_names = [
+            "PLUGIN_COMUNE",
+            "PLUGIN_PROVINCIA",
+            "PLUGIN_REGIONE",
+            "CODICE_COMUNE",
+            "CODICE_ISTAT",
+            "CODICE_COMUNALE",
+        ]
+        for field in field_names:
+            default_value = QgsDefaultValue()
+            default_value.setApplyOnUpdate(True)  # do not allow modification of default value
+            default_value.setExpression(f"attribute(get_feature_by_id(@layer, maximum(@id)), '{field}')")
+            field_index = layer.fields().indexFromName(field)
+
+            # Set the default value for the specific field
+            layer.setDefaultValueDefinition(field_index, default_value)
+
+        # set default value for PLUGIN_SCORE and PLUGIN_GEOCODER
+        score_default_value = QgsDefaultValue()
+        score_default_value.setExpression("0.99")
+        score_field_index = layer.fields().indexFromName("PLUGIN_SCORE")
+
+        layer.setDefaultValueDefinition(score_field_index, score_default_value)
+        geocoder_default_value = QgsDefaultValue()
+        geocoder_default_value.setExpression("'MANUAL'")
+        geocoder_field_index = layer.fields().indexFromName("PLUGIN_GEOCODER")
+        layer.setDefaultValueDefinition(geocoder_field_index, geocoder_default_value)
+
+        # set "COORD_X_COMUNE", "COORD_Y_COMUNE" from geom if not already set
+        x_default_value = QgsDefaultValue()
+        x_default_value.setApplyOnUpdate(True)
+        x_default_value.setExpression("x($geometry)")
+        x_field_index = layer.fields().indexFromName("COORD_X_COMUNE")
+        layer.setDefaultValueDefinition(x_field_index, x_default_value)
+
+        y_default_value = QgsDefaultValue()
+        y_default_value.setApplyOnUpdate(True)
+        y_default_value.setExpression("y($geometry)")
+        y_field_index = layer.fields().indexFromName("COORD_Y_COMUNE")
+        layer.setDefaultValueDefinition(y_field_index, y_default_value)
+
+        # set rundom negative values for "PROGRESSIVO_ACCESSO" and "PROGRESSIVO_NAZIONALE" to avoid
+        # conflicts with existing values during editing
+        accesso_default_value = QgsDefaultValue()
+        accesso_default_value.setExpression("rand(-100000, -1)")
+        accesso_field_index = layer.fields().indexFromName("PROGRESSIVO_ACCESSO")
+        layer.setDefaultValueDefinition(accesso_field_index, accesso_default_value)
+
+        nazionale_default_value = QgsDefaultValue()
+        nazionale_default_value.setExpression("rand(-100000, -1)")
+        nazionale_field_index = layer.fields().indexFromName("PROGRESSIVO_NAZIONALE")
+        layer.setDefaultValueDefinition(nazionale_field_index, nazionale_default_value)
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)
