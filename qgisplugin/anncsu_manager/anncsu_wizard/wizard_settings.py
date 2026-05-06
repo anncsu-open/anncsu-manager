@@ -1,5 +1,4 @@
 import json
-from functools import partial
 from pathlib import Path
 from typing import Optional
 import importlib
@@ -7,13 +6,12 @@ from pydantic import AnyUrl
 
 import duckdb
 
-from anncsu_manager.utils.misc_utils import PLUGIN_PATH, tuple_to_dataframe
+from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from qgis.core import (
     Qgis,
     QgsMessageLog,
     QgsTask,
     QgsApplication,
-    QgsProject,
 )
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
@@ -26,17 +24,14 @@ from qgis.PyQt.QtWidgets import (
     QTreeView,
     QMessageBox,
     QProgressBar,
-    QLabel,
     QPushButton,
 )
-from qgis.PyQt.QtGui import QIcon
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.anncsu_wizard.data_models.geocoder_model import GeocoderModel
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
-from anncsu_manager.qgis_plugin_tools.tools.layers import load_dataframe_as_layer, remove_layer_by_name
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.settings_manager import ScopeData, MunicipalityData
 from anncsu_manager.factories.geocoder_factory import GeocoderFactory

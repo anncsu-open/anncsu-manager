@@ -185,11 +185,11 @@ class GeocoderModel(QAbstractItemModel):
                 return item.key
 
             # allow setting value manually for any field BUT bools managed by checkbox
-            if index.column() == 1 and not item.value_type is bool:
+            if index.column() == 1 and item.value_type is not bool:
                 return item.value
 
         elif role == Qt.ItemDataRole.EditRole:
-            if index.column() == 1 and not item.value_type is bool:
+            if index.column() == 1 and item.value_type is not bool:
                 return item.value
 
         elif role == Qt.ItemDataRole.CheckStateRole:
@@ -369,7 +369,7 @@ class GeocoderModel(QAbstractItemModel):
                 document[ch.key] = self.to_json(ch)
             return document
 
-        elif item.value_type == list:
+        elif item.value_type is list:
             document = []
             for i in range(nchild):
                 ch = item.child(i)

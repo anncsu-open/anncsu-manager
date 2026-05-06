@@ -17,7 +17,6 @@ from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtWidgets import QComboBox
 from qgis.PyQt.QtCore import QCoreApplication
 
-from anncsu_manager.qgis_plugin_tools.tools.resources import resources_path
 
 TEMPORARY_OUTPUT = 'TEMPORARY_OUTPUT'
 PLUGIN_PATH = os.path.dirname(os.path.dirname(__file__))

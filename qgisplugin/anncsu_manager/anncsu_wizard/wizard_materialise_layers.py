@@ -1,6 +1,4 @@
 from pathlib import Path
-from qgis.utils import iface
-from qgis.core import QgsProject
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
     QProgressBar,
@@ -10,7 +8,6 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox
 )
 
-from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager

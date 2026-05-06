@@ -1,6 +1,5 @@
 # create a generic factory to return geocoder instances based on configuration
 from typing import Any, Dict, Optional
-from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 
 class GeocoderFactory:
 

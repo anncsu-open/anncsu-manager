@@ -17,6 +17,7 @@ from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
+from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCUGeocodeResultTab
 
 import duckdb
 
@@ -115,7 +116,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
 
                     self.statistics_num_of_clusters.setText(f"{num_of_clusters} - better {effectiveness:.2f}%")
                     self.statistics_num_of_overlapped.setText(f"{num_of_overlapped} - better {effectiveness_overlapped:.2f}%")
-                except Exception as e:
+                except Exception:
                     self.feedback.pushWarning(self.tr("Table 'remaining_clusters' or 'remaining_duplicates' does not exist. Run Deduplicate step first."))
                     self.statistics_num_of_clusters.setText(self.tr("N/A - run Deduplicate step"))
                     self.statistics_num_of_overlapped.setText(self.tr("N/A - run Deduplicate step"))
@@ -150,7 +151,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
 
             try:
                 # check if geocoded_anncsu table exists that is generated when updating from Mergin
-                exists = conn.execute(f"SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()  # nosec B608
+                exists = conn.execute("SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()  # nosec B608
                 if len(exists) == 0:
                     QgsMessageLog.logMessage(QCoreApplication.translate("ANNCSUSettingsManager", "Table 'geocoded_anncsu' not found. Cannot update session."), level=Qgis.Warning)
                     QMessageBox.warning(
@@ -161,7 +162,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                     return
 
                 # fist copy geocoded_anncsu as base to solve overlapped
-                setup_unoverlapped_query = f"""
+                setup_unoverlapped_query = """
                     CREATE OR REPLACE TABLE deoverlapped_geocoded_anncsu AS
                     SELECT * FROM geocoded_anncsu;
                 """  # nosec B608 - static query without user input
@@ -260,7 +261,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
 
                 # after the loop is finished, create remaining_clusters table with the reduced clusters and
                 # remaining_duplicates table with the still duplicated addresses
-                remaining_clusters_query = f"""
+                remaining_clusters_query = """
                     CREATE OR REPLACE TABLE "remaining_clusters" AS (
                         SELECT
                             COORD_X_COMUNE,
@@ -274,7 +275,7 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                 """  # nosec B608
                 conn.execute(remaining_clusters_query)
 
-                remaining_duplicates_query = f"""
+                remaining_duplicates_query = """
                     CREATE OR REPLACE TABLE "remaining_duplicates" AS (
                         SELECT
                             A.PROGRESSIVO_ACCESSO,
@@ -295,14 +296,14 @@ class ANNCSUWizardReduceClustersStep(QWizardPage, FORM_CLASS):
                 if self.update_geocoded_anncsu_ckb.isChecked():
                     # save a backup of geocoded_anncsu before updating it with the reduced
                     # clusters in case user want to restore it later
-                    backup_geocoded_anncsu_query = f"""
+                    backup_geocoded_anncsu_query = """
                         CREATE OR REPLACE TABLE "geocoded_anncsu_not_deoverlapped" AS
                         SELECT * FROM "geocoded_anncsu";
                     """  # nosec B608
                     conn.execute(backup_geocoded_anncsu_query)
 
                     # update geocoded_anncsu with deoverlapped_geocoded_anncsu
-                    update_geocoded_anncsu_query = f"""
+                    update_geocoded_anncsu_query = """
                         UPDATE "geocoded_anncsu"
                         SET
                             COORD_X_COMUNE = D.COORD_X_COMUNE,

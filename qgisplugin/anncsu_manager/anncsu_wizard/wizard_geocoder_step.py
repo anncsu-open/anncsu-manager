@@ -10,7 +10,6 @@ from qgis.PyQt.QtWidgets import (
     QLabel
 )
 
-from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager

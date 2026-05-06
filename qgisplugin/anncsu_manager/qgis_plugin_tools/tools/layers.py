@@ -7,7 +7,6 @@ from typing import Optional
 from pathlib import Path
 import geopandas
 import pandas
-from pyparsing import col
 import shapely
 
 from qgis.core import (
@@ -15,16 +14,14 @@ from qgis.core import (
     QgsVectorLayer,
     QgsProject,
     QgsGeometry,
-    QgsCoordinateReferenceSystem,
     QgsField,
     QgsFeature,
     QgsVectorFileWriter,
     QgsMessageLog
 )
-from qgis.PyQt.QtCore import QVariant, QMetaType
+from qgis.PyQt.QtCore import QMetaType
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
-from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 
 def remove_layer_by_name(layer_name: str) -> None:
     """Remove a layer from QGIS by its name.
@@ -163,7 +160,7 @@ def load_dataframe_as_layer(
                 try:
                     first_valid_geom = shapely.from_wkb(geom)
                     break
-                except Exception as e:
+                except Exception:
                     # check if it is a QgsGeometry in byte format
                     try:
                         newgeom = QgsGeometry()

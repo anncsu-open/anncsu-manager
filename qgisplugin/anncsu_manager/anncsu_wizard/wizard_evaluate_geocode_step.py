@@ -20,11 +20,9 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtCore import QSortFilterProxyModel
 
-from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
-from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.qgis_plugin_tools.tools.models import GeocodeResultDataFrameModel
 from anncsu_manager.qgis_plugin_tools.tools.layers import load_dataframe_as_layer, remove_layer_by_name
@@ -107,7 +105,7 @@ class ANNCUGeocodeResultTab(QWidget, FORM_CLASS_TAB):
             self.geocodes_tv.setModel(proxyModel)
 
             # get  geofence polygon
-            geofence_df = self.scopedb.execute(f"""
+            geofence_df = self.scopedb.execute("""
                 SELECT
                     ST_AsText(geom) as wktgeom
                 FROM
@@ -226,7 +224,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
             layer_name_success = f"{geocoder_name}_success"
             layer_name_fails = f"{geocoder_name}_fails"
             layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
-            layer_geofence_polygon = f"geofence_polygon"
+            layer_geofence_polygon = "geofence_polygon"
 
             # load geofence polygon layer as first layer to avoid to cover other layers
             if not tab.geofence_polygon.empty:
@@ -340,7 +338,7 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
                 continue
             try:
                 scopedb.execute(f'SELECT * FROM "{result_table_name}" LIMIT 1;')  # nosec B608
-            except Exception as e:
+            except Exception:
                 self.feedback.pushWarning(self.tr("Results table '{result_table_name}' does not exist. Skipping evaluation for geocoder '{geocoder_name}'.").format(result_table_name=result_table_name, geocoder_name=geocoder_name))
                 continue
 

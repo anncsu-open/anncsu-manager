@@ -1,9 +1,7 @@
 import math
 from pathlib import Path
-import random
 
 import shapely
-from qgis.utils import iface
 from qgis.core import (
     QgsProject,
     QgsDefaultValue
@@ -19,11 +17,10 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox
 )
 
-from anncsu_manager.utils.misc_utils import PLUGIN_PATH, tuple_to_dataframe
+from anncsu_manager.utils.misc_utils import tuple_to_dataframe
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
-from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.anncsu_wizard.wizard_evaluate_geocode_step import ANNCUGeocodeResultTab
 from anncsu_manager.qgis_plugin_tools.tools.layers import load_dataframe_as_layer, remove_layer_by_name
@@ -183,7 +180,7 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
             layer_name_success = f"{geocoder_name}_success"
             layer_name_fails = f"{geocoder_name}_fails"
             layer_name_out_of_geofence = f"{geocoder_name}_out_of_geofence"
-            layer_geofence_polygon = f"geofence_polygon"
+            layer_geofence_polygon = "geofence_polygon"
 
             # add before layer_geofence_polygon to remain under the other layers
             self.feedback.pushInfo(self.tr("info: Preparing to add geocoding results for '{geocoder_name}' to project '{project_name}'.").format(geocoder_name=geocoder_name, project_name=project_name))
