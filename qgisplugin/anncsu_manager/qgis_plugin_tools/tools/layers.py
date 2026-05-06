@@ -291,7 +291,7 @@ def load_dataframe_as_layer(
     # apply related style if exists where style is composed by
     # <geocoder>_[fail|success|outs_of_geofence]_style.qml or
     # geofence_polygon_style.qml for geofence polygon layer
-    if "geofence" in layer_name:
+    if "geofence_polygon" in layer_name:
         named_style = "geofence_polygon_style.qml"
         named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / named_style
     else:
@@ -302,6 +302,8 @@ def load_dataframe_as_layer(
     if not named_style_path.exists():
         print(f"Style file not found: {named_style_path} applying fallback for '{layer_name}'")
         named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / "Fallback" / named_style
+
+    print(f"Applying style from file: {named_style_path} to layer '{layer_name}'")
     vl.loadNamedStyle(str(named_style_path))
 
     # show the layer in QGIS
