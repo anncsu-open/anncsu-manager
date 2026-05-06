@@ -921,7 +921,7 @@ class ANNCSUSettingsManager:
         duckdb file. It also updates the update_date of the session in SCOPES and saves the updated
         SCOPES in QGIS settings.
 
-        The update starts from the table "new_anncsu" dowunlaoded before the call of this function
+        The update starts from the table "new_anncsu" downloaded before the call of this function
         The update process leaves some backup of the previous anncsu table in case of errors during
         the update process, and it updates only the values of the geocoded_anncsu table that are
         present in the temp table generated during the update from merging,
@@ -931,7 +931,7 @@ class ANNCSUSettingsManager:
         the backup tables are:
         - anncsu_backup: a backup of the anncsu table before the update.
         - previous_geocoded_anncsu: a table that contains the geocoded_anncsu data before the update.
-        - source_geocoded_anncsu: a table that contains the geocoded_anncsu modified with new anncsu values.
+        - source_updated_anncsu: a table that contains the geocoded_anncsu modified with new anncsu values.
         """
         scope_id: str = cls.get_current_scope_id()
         scopes: Dict[str, ScopeData] = cls.get_scopes()
@@ -1143,6 +1143,86 @@ class ANNCSUSettingsManager:
                 conn.execute("""
                     CREATE OR REPLACE TABLE source_updated_anncsu AS
                     SELECT * FROM updated_anncsu;
+                """)
+
+                # for each record with negative PROGRESSIVO_ACCESSO and PROGRESSIVO_NAZIONALE
+                # (e.g. record that was inserted manually) check if there is a new record with
+                # same ODONIMO and CIVICO and ESPONENTE to allow to remove the manually
+                # insterted one.
+                # hereafter three possible SQL solution to the same problem, the first one is more
+                # verbose but more clear, the second one is more compact but less clear, the third
+                # one is more efficient but less clear because it use a self join on the same table
+                # that can be confusing because it use the same table as source and target of the
+                # delete, but it is more efficient because it avoid to create two temporary tables
+                # for manually_inserted and new_records:
+
+                # Solution 1 - more verbose but more clear
+                # conn.execute("""
+                #     WITH manually_inserted AS (
+                #         SELECT
+                #             PROGRESSIVO_ACCESSO,
+                #             PROGRESSIVO_NAZIONALE,
+                #             ODONIMO,
+                #             CIVICO,
+                #             ESPONENTE
+                #         FROM updated_anncsu
+                #         WHERE PROGRESSIVO_ACCESSO < 0 AND PROGRESSIVO_NAZIONALE < 0
+                #     ),
+                #     new_records AS (
+                #         SELECT
+                #             PROGRESSIVO_ACCESSO,
+                #             PROGRESSIVO_NAZIONALE,
+                #             ODONIMO,
+                #             CIVICO,
+                #             ESPONENTE
+                #         FROM
+                #             updated_anncsu
+                #         WHERE
+                #             (PROGRESSIVO_ACCESSO >= 0 AND PROGRESSIVO_NAZIONALE >= 0) AND
+                #             (ODONIMO, CIVICO, ESPONENTE) IN
+                #                 (SELECT ODONIMO, CIVICO, ESPONENTE FROM manually_inserted)
+                #     )
+                #     DELETE FROM
+                #         updated_anncsu
+                #     WHERE
+                #         (PROGRESSIVO_ACCESSO < 0 AND PROGRESSIVO_NAZIONALE < 0) AND
+                #         (ODONIMO, CIVICO, ESPONENTE) IN
+                #              (SELECT ODONIMO, CIVICO, ESPONENTE FROM new_records)
+                # """)
+
+                # Solution 2 - more compact but less clear
+                # conn.execute("""
+                #     DELETE FROM updated_anncsu
+                #     WHERE
+                #         (PROGRESSIVO_ACCESSO < 0 AND PROGRESSIVO_NAZIONALE < 0) AND
+                #         (ODONIMO, CIVICO, ESPONENTE) IN
+                #             (SELECT ODONIMO, CIVICO, ESPONENTE FROM updated_anncsu
+                #              WHERE PROGRESSIVO_ACCESSO >= 0 AND PROGRESSIVO_NAZIONALE >= 0)
+                # """)
+
+                # Solution 3 - more efficient but less clear because it use a self join on
+                # the same table that can be confusing because it use the same table as
+                # source and target of the delete, but it is more efficient because it
+                # avoid to create two temporary tables for manually_inserted and new_records:
+                conn.execute("""
+                    DELETE FROM updated_anncsu a
+                    USING (
+                        SELECT
+                            ODONIMO,
+                            CIVICO,
+                            ESPONENTE,
+                        FROM updated_anncsu
+                        GROUP BY
+                            ODONIMO,
+                            CIVICO,
+                            ESPONENTE
+                        HAVING COUNT(*) > 1
+                    ) b
+                    WHERE
+                        a.ODONIMO = b.ODONIMO AND
+                        a.CIVICO = b.CIVICO AND
+                        a.ESPONENTE = b.ESPONENTE AND
+                        a.PROGRESSIVO_ACCESSO < 0 AND a.PROGRESSIVO_NAZIONALE < 0
                 """)
 
                 # replace old anncsu table with updated_anncsu table
