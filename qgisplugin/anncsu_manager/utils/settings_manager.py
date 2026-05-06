@@ -959,8 +959,8 @@ class ANNCSUSettingsManager:
             conn.execute("INSTALL spatial;")
             conn.execute("LOAD spatial;")
 
-            # check if geocoded_anncsu table exists that is generated when updateing
-            # from merging
+            # check if geocoded_anncsu table exists that is generated when updating
+            # from merging or project
             exists = conn.execute("SELECT * FROM information_schema.tables WHERE table_name = 'geocoded_anncsu';").df()
             if len(exists) == 0:
                 QgsMessageLog.logMessage(cls.tr("Table 'geocoded_anncsu' not found in duckdb at {duckdb_path}. Cannot update session.").format(duckdb_path=scope.duckdb_path), level=Qgis.Warning)
