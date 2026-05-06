@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.10] - 2026-05-06
+
+### Added
+
+- Allow to save and import into/from project not only from Mergin project
+- geocoded_anncsu default value setup to facilitate manual editing
+- Moved geocoder layers styles to dedicated folders
+
+### Changed
+
+- Style fixes
+- Set default values for PLUIN_* attributes when importing
+
 ## [0.0.9] - 2026-04-24
 
 ### Changed
