@@ -266,6 +266,11 @@ def load_dataframe_as_layer(
         #     raise ValueError("No active session found. Please select a session before materializing the layer.")
         output_file_path = out_path / f"{layer_name}.gpkg"
 
+        # check if file exists and remove because CreateOrOverwriteFile seems not
+        # working correctly in windows environment
+        if output_file_path.exists():
+            output_file_path.unlink()
+
         # Materialize layer as GeoPackage file
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.fileEncoding = 'UTF-8'
