@@ -93,7 +93,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         self.feedback.pushInfo(self.tr("Skipping inactive geocoder {geocoder_name}...").format(geocoder_name=geocoder_name))
                         continue
 
-                    # isntanciate geocoder
+                    # instantiate geocoder
                     geocoder = GeocoderFactory().get_geocoder(
                         geocoder_name,
                         **geocoder_config
