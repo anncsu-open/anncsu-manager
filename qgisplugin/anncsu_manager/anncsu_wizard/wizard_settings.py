@@ -30,6 +30,7 @@ from qgis.PyQt.QtWidgets import (
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
+from anncsu_manager.utils.misc_utils import beautify_url
 from anncsu_manager.anncsu_wizard.data_models.geocoder_model import GeocoderModel
 from anncsu_manager.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
@@ -68,8 +69,11 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.geocodersTreeView: QTreeView
         self.session_url: QLineEdit
 
+        # setup remore repo basing on selected comune
+        self.comune_cb.currentIndexChanged.connect(self.setup_session_url)
+
         self.sync_pb: QPushButton
-        self.sync_pb.clicked.connect(lambda: self.sync_session())
+        self.sync_pb.clicked.connect(self.sync_session)
         self.sync_pb.setStyleSheet("QPushButton { color: orange; }")
 
         # this comobobox store current session data
@@ -146,26 +150,56 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
     def sync_session(self):
         """Sync current session with remote git repo."""
-        current_scope: Optional[ScopeData] = self.current_session.currentData()
-        if current_scope is None:
-            ANNCSUMessageManager().show_message(
-                self.tr("No session selected to synchronize."),
-                "warning",
-            )
-            return
-
         self.feedback.progress_bar.show()
         self.feedback.progress_bar.setMinimum(0)
         self.feedback.progress_bar.setMaximum(0)
 
         try:
-            current_scope.sync()
+            current_scope: Optional[ScopeData] = self.current_session.currentData()
+            if current_scope is None:
+                # check if a Municipio value is set
+                if self.comune_cb.currentData() is None:
+                    ANNCSUMessageManager().show_message(
+                        self.tr("No session or municipality selected to synchronize."),
+                        "warning",
+                    )
+                    return
+                
+                # no session is available locally then clone remote repo and get session data from it
+                ScopeData.init_scopes_from_repo(
+                    remote_git_repo=self.session_url.text(),
+                    municipality_data=self.comune_cb.currentData(),
+                    feedback=self.feedback,
+                )
 
-            # save again in combobox data because sync flag has been changed
-            self.current_session.setItemData(
-                self.current_session.currentIndex(),
-                current_scope,
-            )
+                # now all scopes are available in settings manager, get current scope and set it as current session
+                self.scopes = ANNCSUSettingsManager.get_scopes()
+                self.current_scope = ANNCSUSettingsManager.get_current_scope_id()
+                current_scope = self.scopes[self.current_scope]
+
+                # populate current_session combobox
+                self.current_session.blockSignals(True)
+                self.current_session.clear()
+                self.current_session.addItem(self.tr("Select session"), None)
+                for scope_id, scope in self.scopes.items():
+                    self.current_session.addItem(scope_id, scope)
+                self.current_session.blockSignals(False)
+
+                # chanche the index of current session to current scope
+                # to trigger session change and set GUI accordingly
+                index = self.current_session.findText(self.current_scope)
+                if index != -1:
+                    self.current_session.setCurrentIndex(index)
+
+                self.update_sync_button_color()
+            else:
+                current_scope.sync()
+
+                # save again in combobox data because sync flag has been changed
+                self.current_session.setItemData(
+                    self.current_session.currentIndex(),
+                    current_scope,
+                )
             self.save_settings()  # save settings to persist sync flag
 
             ANNCSUMessageManager().show_message(
@@ -566,41 +600,19 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.manageSessionChange()
         ANNCSUMessageManager().show_message(self.tr("ANNCSU QGIS Plugin settings reset."), "info")
 
-    # def on_finished_create_new_session(self, exception, result=None):
-    #     """Callback when finished creating a new session."""
-    #     self.create_new_session_task = None  # reset task reference
-    #     self.feedback.progress_bar.hide()
+    def setup_session_url(self):
+        """Setup remote repository URL based on selected municipality code."""
+        # get selected municipality code
+        municipality_data: MunicipalityData = self.comune_cb.currentData()
+        if municipality_data is None or municipality_data.anncsu_id == "":
+            ANNCSUMessageManager().show_message(
+                self.tr("Select a municipality code to setup the remote repository."),
+                "warning",
+            )
+            return
 
-    #     if exception is not None:
-    #         ANNCSUMessageManager().show_message(
-    #             f"Errore durante la creazione della nuova sessione: {str(exception)}",
-    #             "error",
-    #         )
-    #         return
-
-    #     # save new sesstion data
-    #     new_scope_id, new_scope = result if result is not None else (None, None)
-    #     if new_scope_id is None or new_scope is None:
-    #         ANNCSUMessageManager().show_message(
-    #             "Errore durante la creazione della nuova sessione: dati sessione non validi.",
-    #             "error",
-    #         )
-    #         return
-    #     print(f"New session created: {new_scope_id} -> {new_scope} ---- {result}")
-
-    #     # add new session to combobox and set it as current
-    #     new_scope.sync_changed.connect(self.update_sync_button_color)
-    #     new_scope.sync_changed.emit()  # initial sync status
-    #     self.current_session.addItem(new_scope_id, new_scope)
-    #     self.current_session.setCurrentIndex(
-    #         self.current_session.findText(new_scope_id)
-    #     )
-
-    #     # save settings
-    #     municipality_data: MunicipalityData = self.comune_cb.currentData()
-    #     ANNCSUSettingsManager.set_geocoders_configs(self.geocodersTreeView.model().to_json())
-    #     self.registerGeocoders()
-    #     ANNCSUSettingsManager.set_anncsu_repo(self.anncsu_base_url.text())
-    #     ANNCSUSettingsManager.set_municipality_code(municipality_data.anncsu_id)
-    #     ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
-    #     ANNCSUMessageManager().show_message("ANNCSU QGIS Plugin settings saved.", "success")
+        # setup remote repo url basing on selected municipality code
+        # e.g. if None or empty string => set default value
+        municipality_session_url = str.lower(ANNCSUSettingsManager.get_default_session_repo_url().format(**municipality_data.to_dict()))
+        municipality_session_url = beautify_url(municipality_session_url)
+        self.session_url.setText(municipality_session_url)

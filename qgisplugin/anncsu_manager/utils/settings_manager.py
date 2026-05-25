@@ -39,7 +39,8 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.misc_utils import (
     EventSource,
     DownloadFileTask,
-    clone_or_pull_git_repo_task
+    clone_or_pull_git_repo_task,
+    beautify_url,
 )
 
 
@@ -109,6 +110,95 @@ class ScopeData:
         if local_path.exists() and (local_path / ".git").exists():
             return local_path.resolve()
         return None
+
+    @classmethod
+    def sync_remote_repo(cls, remote_git_repo: str, feedback: ANNCSUProcessingFeedback) -> Tuple[bool, Optional[str]]:
+        """Sync with remote git repo using git library.
+        Inputs:
+            remote_git_repo (str): URL or git ssh string to remote git repo where store session
+            feedback (ANNCSUProcessingFeedback): Feedback object to update progress and messages
+        Returns:
+            Tuple[bool, Optional[str]]: (success, error_message)
+        """
+        repo_name = remote_git_repo.split("/")[-1].replace(".git", "")
+        local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
+
+        # check if local path exist and is a git repo, if not clone it
+        if not local_path.exists() or not (local_path / ".git").exists():
+            print(f"Cloning git repository at {local_path}...")
+            Repo.clone_from(remote_git_repo, local_path)
+        else:
+            print(f"Pulling git repository at {local_path}...")
+            repo = Repo(local_path)
+            origin = repo.remotes.origin
+            origin.pull()
+
+    @classmethod
+    def init_scopes_from_repo(
+        cls,
+        remote_git_repo: str,
+        municipality_data: MunicipalityData,
+        feedback: ANNCSUProcessingFeedback
+    ):
+        """Init scopes in settings manager from remote git repo.
+        This method is used to initialize the scopes in settings manager from a remote git repo.
+        It is used when the user select a session from the wizard and the session is not present in local settings.
+        It clones or pull the remote git repo and then read the duckdb file to extract the scopes data and save it in settings manager.
+        Inputs:
+            remote_git_repo (str): URL or git ssh string to remote git repo where store session
+            municipality_data (MunicipalityData): Municipality data object associated with the session to initialize
+            feedback (ANNCSUProcessingFeedback): Feedback object to update progress and messages
+        Raises:
+            Exception: If the duckdb file is not found in the remote git repo or if there is an error during the process.
+        """
+        repo_name = remote_git_repo.split("/")[-1].replace(".git", "")
+        local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
+
+        # clone or pull the remote git repo
+        cls.sync_remote_repo(remote_git_repo, feedback)
+
+        # find duckdb file in the local repo
+        duckdb_files = list(local_path.glob("*.duckdb"))
+        if len(duckdb_files) == 0:
+            raise Exception(f"No duckdb file found in the remote git repo at {remote_git_repo}.")
+
+        # order duckdb files by creation date that is took from file name that have
+        # the following format: "<codice_municipio>_YYYYMMDD_HHMMSS.duckdb"
+        duckdb_files.sort(
+            key=lambda f:
+                datetime.strptime(re.search(r'_(\d{8}_\d{6})\.duckdb$', f.name).group(1), "%Y%m%d_%H%M%S"),
+            reverse=True
+        )
+        duckdb_path = duckdb_files[0]
+
+        # create session_scoppes basing on available duckdb file
+        scopes = ANNCSUSettingsManager.get_scopes()
+        for row in duckdb_files:
+            # set session name basing on duckdb file name that have the following format: "<codice_municipio>_YYYYMMDD_HHMMSS.duckdb"
+            scope_id = row.stem
+
+            # check if scope already exist in available scopes, if exist skip it
+            if scope_id in scopes:
+                continue
+
+            date_time = re.search(r'_(\d{8}_\d{6})\.duckdb$', row.name).group(1)
+            scope_data = ScopeData(
+                duckdb_path=duckdb_path,
+                remote_git_repo=remote_git_repo,
+                syncked=True,
+                municipality_data=municipality_data,
+                source_db=AnyUrl(ANNCSUSettingsManager.get_anncsu_repo()),
+                creation_date=datetime.strptime(date_time, "%Y%m%d_%H%M%S"),
+                update_date=datetime.strptime(date_time, "%Y%m%d_%H%M%S"),
+                description=f"{municipality_data.nome} - {municipality_data.regione} ({date_time})",
+            )
+            scopes[scope_id] = scope_data
+
+        ANNCSUSettingsManager.set_scopes(scopes)
+
+        # set current scope id to the first one that is the most recent one basing on duckdb file name
+        if len(duckdb_files) > 0:
+            ANNCSUSettingsManager.set_current_scope_id(duckdb_path.stem)
 
     def sync(self, files_to_sync: Optional[Union[Path, list[Path]]] = None):
         """Sync duckdb (by default) with remote git repo using git library.
@@ -206,11 +296,12 @@ class ANNCSUSettingsManager:
     settings because have to saved in QGIS.ini settings.
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
+    DATA_PATH = PLUGIN_PATH / "resources" / "data"
 
     DEFAULT_COORDINATE_DISTANCE_THRESHOLD=0.00001
     DEFAULT_SESSION_REPO_URL = "https://github.com/anncsu-open/anncsu-{nome}-{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
-    DEFAULT_GEOCODERS_JSON_PATH = PLUGIN_PATH / "resources" / "data" / "geocoders.json"
+    DEFAULT_GEOCODERS_JSON_PATH = DATA_PATH / "geocoders.json"
     # DEFAULT_ANNCSU_REPO_URL = "https://anncsu.open.agenziaentrate.gov.it/age-inspire/opendata/anncsu/getds.php?INDIR_ITA"
     DEFAULT_ANNCSU_REPO_URL = "https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/indirizzarioItalia.duckdb"
     DEFAULT_MUNICIPALITY_CODE = "0000000"
@@ -1293,7 +1384,7 @@ class ANNCSUSettingsManager:
                     if response_head.status_code == 200 and response_head.headers.get('Content-Disposition'):
                         remote_filename = response_head.headers.get('Content-Disposition').split('filename=')[-1].strip('"')
 
-                    temp_duckdb_path = cls.PLUGIN_PATH / "resources" / "data" / remote_filename
+                    temp_duckdb_path = cls.DATA_PATH / remote_filename
 
                     # Download file asynchronously with progress tracking in QGIS task manager
                     # download_task = download_file_async(str(source_db), temp_duckdb_path)
@@ -1395,8 +1486,9 @@ class ANNCSUSettingsManager:
 
         # create remote repo url where to save session make it's name a correct url
         remote_git_repo = str.lower(cls.get_default_session_repo_url().format(**municipality_data.to_dict()))
+        remote_git_repo = beautify_url(remote_git_repo)
         repo_name = os.path.basename(remote_git_repo).replace(".git", "")
-        local_path =cls.PLUGIN_PATH / "resources" / "data" / repo_name
+        local_path = cls.DATA_PATH / repo_name
         print(f"Using remote git repo URL: {remote_git_repo}")
 
         # check correctness of the url
