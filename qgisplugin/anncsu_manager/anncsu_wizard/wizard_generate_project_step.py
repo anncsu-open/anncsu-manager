@@ -307,6 +307,11 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
             if 'geom' not in geocoded_anncsu_df.columns:
                 geocoded_anncsu_df['geom'] = None
 
+            # cast COORD_X_COMUNE and COORD_Y_COMUNE to float
+            # that is STR f it is loaded from table geocoded_anncsu instead of clone from anncsu_df
+            geocoded_anncsu_df['COORD_X_COMUNE'] = geocoded_anncsu_df['COORD_X_COMUNE'].astype(float)
+            geocoded_anncsu_df['COORD_Y_COMUNE'] = geocoded_anncsu_df['COORD_Y_COMUNE'].astype(float)
+
             # create a geocoded_anncsu table getting the geocode result from that with highest score for
             # each record in anncsu table OR mantain the geocoded record if alreay present in anncsu table
             for index, row in enumerate(geocoded_anncsu_df.itertuples()):
