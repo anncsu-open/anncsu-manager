@@ -1,4 +1,5 @@
 import os
+import unicodedata
 import urllib.parse
 import requests
 from typing import Optional, Callable
@@ -500,3 +501,25 @@ def clone_or_pull_git_repo(
         QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Error cloning/pulling git repository {remote_git_repo}: {e}").format(remote_git_repo=remote_git_repo, e=e), level=Qgis.Critical)
         return None
 
+def beautify_url(url: str) -> str:
+    """Make a URL usable removing space in the stem of the URL and encoding it.
+
+    Args:
+        url: The URL to encode
+    Returns:
+        str: The encoded URL
+    """
+    parsed = urllib.parse.urlsplit(remove_accents(url))
+    # Remove spaces from the path and encode it
+    cleaned_path = parsed.path.replace(" ", "")
+    cleaned_path = cleaned_path.replace("'", "")
+    encoded_path = urllib.parse.quote(cleaned_path)
+    # Reconstruct the URL with the encoded path
+    beautified_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, encoded_path, parsed.query, parsed.fragment))
+    return beautified_url
+
+def remove_accents(input_str):
+    # Decompose accented characters into base characters and diacritics
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    # Recreate the string, filtering out any characters classified as "combining" marks
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
