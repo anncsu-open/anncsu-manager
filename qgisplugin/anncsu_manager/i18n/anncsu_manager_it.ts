@@ -253,8 +253,8 @@ I dettagli mostrano gli accessi con coordinate aggiornate.
 
     <message>
       <location filename="../anncsu_wizard/wizard_settings.py" line="157"/>
-      <source>No session selected to synchronize.</source>
-      <translation>Nessuna sessione selezionata da sincronizzare.</translation>
+      <source>No session or municipality selected to synchronize.</source>
+      <translation>Nessuna sessione o comune selezionato da sincronizzare.</translation>
     </message>
     <message>
       <location filename="../anncsu_wizard/wizard_settings.py" line="177"/>
