@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.12] - 2026-05-26
+
+### Added
+
+- Sync now can clone remote repo ans setup available sessions
+- Remove proprietary geocoder result before sync
+- Prevent sync if proprietary geocoder results are present in geocoded_anncsu
+
+### Changed
+
+- Fixed git credential management and moved under misc_utils
+- Fixed cast of coord to float when reading back from geocoded_anncsu
+
 ## [0.0.11] - 2026-05-18
 
 ### Added
