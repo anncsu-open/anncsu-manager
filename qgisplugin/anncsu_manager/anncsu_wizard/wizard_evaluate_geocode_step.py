@@ -1,3 +1,4 @@
+import os
 import re
 import geopandas
 import pandas
@@ -316,6 +317,11 @@ class ANNCSUWizardEvaluateGeocode(QWizardPage, FORM_CLASS):
         duck_db_source = current_scope.to_dict().get("duckdb_path", "")
         if not duck_db_source:
             self.feedback.reportError(self.tr("No DuckDB database path found in the current scope settings."))
+            return
+
+        # check if db file exists
+        if not os.path.exists(duck_db_source):
+            self.feedback.reportError(self.tr("DuckDB database file not found at {duck_db_source}.").format(duck_db_source=duck_db_source))
             return
 
         scopedb = duckdb.connect(duck_db_source)

@@ -667,6 +667,10 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
       <source>Results table &apos;{result_table_name}&apos; does not exist. Skipping evaluation for geocoder &apos;{geocoder_name}&apos;.</source>
       <translation>La tabella dei risultati &apos;{result_table_name}&apos; non esiste. Valutazione del geocoder &apos;{geocoder_name}&apos; ignorata.</translation>
     </message>
+    <message>
+      <source>DuckDB database file not found at {duck_db_source}.</source>
+      <translation>File database DuckDB non trovato in {duck_db_source}.</translation>
+    </message>
   </context>
 
   <!-- ============================================================ -->
