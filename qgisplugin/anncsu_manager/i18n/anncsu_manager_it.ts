@@ -130,16 +130,12 @@ I dettagli mostrano gli accessi con coordinate aggiornate.
       <translation>Errore durante la creazione della nuova sessione: {exception}</translation>
     </message>
     <message>
-      <source>Remote repository {remote_git_repo} is empty (no commits). Push at least one commit before syncing.</source>
-      <translation>Il repository remoto {remote_git_repo} è vuoto (nessun commit). Esegui almeno un commit prima di sincronizzare.</translation>
+      <source>Failed to clone or pull remote git repo: {remote_git_repo}</source>
+      <translation>Impossibile clonare o aggiornare il repository git remoto: {remote_git_repo}</translation>
     </message>
     <message>
-      <source>Local repository at {local_path} has no tracking branch. Push at least one commit before syncing.</source>
-      <translation>Il repository locale in {local_path} non ha un branch di tracciamento. Esegui almeno un commit prima di sincronizzare.</translation>
-    </message>
-    <message>
-      <source>Failed to sync remote git repo: {error_message}</source>
-      <translation>Sincronizzazione con il repository git remoto non riuscita: {error_message}</translation>
+      <source>No duckdb sessions available. Please create a new session for {nome} or select another session.</source>
+      <translation>Nessuna sessione duckdb disponibile. Crea una nuova sessione per {nome} o seleziona un&apos;altra sessione.</translation>
     </message>
   </context>
 
@@ -212,6 +208,10 @@ I dettagli mostrano gli accessi con coordinate aggiornate.
     <message>
       <source>Error cloning/pulling git repository {remote_git_repo}: {e}</source>
       <translation>Errore durante la clonazione/aggiornamento del repository git {remote_git_repo}: {e}</translation>
+    </message>
+    <message>
+      <source>Remote repository {remote_git_repo} is empty (no commits). Push at least one commit before syncing.</source>
+      <translation>Il repository remoto {remote_git_repo} è vuoto (nessun commit). Esegui almeno un commit prima di sincronizzare.</translation>
     </message>
   </context>
 
