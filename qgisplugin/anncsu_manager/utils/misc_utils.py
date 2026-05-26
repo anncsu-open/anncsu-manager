@@ -1,3 +1,4 @@
+import contextlib
 import os
 import unicodedata
 import urllib.parse
@@ -336,6 +337,58 @@ def download_file_async(
     QgsApplication.taskManager().addTask(task)
     return task
 
+def _get_tracking_branch(repo: Repo) -> Optional[str]:
+    """Return the remote branch name tracked by the current local branch.
+
+    Returns None if HEAD is detached or no tracking branch is configured (e.g. empty remote).
+    """
+    try:
+        tracking = repo.active_branch.tracking_branch()
+        if tracking is not None:
+            return tracking.remote_head
+    except TypeError:
+        pass  # detached HEAD
+    return None
+
+
+@contextlib.contextmanager
+def git_auth_context(url: str, origin=None, *, git_token: str = "", git_user: str = "", git_password: str = "", ssh_key: str = ""):
+    """Context manager that temporarily applies git credentials for a remote operation.
+
+    Yields the authenticated URL. For clone operations use the yielded URL directly.
+    For pull/push on an existing repo pass origin= and its URL will be set temporarily.
+    """
+    auth_url = url
+    temp_url_changed = False
+    ssh_changed = False
+    old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
+    try:
+        if ssh_key and not git_token and not (git_user and git_password):
+            os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
+            ssh_changed = True
+        elif git_token or (git_user and git_password):
+            creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
+            parsed = urllib.parse.urlsplit(url)
+            if parsed.scheme in ("http", "https"):
+                netloc = f"{creds}@{parsed.netloc}"
+                auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+                if origin is not None:
+                    origin.set_url(auth_url)
+                    temp_url_changed = True
+        yield auth_url
+    finally:
+        if temp_url_changed and origin is not None:
+            try:
+                origin.set_url(url)
+            except Exception:  # nosec B110 - intentionally ignore restore errors
+                pass
+        if ssh_changed:
+            if old_git_ssh is None:
+                os.environ.pop("GIT_SSH_COMMAND", None)
+            else:
+                os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+
+
 class clone_or_pull_git_repo_task(QgsTask):
     """Wrapper task to run clone_or_pull_git_repo in a separate thread with progress tracking.
 
@@ -403,9 +456,6 @@ def clone_or_pull_git_repo(
 ) -> Optional[Repo]:
     """Clone or pull a git repository with authentication support.
 
-    This method handles both cloning a new repository and pulling updates
-    to an existing one, with support for SSH keys and HTTPS credentials.
-
     Args:
         remote_git_repo: Remote git repository URL (HTTPS or SSH)
         local_path: Local path where repository should be cloned/pulled
@@ -416,89 +466,54 @@ def clone_or_pull_git_repo(
 
     Returns:
         Optional[Repo]: Git Repo object if successful, None if error occurs
-
-    Raises:
-        Exception: If git operations fail
     """
+    auth_kwargs = dict(
+        git_token=git_token or "",
+        git_user=git_user or "",
+        git_password=git_password or "",
+        ssh_key=ssh_key or "",
+    )
     try:
         if local_path.exists():
             repo = Repo(local_path)
             origin = repo.remotes.origin
-            original_url = origin.url
-            temp_url_changed = False
-            old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-            try:
-                if ssh_key:
-                    os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                elif git_token or (git_user and git_password):
-                    creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                    parsed = urllib.parse.urlsplit(origin.url)
-                    if parsed.scheme in ("http", "https"):
-                        netloc = f"{creds}@{parsed.netloc}"
-                        auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                        origin.set_url(auth_url)
-                        temp_url_changed = True
-
-                # NOTE: repo need to have at least 1 file otherwise git pull do not fetch any ref
-                QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Pulling latest changes from git repository at {url}...").format(url=origin.url), level=Qgis.Info)
-                origin.pull()
-
-            finally:
-                if temp_url_changed:
-                    try:
-                        origin.set_url(original_url)
-                    except Exception:  # nosec B110 - intentionally pass
-                        pass
-                if ssh_key:
-                    if old_git_ssh is None:
-                        os.environ.pop("GIT_SSH_COMMAND", None)
-                    else:
-                        os.environ["GIT_SSH_COMMAND"] = old_git_ssh
-
-            QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Repository already exists at {local_path}, pulled latest changes.").format(local_path=local_path), level=Qgis.Info)
+            branch = _get_tracking_branch(repo)
+            QgsMessageLog.logMessage(
+                QCoreApplication.translate("clone_or_pull_git_repo_task", "Pulling latest changes from git repository at {url}...").format(url=origin.url),
+                level=Qgis.Info
+            )
+            with git_auth_context(origin.url, origin=origin, **auth_kwargs):
+                if branch:
+                    repo.git.pull(origin.name, branch)
+            QgsMessageLog.logMessage(
+                QCoreApplication.translate("clone_or_pull_git_repo_task", "Repository already exists at {local_path}, pulled latest changes.").format(local_path=local_path),
+                level=Qgis.Info
+            )
             return repo
-
         else:
-            # prepare a temporary URL with credentials or GIT_SSH_COMMAND for cloning
-            temp_url = remote_git_repo
-            temp_changed = False
-            old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-            repo = None
-            try:
-                if ssh_key:
-                    os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                elif git_token or (git_user and git_password):
-                    creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                    parsed = urllib.parse.urlsplit(remote_git_repo)
-                    if parsed.scheme in ("http", "https"):
-                        netloc = f"{creds}@{parsed.netloc}"
-                        temp_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                        temp_changed = True
-
-                QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Cloning latest changes from git repository at {url}...").format(url=temp_url), level=Qgis.Info)
-                repo = Repo.clone_from(temp_url, local_path)
-
-            except Exception as e:
-                QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Error cloning git repository {remote_git_repo}: {e}").format(remote_git_repo=remote_git_repo, e=e), level=Qgis.Critical)
-                return None
-            finally:
-                if temp_changed and repo is not None:
-                    try:
-                        origin = repo.remotes.origin
-                        origin.set_url(remote_git_repo)
-                    except Exception:  # nosec B110 - intentionally pass
-                        pass
-                if ssh_key:
-                    if old_git_ssh is None:
-                        os.environ.pop("GIT_SSH_COMMAND", None)
-                    else:
-                        os.environ["GIT_SSH_COMMAND"] = old_git_ssh
-                QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Successfully cloned repo {remote_git_repo} to {local_path}.").format(remote_git_repo=remote_git_repo, local_path=local_path), level=Qgis.Info)
-
+            QgsMessageLog.logMessage(
+                QCoreApplication.translate("clone_or_pull_git_repo_task", "Cloning latest changes from git repository at {url}...").format(url=remote_git_repo),
+                level=Qgis.Info
+            )
+            with git_auth_context(remote_git_repo, **auth_kwargs) as auth_url:
+                repo = Repo.clone_from(auth_url, local_path)
+            if not repo.heads:
+                raise Exception(
+                    QCoreApplication.translate(
+                        "clone_or_pull_git_repo_task",
+                        "Remote repository {remote_git_repo} is empty (no commits). Push at least one commit before syncing."
+                    ).format(remote_git_repo=remote_git_repo)
+                )
+            QgsMessageLog.logMessage(
+                QCoreApplication.translate("clone_or_pull_git_repo_task", "Successfully cloned repo {remote_git_repo} to {local_path}.").format(remote_git_repo=remote_git_repo, local_path=local_path),
+                level=Qgis.Info
+            )
             return repo
-
     except Exception as e:
-        QgsMessageLog.logMessage(QCoreApplication.translate("clone_or_pull_git_repo_task", "Error cloning/pulling git repository {remote_git_repo}: {e}").format(remote_git_repo=remote_git_repo, e=e), level=Qgis.Critical)
+        QgsMessageLog.logMessage(
+            QCoreApplication.translate("clone_or_pull_git_repo_task", "Error cloning/pulling git repository {remote_git_repo}: {e}").format(remote_git_repo=remote_git_repo, e=e),
+            level=Qgis.Critical
+        )
         return None
 
 def beautify_url(url: str) -> str:

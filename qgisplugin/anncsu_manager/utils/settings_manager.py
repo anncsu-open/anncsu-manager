@@ -1,5 +1,4 @@
 import re
-import contextlib
 
 import geopandas
 import pandas
@@ -40,7 +39,10 @@ from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
 from anncsu_manager.utils.misc_utils import (
     EventSource,
     DownloadFileTask,
+    clone_or_pull_git_repo,
     clone_or_pull_git_repo_task,
+    git_auth_context,
+    _get_tracking_branch,
     beautify_url,
 )
 
@@ -112,117 +114,13 @@ class ScopeData:
             return local_path.resolve()
         return None
 
-    @staticmethod
-    @contextlib.contextmanager
-    def _git_auth_context(url: str, origin=None):
-        """Context manager that temporarily applies git credentials for a remote operation.
-
-        Yields the authenticated URL. For clone operations use the yielded URL directly.
-        For pull/push on an existing repo pass origin= and its URL will be set temporarily.
-        """
-        ssh_key = ANNCSUSettingsManager.get_git_ssh_key()
-        git_user = ANNCSUSettingsManager.get_git_user()
-        git_password = ANNCSUSettingsManager.get_git_password()
-        git_token = ANNCSUSettingsManager.get_git_token()
-
-        auth_url = url
-        temp_url_changed = False
-        ssh_changed = False
-        old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-
-        try:
-            if ssh_key and not git_token and not (git_user and git_password):
-                os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                ssh_changed = True
-            elif git_token or (git_user and git_password):
-                creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                parsed = urllib.parse.urlsplit(url)
-                if parsed.scheme in ("http", "https"):
-                    netloc = f"{creds}@{parsed.netloc}"
-                    auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                    if origin is not None:
-                        origin.set_url(auth_url)
-                        temp_url_changed = True
-            yield auth_url
-        finally:
-            if temp_url_changed and origin is not None:
-                try:
-                    origin.set_url(url)
-                except Exception:  # nosec B110 - intentionally ignore restore errors
-                    pass
-            if ssh_changed:
-                if old_git_ssh is None:
-                    os.environ.pop("GIT_SSH_COMMAND", None)
-                else:
-                    os.environ["GIT_SSH_COMMAND"] = old_git_ssh
-
-    @staticmethod
-    def _get_tracking_branch(repo: "Repo") -> Optional[str]:
-        """Return the remote branch name that the current local branch tracks.
-
-        Uses the tracking ref set by clone (most reliable source). Returns None
-        if HEAD is detached or no tracking branch is configured (e.g. empty remote).
-        """
-        try:
-            tracking = repo.active_branch.tracking_branch()
-            if tracking is not None:
-                return tracking.remote_head
-        except TypeError:
-            pass  # detached HEAD
-        return None
-
-    @classmethod
-    def sync_remote_repo(cls, remote_git_repo: str, feedback: ANNCSUProcessingFeedback) -> Tuple[bool, Optional[str]]:
-        """Sync with remote git repo using git library.
-        Inputs:
-            remote_git_repo (str): URL or git ssh string to remote git repo where store session
-            feedback (ANNCSUProcessingFeedback): Feedback object to update progress and messages
-        Returns:
-            Tuple[bool, Optional[str]]: (success, error_message)
-        """
-        repo_name = remote_git_repo.split("/")[-1].replace(".git", "")
-        local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
-
-        try:
-            if not local_path.exists() or not (local_path / ".git").exists():
-                print(f"Cloning git repository at {local_path}...")
-                with cls._git_auth_context(remote_git_repo) as auth_url:
-                    cloned = Repo.clone_from(auth_url, local_path)
-                if not cloned.heads:
-                    raise Exception(
-                        QCoreApplication.translate(
-                            "ANNCSUSettingsManager",
-                            "Remote repository {remote_git_repo} is empty (no commits). "
-                            "Push at least one commit before syncing."
-                        ).format(remote_git_repo=remote_git_repo)
-                    )
-            else:
-                print(f"Pulling git repository at {local_path}...")
-                repo = Repo(local_path)
-                origin = repo.remotes.origin
-                branch = cls._get_tracking_branch(repo)
-                with cls._git_auth_context(remote_git_repo, origin=origin):
-                    if branch:
-                        repo.git.pull(origin.name, branch)
-                    else:
-                        raise Exception(
-                            QCoreApplication.translate(
-                                "ANNCSUSettingsManager",
-                                "Local repository at {local_path} has no tracking branch. "
-                                "Push at least one commit before syncing."
-                            ).format(local_path=local_path)
-                        )
-            return True, None
-        except Exception as e:
-            return False, str(e)
-
     @classmethod
     def init_scopes_from_repo(
         cls,
         remote_git_repo: str,
         municipality_data: MunicipalityData,
         feedback: ANNCSUProcessingFeedback
-    ):
+    ) -> bool:
         """Init scopes in settings manager from remote git repo.
         This method is used to initialize the scopes in settings manager from a remote git repo.
         It is used when the user select a session from the wizard and the session is not present in local settings.
@@ -231,6 +129,8 @@ class ScopeData:
             remote_git_repo (str): URL or git ssh string to remote git repo where store session
             municipality_data (MunicipalityData): Municipality data object associated with the session to initialize
             feedback (ANNCSUProcessingFeedback): Feedback object to update progress and messages
+        Returns:
+            bool: True if scopes were initialized successfully, False otherwise.
         Raises:
             Exception: If the duckdb file is not found in the remote git repo or if there is an error during the process.
         """
@@ -238,19 +138,33 @@ class ScopeData:
         local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
 
         # clone or pull the remote git repo
-        success, error_message = cls.sync_remote_repo(remote_git_repo, feedback)
-        if not success:
+        repo = clone_or_pull_git_repo(
+            remote_git_repo=remote_git_repo,
+            local_path=local_path,
+            git_user=ANNCSUSettingsManager.get_git_user(),
+            git_password=ANNCSUSettingsManager.get_git_password(),
+            git_token=ANNCSUSettingsManager.get_git_token(),
+            ssh_key=ANNCSUSettingsManager.get_git_ssh_key(),
+        )
+        if repo is None:
             raise Exception(
                 QCoreApplication.translate(
                     "ANNCSUSettingsManager",
-                    "Failed to sync remote git repo: {error_message}"
-                ).format(error_message=error_message)
+                    "Failed to clone or pull remote git repo: {remote_git_repo}"
+                ).format(remote_git_repo=remote_git_repo)
             )
 
         # find duckdb file in the local repo
         duckdb_files = list(local_path.glob("*.duckdb"))
         if len(duckdb_files) == 0:
-            raise Exception(f"No duckdb file found in the remote git repo at {remote_git_repo}.")
+            ANNCSUMessageManager().show_message(
+                QCoreApplication.translate(
+                    "ANNCSUSettingsManager",
+                    "No duckdb sessions available. Please create a new session for {nome} or select another session."
+                ).format(nome=municipality_data.nome),
+                "warning",
+            )
+            return False
 
         # order duckdb files by creation date that is took from file name that have
         # the following format: "<codice_municipio>_YYYYMMDD_HHMMSS.duckdb"
@@ -290,6 +204,8 @@ class ScopeData:
         if len(duckdb_files) > 0:
             ANNCSUSettingsManager.set_current_scope_id(duckdb_path.stem)
 
+        return True
+
     def sync(self, files_to_sync: Optional[Union[Path, list[Path]]] = None):
         """Sync duckdb (by default) with remote git repo using git library.
         If files_to_sync is provided, sync only those files.
@@ -326,8 +242,14 @@ class ScopeData:
             files_to_sync = [f.resolve() if isinstance(f, Path) else Path(f).resolve() for f in files_to_sync]
             files_to_sync = [f.relative_to(local_path) for f in files_to_sync]
 
-            branch = self._get_tracking_branch(repo)
-            with self._git_auth_context(origin.url, origin=origin):
+            branch = _get_tracking_branch(repo)
+            with git_auth_context(
+                origin.url, origin=origin,
+                git_token=ANNCSUSettingsManager.get_git_token(),
+                git_user=ANNCSUSettingsManager.get_git_user(),
+                git_password=ANNCSUSettingsManager.get_git_password(),
+                ssh_key=ANNCSUSettingsManager.get_git_ssh_key(),
+            ):
                 if branch:
                     repo.git.pull(origin.name, branch)
                 repo.index.add([str(f) for f in files_to_sync])

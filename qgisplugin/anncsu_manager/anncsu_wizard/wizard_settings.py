@@ -166,11 +166,13 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                     return
                 
                 # no session is available locally then clone remote repo and get session data from it
-                ScopeData.init_scopes_from_repo(
+                res = ScopeData.init_scopes_from_repo(
                     remote_git_repo=self.session_url.text(),
                     municipality_data=self.comune_cb.currentData(),
                     feedback=self.feedback,
                 )
+                if not res:
+                    return  # e.g. no duckdb file found in remote repo, message already shown in method
 
                 # now all scopes are available in settings manager, get current scope and set it as current session
                 self.scopes = ANNCSUSettingsManager.get_scopes()
