@@ -190,8 +190,11 @@ class ScopeData:
                     cloned = Repo.clone_from(auth_url, local_path)
                 if not cloned.heads:
                     raise Exception(
-                        f"Remote repository {remote_git_repo} is empty (no commits). "
-                        "Push at least one commit before syncing."
+                        QCoreApplication.translate(
+                            "ANNCSUSettingsManager",
+                            "Remote repository {remote_git_repo} is empty (no commits). "
+                            "Push at least one commit before syncing."
+                        ).format(remote_git_repo=remote_git_repo)
                     )
             else:
                 print(f"Pulling git repository at {local_path}...")
@@ -201,7 +204,14 @@ class ScopeData:
                 with cls._git_auth_context(remote_git_repo, origin=origin):
                     if branch:
                         repo.git.pull(origin.name, branch)
-                    # else: remote is empty, nothing to pull
+                    else:
+                        raise Exception(
+                            QCoreApplication.translate(
+                                "ANNCSUSettingsManager",
+                                "Local repository at {local_path} has no tracking branch. "
+                                "Push at least one commit before syncing."
+                            ).format(local_path=local_path)
+                        )
             return True, None
         except Exception as e:
             return False, str(e)
@@ -230,7 +240,12 @@ class ScopeData:
         # clone or pull the remote git repo
         success, error_message = cls.sync_remote_repo(remote_git_repo, feedback)
         if not success:
-            raise Exception(f"Failed to sync remote git repo: {error_message}")
+            raise Exception(
+                QCoreApplication.translate(
+                    "ANNCSUSettingsManager",
+                    "Failed to sync remote git repo: {error_message}"
+                ).format(error_message=error_message)
+            )
 
         # find duckdb file in the local repo
         duckdb_files = list(local_path.glob("*.duckdb"))
