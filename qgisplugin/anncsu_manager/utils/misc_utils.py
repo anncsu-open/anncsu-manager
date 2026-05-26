@@ -370,7 +370,11 @@ def git_auth_context(url: str, origin=None, *, git_token: str = "", git_user: st
             creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
             parsed = urllib.parse.urlsplit(url)
             if parsed.scheme in ("http", "https"):
-                netloc = f"{creds}@{parsed.netloc}"
+                # use parsed.hostname (strips any pre-existing credentials) to avoid double-injection
+                clean_host = parsed.hostname
+                if parsed.port:
+                    clean_host = f"{clean_host}:{parsed.port}"
+                netloc = f"{creds}@{clean_host}"
                 auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
                 if origin is not None:
                     origin.set_url(auth_url)
@@ -497,6 +501,9 @@ def clone_or_pull_git_repo(
             )
             with git_auth_context(remote_git_repo, **auth_kwargs) as auth_url:
                 repo = Repo.clone_from(auth_url, local_path)
+                # reset origin to the clean URL so credentials aren't persisted in .git/config
+                if auth_url != remote_git_repo:
+                    repo.remotes["origin"].set_url(remote_git_repo)
             if not repo.heads:
                 raise Exception(
                     QCoreApplication.translate(
