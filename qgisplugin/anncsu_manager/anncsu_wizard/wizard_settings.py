@@ -195,6 +195,14 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
                 self.update_sync_button_color()
             else:
+                if current_scope.geocoded_anncsu_has_commercial_values():
+                    reply = QMessageBox.question(self,
+                        self.tr("Prevent sync with remote repository"),
+                        self.tr("The current session has geocoded records with commercial values that need to be fixed manually or with Mergin"),
+                        QMessageBox.StandardButton.Yes,
+                        QMessageBox.StandardButton.Yes,
+                    )
+                    return
                 if current_scope.has_privative_tables():
                     reply = QMessageBox.question(self,
                         self.tr("Private tables detected"),

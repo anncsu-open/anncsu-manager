@@ -326,6 +326,14 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
       <translation>Impostazioni del plugin ANNCSU QGIS ripristinate.</translation>
     </message>
     <message>
+      <source>Prevent sync with remote repository</source>
+      <translation>Sincronizzazione con il repository remoto bloccata</translation>
+    </message>
+    <message>
+      <source>The current session has geocoded records with commercial values that need to be fixed manually or with Mergin</source>
+      <translation>La sessione corrente contiene record geocodificati con valori commerciali che devono essere corretti manualmente o tramite Mergin</translation>
+    </message>
+    <message>
       <source>Private tables detected</source>
       <translation>Tabelle private rilevate</translation>
     </message>

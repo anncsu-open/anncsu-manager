@@ -264,6 +264,23 @@ class ScopeData:
             self.syncked = False
             raise Exception(f"Error syncing git repository at {local_path}: {e}")
 
+    def geocoded_anncsu_has_commercial_values(self) -> bool:
+        """Check if geocoded_anncsu table in duckdb has values from commercial
+        geocoders that should notbe shared in remote repo.
+        Any coord value that come from a proprietary geocoder has it's name into
+        PLUGIN_GEOCODER. Safe values are "MANUAL", "WhereAbouts", "ANNCSU".
+        Any other value is considered not safe and should not be shared in
+        remote repo."""
+        try:
+            with duckdb.connect(self.duckdb_path) as con:
+                proprietary_geocoders = con.execute("""SELECT DISTINCT PLUGIN_GEOCODER FROM geocoded_anncsu
+                    WHERE PLUGIN_GEOCODER NOT IN ('MANUAL', 'WhereAbouts', 'ANNCSU')""").fetchall()
+                if len(proprietary_geocoders) > 0:
+                    return True
+            return False
+        except Exception as e:
+            raise Exception(f"Error checking geocoded_anncsu table in duckdb at {self.duckdb_path}: {e}")
+
     def has_privative_tables(self) -> bool:
         """check if duckdb has tables from privative geocoders that should
         have been removed before syncing with remote repo. This is a check to avoid sync if there are privative tables in duckdb that should not be shared in remote repo."""
