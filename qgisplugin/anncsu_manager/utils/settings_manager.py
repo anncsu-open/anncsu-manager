@@ -127,11 +127,13 @@ class ScopeData:
 
         auth_url = url
         temp_url_changed = False
+        ssh_changed = False
         old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
 
         try:
-            if ssh_key:
+            if ssh_key and not git_token and not (git_user and git_password):
                 os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
+                ssh_changed = True
             elif git_token or (git_user and git_password):
                 creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
                 parsed = urllib.parse.urlsplit(url)
@@ -148,11 +150,26 @@ class ScopeData:
                     origin.set_url(url)
                 except Exception:  # nosec B110 - intentionally ignore restore errors
                     pass
-            if ssh_key:
+            if ssh_changed:
                 if old_git_ssh is None:
                     os.environ.pop("GIT_SSH_COMMAND", None)
                 else:
                     os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+
+    @staticmethod
+    def _get_tracking_branch(repo: "Repo") -> Optional[str]:
+        """Return the remote branch name that the current local branch tracks.
+
+        Uses the tracking ref set by clone (most reliable source). Returns None
+        if HEAD is detached or no tracking branch is configured (e.g. empty remote).
+        """
+        try:
+            tracking = repo.active_branch.tracking_branch()
+            if tracking is not None:
+                return tracking.remote_head
+        except TypeError:
+            pass  # detached HEAD
+        return None
 
     @classmethod
     def sync_remote_repo(cls, remote_git_repo: str, feedback: ANNCSUProcessingFeedback) -> Tuple[bool, Optional[str]]:
@@ -170,13 +187,21 @@ class ScopeData:
             if not local_path.exists() or not (local_path / ".git").exists():
                 print(f"Cloning git repository at {local_path}...")
                 with cls._git_auth_context(remote_git_repo) as auth_url:
-                    Repo.clone_from(auth_url, local_path)
+                    cloned = Repo.clone_from(auth_url, local_path)
+                if not cloned.heads:
+                    raise Exception(
+                        f"Remote repository {remote_git_repo} is empty (no commits). "
+                        "Push at least one commit before syncing."
+                    )
             else:
                 print(f"Pulling git repository at {local_path}...")
                 repo = Repo(local_path)
                 origin = repo.remotes.origin
+                branch = cls._get_tracking_branch(repo)
                 with cls._git_auth_context(remote_git_repo, origin=origin):
-                    origin.pull()
+                    if branch:
+                        repo.git.pull(origin.name, branch)
+                    # else: remote is empty, nothing to pull
             return True, None
         except Exception as e:
             return False, str(e)
@@ -203,7 +228,9 @@ class ScopeData:
         local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
 
         # clone or pull the remote git repo
-        cls.sync_remote_repo(remote_git_repo, feedback)
+        success, error_message = cls.sync_remote_repo(remote_git_repo, feedback)
+        if not success:
+            raise Exception(f"Failed to sync remote git repo: {error_message}")
 
         # find duckdb file in the local repo
         duckdb_files = list(local_path.glob("*.duckdb"))
@@ -284,11 +311,14 @@ class ScopeData:
             files_to_sync = [f.resolve() if isinstance(f, Path) else Path(f).resolve() for f in files_to_sync]
             files_to_sync = [f.relative_to(local_path) for f in files_to_sync]
 
+            branch = self._get_tracking_branch(repo)
             with self._git_auth_context(origin.url, origin=origin):
-                origin.pull()
+                if branch:
+                    repo.git.pull(origin.name, branch)
                 repo.index.add([str(f) for f in files_to_sync])
                 repo.index.commit(f"Sync at {datetime.now().isoformat()}")
-                origin.push()
+                branch_arg = branch or repo.active_branch.name
+                repo.git.push(origin.name, branch_arg)
                 self.syncked = True
 
             self.sync_changed.emit()
