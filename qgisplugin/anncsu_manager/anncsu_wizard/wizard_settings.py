@@ -195,6 +195,17 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
 
                 self.update_sync_button_color()
             else:
+                if current_scope.has_privative_tables():
+                    reply = QMessageBox.question(self,
+                        self.tr("Private tables detected"),
+                        self.tr("The current session has private tables that will be lost if you synchronize with the remote repository.\nDo you want to proceed?"),
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No,
+                    )
+                    if reply == QMessageBox.StandardButton.No:
+                        return  # user cancelled, do not sync session
+                    else:
+                        current_scope.delete_privative_tables()
                 current_scope.sync()
 
                 # save again in combobox data because sync flag has been changed

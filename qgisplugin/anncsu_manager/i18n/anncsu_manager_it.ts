@@ -325,6 +325,16 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
       <source>ANNCSU QGIS Plugin settings reset.</source>
       <translation>Impostazioni del plugin ANNCSU QGIS ripristinate.</translation>
     </message>
+    <message>
+      <source>Private tables detected</source>
+      <translation>Tabelle private rilevate</translation>
+    </message>
+    <message>
+      <source>The current session has private tables that will be lost if you synchronize with the remote repository.
+Do you want to proceed?</source>
+      <translation>La sessione corrente contiene tabelle private che andranno perse se si sincronizza con il repository remoto.
+Vuoi procedere?</translation>
+    </message>
   </context>
 
   <!-- ============================================================ -->

@@ -264,6 +264,55 @@ class ScopeData:
             self.syncked = False
             raise Exception(f"Error syncing git repository at {local_path}: {e}")
 
+    def has_privative_tables(self) -> bool:
+        """check if duckdb has tables from privative geocoders that should
+        have been removed before syncing with remote repo. This is a check to avoid sync if there are privative tables in duckdb that should not be shared in remote repo."""
+        try:
+            with duckdb.connect(self.duckdb_path) as con:
+                tables = con.execute("SHOW TABLES").fetchall()
+            for table in tables:
+                if table[0].startswith("geocoding_results_") and not table[0].endswith("WhereAbouts"):
+                    return True
+                if table[0].endswith("_fails") and not table[0].startswith("WhereAbouts"):
+                    return True
+                if table[0].endswith("_success") and not table[0].startswith("WhereAbouts"):
+                    return True
+                if table[0].endswith("_out_of_geofence") and not table[0].startswith("WhereAbouts"):
+                    return True
+                if table[0].startswith("solved_by_") and not table[0].endswith("whereabouts"):
+                    return True
+                if table[0].endswith("_clusters") and not table[0].startswith("WhereAbouts"):
+                    return True
+                if table[0].endswith("_overlapped") and not table[0].startswith("WhereAbouts"):
+                    return True
+            return False
+        except Exception as e:
+            raise Exception(f"Error checking privative tables in duckdb at {self.duckdb_path}: {e}")
+
+    def delete_privative_tables(self):
+        """Delete all tables from duckdb that are from privative geocoders that should
+        have been removed before syncing with remote repo. This is a method 
+        to clean duckdb from privative tables before syncing with remote repo."""
+        try:
+            with duckdb.connect(self.duckdb_path) as con:
+                tables = con.execute("SHOW TABLES").fetchall()
+                for table in tables:
+                    if table[0].startswith("geocoding_results_") and not table[0].endswith("WhereAbouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+                    if table[0].endswith("_fails") and not table[0].startswith("WhereAbouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+                    if table[0].endswith("_success") and not table[0].startswith("WhereAbouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+                    if table[0].endswith("_out_of_geofence") and not table[0].startswith("WhereAbouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+                    if table[0].startswith("solved_by_") and not table[0].endswith("whereabouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+                    if table[0].endswith("_clusters") and not table[0].startswith("WhereAbouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+                    if table[0].endswith("_overlapped") and not table[0].startswith("WhereAbouts"):
+                        con.execute(f"DROP TABLE {table[0]}")
+        except Exception as e:
+            raise Exception(f"Error deleting privative tables in duckdb at {self.duckdb_path}: {e}")
 
 class ANNCSUSettingsManager:
     """
