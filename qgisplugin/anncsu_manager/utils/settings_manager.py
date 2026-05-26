@@ -281,7 +281,9 @@ class ScopeData:
                     return True
                 if table[0].startswith("solved_by_") and not table[0].endswith("whereabouts"):
                     return True
-                if table[0].endswith("_clusters") and not table[0].startswith("WhereAbouts"):
+                if table[0].endswith("_clusters") and not \
+                    (table[0].startswith("WhereAbouts") or
+                     table[0].startswith("remaining")):  # because geocoding_results_ tables can have clusters table if the geocoder support it
                     return True
                 if table[0].endswith("_overlapped") and not table[0].startswith("WhereAbouts"):
                     return True
@@ -307,7 +309,9 @@ class ScopeData:
                         con.execute(f"DROP TABLE {table[0]}")
                     if table[0].startswith("solved_by_") and not table[0].endswith("whereabouts"):
                         con.execute(f"DROP TABLE {table[0]}")
-                    if table[0].endswith("_clusters") and not table[0].startswith("WhereAbouts"):
+                    if table[0].endswith("_clusters") and not \
+                        (table[0].startswith("WhereAbouts") or
+                         table[0].startswith("remaining")):  # because geocoding_results_ tables can have clusters table if the geocoder support it
                         con.execute(f"DROP TABLE {table[0]}")
                     if table[0].endswith("_overlapped") and not table[0].startswith("WhereAbouts"):
                         con.execute(f"DROP TABLE {table[0]}")
