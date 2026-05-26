@@ -1,4 +1,5 @@
 import re
+import contextlib
 
 import geopandas
 import pandas
@@ -111,6 +112,48 @@ class ScopeData:
             return local_path.resolve()
         return None
 
+    @staticmethod
+    @contextlib.contextmanager
+    def _git_auth_context(url: str, origin=None):
+        """Context manager that temporarily applies git credentials for a remote operation.
+
+        Yields the authenticated URL. For clone operations use the yielded URL directly.
+        For pull/push on an existing repo pass origin= and its URL will be set temporarily.
+        """
+        ssh_key = ANNCSUSettingsManager.get_git_ssh_key()
+        git_user = ANNCSUSettingsManager.get_git_user()
+        git_password = ANNCSUSettingsManager.get_git_password()
+        git_token = ANNCSUSettingsManager.get_git_token()
+
+        auth_url = url
+        temp_url_changed = False
+        old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
+
+        try:
+            if ssh_key:
+                os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
+            elif git_token or (git_user and git_password):
+                creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
+                parsed = urllib.parse.urlsplit(url)
+                if parsed.scheme in ("http", "https"):
+                    netloc = f"{creds}@{parsed.netloc}"
+                    auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+                    if origin is not None:
+                        origin.set_url(auth_url)
+                        temp_url_changed = True
+            yield auth_url
+        finally:
+            if temp_url_changed and origin is not None:
+                try:
+                    origin.set_url(url)
+                except Exception:  # nosec B110 - intentionally ignore restore errors
+                    pass
+            if ssh_key:
+                if old_git_ssh is None:
+                    os.environ.pop("GIT_SSH_COMMAND", None)
+                else:
+                    os.environ["GIT_SSH_COMMAND"] = old_git_ssh
+
     @classmethod
     def sync_remote_repo(cls, remote_git_repo: str, feedback: ANNCSUProcessingFeedback) -> Tuple[bool, Optional[str]]:
         """Sync with remote git repo using git library.
@@ -123,15 +166,20 @@ class ScopeData:
         repo_name = remote_git_repo.split("/")[-1].replace(".git", "")
         local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
 
-        # check if local path exist and is a git repo, if not clone it
-        if not local_path.exists() or not (local_path / ".git").exists():
-            print(f"Cloning git repository at {local_path}...")
-            Repo.clone_from(remote_git_repo, local_path)
-        else:
-            print(f"Pulling git repository at {local_path}...")
-            repo = Repo(local_path)
-            origin = repo.remotes.origin
-            origin.pull()
+        try:
+            if not local_path.exists() or not (local_path / ".git").exists():
+                print(f"Cloning git repository at {local_path}...")
+                with cls._git_auth_context(remote_git_repo) as auth_url:
+                    Repo.clone_from(auth_url, local_path)
+            else:
+                print(f"Pulling git repository at {local_path}...")
+                repo = Repo(local_path)
+                origin = repo.remotes.origin
+                with cls._git_auth_context(remote_git_repo, origin=origin):
+                    origin.pull()
+            return True, None
+        except Exception as e:
+            return False, str(e)
 
     @classmethod
     def init_scopes_from_repo(
@@ -236,47 +284,12 @@ class ScopeData:
             files_to_sync = [f.resolve() if isinstance(f, Path) else Path(f).resolve() for f in files_to_sync]
             files_to_sync = [f.relative_to(local_path) for f in files_to_sync]
 
-            # Credential helpers: read from QGIS settings via ANNCSUSettingsManager
-            git_user = ANNCSUSettingsManager.get_git_user()
-            git_password = ANNCSUSettingsManager.get_git_password()
-            git_token = ANNCSUSettingsManager.get_git_token()
-            ssh_key = ANNCSUSettingsManager.get_git_ssh_key()
-
-            original_url = origin.url
-            temp_url_changed = False
-            old_git_ssh = os.environ.get("GIT_SSH_COMMAND")
-
-            try:
-                # If SSH key provided, instruct git to use it for this process.
-                if ssh_key:
-                    os.environ["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key} -o IdentitiesOnly=yes"
-                # If HTTPS credentials present, inject them into remote URL temporarily.
-                elif git_token or (git_user and git_password):
-                    creds = git_token if git_token else f"{urllib.parse.quote(git_user)}:{urllib.parse.quote(git_password)}"
-                    parsed = urllib.parse.urlsplit(origin.url)
-                    if parsed.scheme in ("http", "https"):
-                        netloc = f"{creds}@{parsed.netloc}"
-                        auth_url = urllib.parse.urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-                        origin.set_url(auth_url)
-                        temp_url_changed = True
-
+            with self._git_auth_context(origin.url, origin=origin):
                 origin.pull()
-                repo.index.add( [str(f) for f in files_to_sync] )
+                repo.index.add([str(f) for f in files_to_sync])
                 repo.index.commit(f"Sync at {datetime.now().isoformat()}")
                 origin.push()
                 self.syncked = True
-            finally:
-                # restore original remote url and environment
-                if temp_url_changed:
-                    try:
-                        origin.set_url(original_url)
-                    except Exception:  # nosec B110 - intentiaonally pass exception
-                        pass
-                if ssh_key:
-                    if old_git_ssh is None:
-                        os.environ.pop("GIT_SSH_COMMAND", None)
-                    else:
-                        os.environ["GIT_SSH_COMMAND"] = old_git_ssh
 
             self.sync_changed.emit()
 
