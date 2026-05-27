@@ -402,6 +402,30 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
             # Set the default value for the specific field
             layer.setDefaultValueDefinition(field_index, default_value)
 
+        # set default value for ODONIMO inferring it's value from the nearest (under 50m) one
+        odonimo_default_value = QgsDefaultValue()
+        odonimo_default_value.setApplyOnUpdate(True)
+        odonimo_default_value.setExpression("""
+            with_variable(
+                'nearest',
+                overlay_nearest(
+                    @layer,
+                    $id,
+                    limit:=1,
+                    max_distance:=0.00045  -- approximately 50 meters, adjust as needed
+                ),
+                if(array_length(@nearest) > 0,
+                    attribute(
+                        get_feature_by_id( @layer, @nearest[0] ),
+                        'ODONIMO'
+                    ),
+                    NULL
+                )
+            )
+        """)
+        odonimo_field_index = layer.fields().indexFromName("ODONIMO")
+        layer.setDefaultValueDefinition(odonimo_field_index, odonimo_default_value)
+
         # set default value for PLUGIN_SCORE and PLUGIN_GEOCODER
         score_default_value = QgsDefaultValue()
         score_default_value.setExpression("0.99")
