@@ -60,7 +60,7 @@ class Matcher:
         parsed_url = urllib.parse.urlparse(db_name)
         if parsed_url.scheme in ('http', 'https', 'duckdb'):
             whereabouts_db = db_name
-        elif parsed_url.scheme == '':
+        else:
             # check if model is an absolute path to a file
             if os.path.isfile(db_name):
                 whereabouts_db = db_name
@@ -77,8 +77,6 @@ class Matcher:
                     for name in db_names:
                         print(name)
                     raise ValueError(f"Database not found: {db_name}")
-        else:
-            raise ValueError(f"Invalid database name or URL: {db_name}")
 
         # attach the whereabouts database
         self.con.execute(f"ATTACH DATABASE '{whereabouts_db}' as remote;")
