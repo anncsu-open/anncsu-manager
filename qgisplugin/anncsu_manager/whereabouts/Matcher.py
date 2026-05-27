@@ -61,18 +61,22 @@ class Matcher:
         if parsed_url.scheme in ('http', 'https', 'duckdb'):
             whereabouts_db = db_name
         elif parsed_url.scheme == '':
-            # Check if the model exists in the folder
-            path_to_models = importlib.resources.files('whereabouts').joinpath('models')
-
-            db_names = [name[:-3] for name in os.listdir(path_to_models) if name.endswith('.db')]
-            if db_name in db_names:
-                whereabouts_db = f"{path_to_models}/{db_name}.db"
+            # check if model is an absolute path to a file
+            if os.path.isfile(db_name):
+                whereabouts_db = db_name
             else:
-                print(f"Could not find database {db_name}")
-                print("The following geocoding databases are installed:")
-                for name in db_names:
-                    print(name)
-                raise ValueError(f"Database not found: {db_name}")
+                # Check if the model exists in the model folder
+                path_to_models = importlib.resources.files('whereabouts').joinpath('models')
+
+                db_names = [name[:-3] for name in os.listdir(path_to_models) if name.endswith('.db')]
+                if db_name in db_names:
+                    whereabouts_db = f"{path_to_models}/{db_name}.db"
+                else:
+                    print(f"Could not find database {db_name}")
+                    print("The following geocoding databases are installed:")
+                    for name in db_names:
+                        print(name)
+                    raise ValueError(f"Database not found: {db_name}")
         else:
             raise ValueError(f"Invalid database name or URL: {db_name}")
 
