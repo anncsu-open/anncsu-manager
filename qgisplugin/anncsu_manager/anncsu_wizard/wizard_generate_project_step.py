@@ -4,7 +4,10 @@ from pathlib import Path
 import shapely
 from qgis.core import (
     QgsProject,
-    QgsDefaultValue
+    QgsDefaultValue,
+    QgsEditFormConfig,
+    QgsAttributeEditorField,
+    QgsAttributeEditorContainer
 )
 from qgis.PyQt.QtWidgets import (
     QWizardPage,
@@ -461,6 +464,23 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         nazionale_default_value.setExpression("rand(-100000, -1)")
         nazionale_field_index = layer.fields().indexFromName("PROGRESSIVO_NAZIONALE")
         layer.setDefaultValueDefinition(nazionale_field_index, nazionale_default_value)
+
+        self.setup_editing_form_for_geocoded_anncsu(layer)
+
+    def setup_editing_form_for_geocoded_anncsu(self, layer):
+        """Configure the editing form for geocoded_anncsu using the field list from settings."""
+        form_config = layer.editFormConfig()
+        form_config.setLayout(QgsEditFormConfig.EditorLayout.TabLayout)
+
+        root = form_config.invisibleRootContainer()
+        root.clear()
+
+        for field_name in ANNCSUSettingsManager.get_geocoded_anncsu_form_fields():
+            field_idx = layer.fields().indexFromName(field_name)
+            if field_idx >= 0:
+                root.addChildElement(QgsAttributeEditorField(field_name, field_idx, root))
+
+        layer.setEditFormConfig(form_config)
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)

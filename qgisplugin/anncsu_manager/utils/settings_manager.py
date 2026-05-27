@@ -349,6 +349,7 @@ class ANNCSUSettingsManager:
     DATA_PATH = PLUGIN_PATH / "resources" / "data"
 
     DEFAULT_COORDINATE_DISTANCE_THRESHOLD=0.00001
+    DEFAULT_GEOCODED_ANNCSU_FORM_FIELDS = ["ODONIMO", "CIVICO", "ESPONENTE", "QUOTA"]
     DEFAULT_SESSION_REPO_URL = "https://github.com/anncsu-open/anncsu-{nome}-{anncsu_id}.git"  # format with MunicipalityName and Anncsu code
     DEFAULT_GEOFENCE_POLYGONS_SOURCE = 'https://github.com/geobeyond/anncsu-data/raw/refs/heads/main/com01012025_wgs84.parquet'
     DEFAULT_GEOCODERS_JSON_PATH = DATA_PATH / "geocoders.json"
@@ -468,6 +469,7 @@ class ANNCSUSettingsManager:
     GEOCODERS_CONFIGS_KEY = "anncsu_manager/geocoders_configs" # unused in QGIS.ini because saved in geocoders.json
     SCOPES_KEY = "anncsu_manager/scopes"
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
+    GEOCODED_ANNCSU_FORM_FIELDS_KEY = "anncsu_manager/geocoded_anncsu_form_fields"
 
     # Git credential keys to get from environment variables (preferred) or QGIS settings (fallback)
     GIT_TOKEN_KEY = "anncsu_manager/git_token"  # pragma: allowlist secret - no secter at all but obly a key # nosec B105
@@ -487,6 +489,7 @@ class ANNCSUSettingsManager:
         SCOPES_KEY: DEFAULT_SCOPES,
         # A scope id has the following format: "<codice_municipio>_YYYYMMDD_HHMMSS"
         SCOPE_ID_KEY: "",
+        GEOCODED_ANNCSU_FORM_FIELDS_KEY: DEFAULT_GEOCODED_ANNCSU_FORM_FIELDS,
     }
 
     # set credential defaults
@@ -559,6 +562,17 @@ class ANNCSUSettingsManager:
     def get_current_scope_id(cls) -> str:
         key = cls.SCOPE_ID_KEY
         return QgsSettings().value(key, cls.DEFAULTS[key])
+
+    @classmethod
+    def get_geocoded_anncsu_form_fields(cls) -> list:
+        key = cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY
+        raw = QgsSettings().value(key, None)
+        if raw is None:
+            return list(cls.DEFAULTS[key])
+        try:
+            return json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            return list(cls.DEFAULTS[key])
 
     @classmethod
     def get_scopes(cls) -> Dict[str, ScopeData]:
@@ -753,6 +767,10 @@ class ANNCSUSettingsManager:
         QgsSettings().setValue(cls.SCOPE_ID_KEY, scope_id)
 
     @classmethod
+    def set_geocoded_anncsu_form_fields(cls, fields: list):
+        QgsSettings().setValue(cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY, json.dumps(fields))
+
+    @classmethod
     def set_scopes(cls, scopes: dict[str, ScopeData]):
         class jsonEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -789,6 +807,10 @@ class ANNCSUSettingsManager:
     @classmethod
     def reset_scopes(cls):
         QgsSettings().setValue(cls.SCOPES_KEY, cls.DEFAULTS[cls.SCOPES_KEY])
+
+    @classmethod
+    def reset_geocoded_anncsu_form_fields(cls):
+        QgsSettings().setValue(cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY, json.dumps(cls.DEFAULTS[cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY]))
 
     @classmethod
     def reset_all(cls):
