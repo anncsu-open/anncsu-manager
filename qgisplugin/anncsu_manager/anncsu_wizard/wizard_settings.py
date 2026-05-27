@@ -626,7 +626,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         """Setup remote repository URL based on selected municipality code."""
         # get selected municipality code
         municipality_data: MunicipalityData = self.comune_cb.currentData()
-        if municipality_data is None or municipality_data.anncsu_id == "":
+        if not municipality_data or not municipality_data.anncsu_id:
             ANNCSUMessageManager().show_message(
                 self.tr("Select a municipality code to setup the remote repository."),
                 "warning",
