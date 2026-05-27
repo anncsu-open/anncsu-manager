@@ -612,6 +612,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         scopes[self.current_session.currentText()] = current_scope
         ANNCSUSettingsManager.set_scopes(scopes)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
+        ANNCSUSettingsManager.set_geocoded_anncsu_form_fields(ANNCSUSettingsManager.get_geocoded_anncsu_form_fields())
         ANNCSUMessageManager().show_message(self.tr("ANNCSU QGIS Plugin settings saved."), "success")
 
     def reset_settings_to_default(self):

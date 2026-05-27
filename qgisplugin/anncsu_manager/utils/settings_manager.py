@@ -821,6 +821,7 @@ class ANNCSUSettingsManager:
         cls.reset_municipality_code()
         cls.reset_geocoders_configs()
         cls.reset_scopes()
+        cls.reset_geocoded_anncsu_form_fields()
 
     @staticmethod
     def delete_session(scope_id: str):
