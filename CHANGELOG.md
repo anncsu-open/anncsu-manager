@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.13] - 2026-05-27
+
+### Added
+
+- Helper to auto-fill ODONIMO default value from the nearest feature of the same layer
+- Matcher DB can now be placed in a custom folder outside the model directory, preventing it from being overwritten on plugin update
+
+### Changed
+
+- Simplified `geocoded_anncsu` editing form to show only a configurable set of fields, reducing noise from ANNCSU-only attributes
+- Restored original ANNCSU source database as the default value for the ANNCSU source setting
+
+### Fixed
+
+- Form fields were not saved during save-settings and reset operations
+- Empty string was not treated as `None` when reading comboBox data, causing unexpected behaviour
+
 ## [0.0.12] - 2026-05-26
 
 ### Added

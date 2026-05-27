@@ -5,12 +5,24 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.12
+version=v0.0.13
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=https://github.com/anncsu-open/anncsu-manager/blob/main/CHANGELOG.md
+changelog=0.0.13
+    Added: Helper to auto-fill ODONIMO default value from the nearest feature of the same layer
+    Added: Matcher DB can now be placed in a custom folder outside the model directory, preventing it from being overwritten on plugin update
+    Changed: Simplified geocoded_anncsu editing form to show only a configurable set of fields, reducing noise from ANNCSU-only attributes
+    Changed: Restored original ANNCSU source database as the default value for the ANNCSU source setting
+    Fixed: Form fields were not saved during save-settings and reset operations
+    Fixed: Empty string was not treated as None when reading comboBox data, causing unexpected behaviour
+    0.0.12
+    Added: Sync now can clone remote repo and setup available sessions
+    Added: Remove proprietary geocoder result before sync
+    Added: Prevent sync if proprietary geocoder results are present in geocoded_anncsu
+    Changed: Fixed git credential management and moved under misc_utils
+    Changed: Fixed cast of coord to float when reading back from geocoded_anncsu
 tags=Italy, portal, geocode, ANNCSU, official, Italiano, sdk
 repository=https://github.com/anncsu-open/anncsu-manager
 tracker=https://github.com/anncsu-open/anncsu-manager/issues
