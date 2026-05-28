@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.14] - 2026-05-28
+
+### Fixed
+
+- File locking issue on Windows when writing: replaced plain file writes with a specific OGR wrapper to properly handle file access
+- Windows path with drive letter (e.g. `C:\`) was incorrectly parsed as a URL schema, causing exceptions
+
 ## [0.0.13] - 2026-05-27
 
 ### Added

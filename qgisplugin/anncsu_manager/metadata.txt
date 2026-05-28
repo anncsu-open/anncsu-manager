@@ -5,12 +5,15 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.13
+version=v0.0.14
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=0.0.13
+changelog=0.0.14
+    Fixed: File locking issue on Windows when writing: replaced plain file writes with a specific OGR wrapper to properly handle file access
+    Fixed: Windows path with drive letter (e.g. C:\) was incorrectly parsed as a URL schema, causing exceptions
+    0.0.13
     Added: Helper to auto-fill ODONIMO default value from the nearest feature of the same layer
     Added: Matcher DB can now be placed in a custom folder outside the model directory, preventing it from being overwritten on plugin update
     Changed: Simplified geocoded_anncsu editing form to show only a configurable set of fields, reducing noise from ANNCSU-only attributes
