@@ -266,15 +266,15 @@ def load_dataframe_as_layer(
         #     raise ValueError("No active session found. Please select a session before materializing the layer.")
         output_file_path = out_path / f"{layer_name}.gpkg"
 
-        # check if file exists and remove because CreateOrOverwriteFile seems not
-        # working correctly in windows environment
-        if output_file_path.exists():
-            output_file_path.unlink()
-
         # Materialize layer as GeoPackage file
+        # Use CreateOrOverwriteLayer instead of CreateOrOverwriteFile to avoid
+        # PermissionError on Windows when the GPKG is held open by a QgsVectorLayer
+        # that lives outside QgsProject (e.g. stored on a wizard tab). GPKG/SQLite
+        # WAL mode allows a writer to coexist with active readers so no pre-deletion
+        # is needed.
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.fileEncoding = 'UTF-8'
-        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
         options.driverName = 'GPKG'
         options.layerName = layer_name
         options.saveMetadata = True
