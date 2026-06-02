@@ -60,7 +60,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             progress_bar=self.progressBar,
         )
         self.feedback.progress_signal.connect(self.update_feedback_progress)
-        self.create_new_session_task: Optional[QgsTask] = None  # necessary to track task state
         self.update_anncsu_task: Optional[QgsTask] = None  # necessary to track task state
 
         # binding var to UI elements
@@ -515,15 +514,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             municipality_data.anncsu_id != current_municipality_code or
             force_creation_new_session
         ):
-            # launch a new session creation with QgsTask to avoid GUI blocking
-            if self.create_new_session_task is not None:
-                # avoid multiple task creation
-                ANNCSUMessageManager().show_message(
-                    self.tr("New session creation task already in progress."),
-                    "warning",
-                )
-                return
-
             if force_creation_new_session:
                 message = self.tr("Forcing creation of a new ANNCSU session. Do you want to proceed?")
 
@@ -551,19 +541,6 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.feedback.progress_bar.show()
             self.feedback.progress_bar.setMinimum(0)
             self.feedback.progress_bar.setMaximum(0)
-
-            # create the session (time consuming) task
-            # self.create_new_session_task = QgsTask.fromFunction(
-            #     f"Creazione nuova sessione per comune {municipality_data.anncsu_id}",
-            #     ANNCSUSettingsManager.create_new_session,
-            #     source_db=AnyUrl(self.anncsu_base_url.text()),
-            #     municipality_data=municipality_data,
-            #     feedback=self.feedback,
-            #     on_finished=self.on_finished_create_new_session,
-            # )
-
-            # # run create new settion sime spending task
-            # QgsApplication.taskManager().addTask(self.create_new_session_task)
 
             # create new session
             new_scope_id, new_scope = None, None
