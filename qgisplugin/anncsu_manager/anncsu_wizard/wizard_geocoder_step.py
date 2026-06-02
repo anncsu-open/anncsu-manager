@@ -1,3 +1,4 @@
+from typing import Any, List
 from datetime import datetime
 import re
 import time
@@ -8,6 +9,12 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QProgressBar,
     QLabel
+)
+from qgis.core import (
+    Qgis,
+    QgsMessageLog,
+    QgsTask,
+    QgsApplication
 )
 
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
@@ -25,6 +32,38 @@ ANNCSU_TABLE_FIELDS = ("PLUGIN_COMUNE", "PLUGIN_PROVINCIA", "PLUGIN_REGIONE", "C
 
 FORM_CLASS: QWizardPage = load_ui("wizard_run_geocoders_page.ui")
 
+class geocode_task(QgsTask):
+
+    def __init__(self,
+            addresses_to_geocode: list[str],
+            geocoder: object,
+        ) -> None:
+        super().__init__(f"Do geocoding for {len(addresses_to_geocode)} addresses", QgsTask.CanCancel)
+        self.addresses_to_geocode = addresses_to_geocode
+        self.geocoder: Any = geocoder
+        self.geocoded_results: List[dict] = []
+        # task status
+        self.exception = None
+        self.result = None
+
+    def run(self) -> bool:
+        try:
+            self.geocoded_results = self.geocoder.geocode(addresses=self.addresses_to_geocode)
+            self.result = True
+        except Exception as e:
+            self.exception = e
+            QgsMessageLog.logMessage(self.tr("Error in geocode task: {e}").format(e=e), level=Qgis.Critical)
+            self.result = False
+
+        return self.result
+
+    def finished(self, result: bool):
+        if result:
+            QgsMessageLog.logMessage(self.tr("Successfully geocoded {count} addresses").format(count=len(self.geocoded_results)), level=Qgis.Info)
+        else:
+            QgsMessageLog.logMessage(self.tr("Error geocoding {count} addresses").format(count=len(self.geocoded_results)), level=Qgis.Critical)
+
+        return super().finished(result)
 
 class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
@@ -121,19 +160,41 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         addresses_to_geocode.append(address_to_geocode)
                         addresses_to_geocode_alternatives.append([address_to_geocode_alternative])
 
-                    self.feedback.progress_signal.emit(0)
-                    self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
+                    self.feedback.progress_bar.show()
+                    self.feedback.progress_bar.setMinimum(0)
+                    self.feedback.progress_bar.setMaximum(0)
                     self.feedback.pushInfo(self.tr("Geocoding {count} addresses using {geocoder_name}...").format(count=len(addresses_to_geocode), geocoder_name=geocoder_name))
 
                     # do bulk geocode using WhereAbouts to do it faster
                     self.feedback.pushInfo(self.tr("Geocoding {count} bulk addresses to speedup process.").format(count=len(addresses_to_geocode)))
                     start = time.time()
-                    geocoded = geocoder.geocode(addresses=addresses_to_geocode)
+                    do_geocode_task = geocode_task(
+                        addresses_to_geocode=addresses_to_geocode,
+                        geocoder=geocoder,
+                    )
+
+                    # run gocodng that is time consuming task
+                    QgsApplication.taskManager().addTask(do_geocode_task)
+                    while do_geocode_task.status() != QgsTask.Running:
+                        QgsApplication.processEvents()
+                    while do_geocode_task.status() == QgsTask.Running:
+                        QgsApplication.processEvents()
+                    self.feedback.progress_bar.hide()
+
+                    # check if task has been terminated due to error or cancellation
+                    if do_geocode_task.status() == QgsTask.Terminated:
+                        ANNCSUMessageManager().show_message(
+                            self.tr("Error geocoding using {geocoder_name}...").format(geocoder_name=geocoder_name),
+                            "error",
+                        )
+                        return
+                    QgsMessageLog.logMessage(self.tr("Successfully geocoded {count} bulk addresses.").format(count=len(addresses_to_geocode)), level=Qgis.Info)
                     end = time.time()
                     self.feedback.pushInfo(self.tr("Geocoded {count} addresses in {elapsed} seconds using {geocoder_name}.").format(count=len(addresses_to_geocode), elapsed=end - start, geocoder_name=geocoder_name))
 
                     # combine geocoded results with anncsu addresses to mantain relation with
                     # anncsu unique identifications
+                    geocoded: list[dict] = do_geocode_task.geocoded_results
                     for idx, result in enumerate(geocoded):
                         result["address_id"] = anncsu_addresses[idx].get("PROGRESSIVO_ACCESSO", idx)
                         result["road_id"] = anncsu_addresses[idx].get("PROGRESSIVO_NAZIONALE", idx)
@@ -147,6 +208,12 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
                     # save results in a result table where result table is related with geocoder name
                     result_table_name = f"geocoding_results_{geocoder_name}"
+                    self.feedback.progress_bar.setVisible(False)
+                    self.feedback.progress_bar.setVisible(True)
+                    self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
+                    self.feedback.progress_signal.emit(0)
+                    self.feedback.pushInfo(self.tr("Saving geocoding results into table {result_table_name}...").format(result_table_name=result_table_name))
+
                     scopedb.execute(f"""
                         CREATE OR REPLACE TABLE "{result_table_name}" (
                             address_id INTEGER,
@@ -162,7 +229,6 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         )
                     """)  # nosec B608
 
-                    self.feedback.pushInfo(self.tr("Saving geocoding results into table {result_table_name}...").format(result_table_name=result_table_name))
                     for idx, result in enumerate(geocoded):
                         self.feedback.progress_signal.emit(idx + 1)
                         if result:
@@ -247,4 +313,3 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 self.feedback.text_edit.append(text)
             elif isinstance(self.feedback.text_edit, QLabel):
                 self.feedback.text_edit.setText(text)
-
