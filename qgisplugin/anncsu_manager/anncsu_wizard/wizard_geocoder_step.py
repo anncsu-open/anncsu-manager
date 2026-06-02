@@ -117,9 +117,9 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                         # create the address to geocode using odonimo, civico, esponente, comune and provincia and also
                         # create an alternatibve address with ESPONENTE attached to CIVICO
                         address_to_geocode = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]} {to_geocode_dict["ESPONENTE"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
-                        address_to_geocode_altrnative = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}{to_geocode_dict["ESPONENTE"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
+                        address_to_geocode_alternative = f"""{to_geocode_dict["ODONIMO"]} {to_geocode_dict["CIVICO"]}{to_geocode_dict["ESPONENTE"]}, {to_geocode_dict["PLUGIN_COMUNE"].strip("'")} ({to_geocode_dict["PLUGIN_PROVINCIA"].strip("'")}), Italia"""
                         addresses_to_geocode.append(address_to_geocode)
-                        addresses_to_geocode_alternatives.append([address_to_geocode_altrnative])
+                        addresses_to_geocode_alternatives.append([address_to_geocode_alternative])
 
                     self.feedback.progress_signal.emit(0)
                     self.feedback.progress_bar.setRange(0, len(addresses_to_geocode))
