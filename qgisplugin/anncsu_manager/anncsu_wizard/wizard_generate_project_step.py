@@ -174,6 +174,10 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         anncsu_df = anncsu_df.loc[:, ~anncsu_df.columns.str.startswith("PLUGIN_")]
 
         # for each geocode tab in the related page of the parent ANNCSUWizardManager
+        self.feedback.progress_bar.show()
+        self.feedback.progress_bar.setMinimum(0)
+        self.feedback.progress_bar.setMaximum(0)
+
         parent_wizard = self.wizard()
         geocode_page = parent_wizard.page(parent_wizard.evaluate_geocode_page_id)
 
@@ -378,6 +382,9 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
 
             # setup default values for repetetive columns in geocoded_anncsu to facilitate manual editing
             self.setup_default_values_for_geocoded_anncsu()
+
+        self.feedback.progress_bar.hide()
+
 
     def setup_default_values_for_geocoded_anncsu(self):
         """This function sets up default QGIS form values for the geocoded_anncsu layer."""
