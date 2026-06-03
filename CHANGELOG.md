@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.15] - 2026-06-03
+
+### Changed
+
+- Geocoding action now runs as a `QgsTask` to avoid blocking the GUI during long operations
+- Layer loading to GeoPackage now runs as a `QgsTask` to keep the interface responsive
+
 ## [0.0.14] - 2026-05-28
 
 ### Fixed

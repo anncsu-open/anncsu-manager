@@ -5,12 +5,15 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.14
+version=v0.0.15
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=0.0.14
+changelog=0.0.15
+    Changed: Geocoding action now runs as a QgsTask to avoid blocking the GUI during long operations
+    Changed: Layer loading to GeoPackage now runs as a QgsTask to keep the interface responsive
+    0.0.14
     Fixed: File locking issue on Windows when writing: replaced plain file writes with a specific OGR wrapper to properly handle file access
     Fixed: Windows path with drive letter (e.g. C:\) was incorrectly parsed as a URL schema, causing exceptions
     0.0.13
