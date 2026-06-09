@@ -234,7 +234,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
                         # srid header but then duckdb spatial extension does not recognize it as geometry and
                         # shapely wkb does not read it properly, so we need to convert it to wkb with st_aswkb")
                         try:
-                            scopedb.execute(f"""CREATE OR REPLACE TABLE "{table_name}" AS SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM "{table_name}";""")  # nosec B608
+                            scopedb.execute(f"""CREATE OR REPLACE TABLE "{table_name}" AS SELECT * EXCLUDE(geom), ST_GeomFromWKB(geom) AS geom FROM "{table_name}";""")  # nosec B608
                         except Exception:  # nosec B110 - intentionally pass
                             # in case no geom column is present or geom column is already in WKB format just ignore and keep original table
                             pass
@@ -258,7 +258,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
                     # but then duckdb spatial extension does not recognize it as geometry and shapely wkb does not read it properly,
                     # so we need to convert it to wkb with st_aswkb
                     try:
-                        scopedb.execute("CREATE OR REPLACE TABLE geocoded_anncsu AS SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM geocoded_anncsu;")
+                        scopedb.execute("CREATE OR REPLACE TABLE geocoded_anncsu AS SELECT * EXCLUDE(geom), ST_GeomFromWKB(geom) AS geom FROM geocoded_anncsu;")
                     except Exception:  # nosec B110 - intentionally pass
                         # in case no geom column is present or geom column is already in WKB format just ignore and keep original table
                         pass

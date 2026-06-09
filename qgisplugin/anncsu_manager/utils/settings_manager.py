@@ -273,6 +273,10 @@ class ScopeData:
         remote repo."""
         try:
             with duckdb.connect(self.duckdb_path) as con:
+                has_column = con.execute("""SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'geocoded_anncsu' AND column_name = 'PLUGIN_GEOCODER'""").fetchone()
+                if not has_column:
+                    return False
                 proprietary_geocoders = con.execute("""SELECT DISTINCT PLUGIN_GEOCODER FROM geocoded_anncsu
                     WHERE PLUGIN_GEOCODER NOT IN ('MANUAL', 'WhereAbouts', 'ANNCSU')""").fetchall()
                 if len(proprietary_geocoders) > 0:
@@ -898,9 +902,12 @@ class ANNCSUSettingsManager:
                 columns = [col[0] for col in columns]
 
                 try:
-                    records = scopedb.execute(f"""SELECT * EXCLUDE(geom), ST_AsWKB(geom) AS geom FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
+                    # way to get all columns except geom and convert geom to WKB to avoid issues with duckdb spatial extension that
+                    # is not compatible with all the libraries that manage geometries, so it's necessary to convert it to geometry
+                    # in the rest of the code using shapely.wkb.loads or similar functions.
+                    records = scopedb.execute(f"""SELECT * EXCLUDE(geom), ST_GeomFromWKB(geom) AS geom FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
                 except Exception as e:
-                    # in case no geom column is present or geom column is already in WKB format just ignore and keep original table                    if 'ST_AsWKB(WKB_BLOB)' in str(e):
+                    # in case no geom column is present or geom column is already in WKB format just ignore and keep original table
                     QgsMessageLog.logMessage(cls.tr("Error: {e}").format(e=e), level=Qgis.Warning)
                     records = scopedb.execute(f"""SELECT * FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
 
