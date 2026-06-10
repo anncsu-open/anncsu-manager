@@ -232,7 +232,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
                         # trick to force geom to be correct wkb that be read back from shapely and tobe recognized as geometry 
                         # by duckdb seems that st_read leave the geometry as that as defined in sqlite with
                         # srid header but then duckdb spatial extension does not recognize it as geometry and
-                        # shapely wkb does not read it properly, so we need to convert it to wkb with st_aswkb")
+                        # shapely wkb does not read it properly, so we need to convert it to wkb with ST_GeomFromWKB")
                         try:
                             scopedb.execute(f"""CREATE OR REPLACE TABLE "{table_name}" AS SELECT * EXCLUDE(geom), ST_GeomFromWKB(geom) AS geom FROM "{table_name}";""")  # nosec B608
                         except Exception:  # nosec B110 - intentionally pass
@@ -256,7 +256,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
                     # and to be recognized as geometry by duckdb
                     # seems that st_read leave the geometry as that as defined in sqlite with srid header
                     # but then duckdb spatial extension does not recognize it as geometry and shapely wkb does not read it properly,
-                    # so we need to convert it to wkb with st_aswkb
+                    # so we need to convert it to wkb with ST_GeomFromWKB
                     try:
                         scopedb.execute("CREATE OR REPLACE TABLE geocoded_anncsu AS SELECT * EXCLUDE(geom), ST_GeomFromWKB(geom) AS geom FROM geocoded_anncsu;")
                     except Exception:  # nosec B110 - intentionally pass
