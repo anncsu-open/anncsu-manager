@@ -901,14 +901,17 @@ class ANNCSUSettingsManager:
                 columns = scopedb.execute(f"""SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
                 columns = [col[0] for col in columns]
 
-                try:
-                    # way to get all columns except geom and convert geom to WKB to avoid issues with duckdb spatial extension that
-                    # is not compatible with all the libraries that manage geometries, so it's necessary to convert it to geometry
-                    # in the rest of the code using shapely.wkb.loads or similar functions.
+                # check geom column type to decide whether ST_GeomFromWKB conversion is needed
+                geom_col_type = None
+                if "geom" in columns:
+                    type_row = scopedb.execute(f"""SELECT data_type FROM information_schema.columns WHERE table_name = '{table_name}' AND column_name = 'geom';""").fetchone()  # nosec B608 - table name is already validated to avoid SQL injection
+                    geom_col_type = type_row[0].upper() if type_row else None
+
+                if geom_col_type in ("BLOB", "VARBINARY"):
+                    # geom is stored as WKB blob — convert to native geometry
                     records = scopedb.execute(f"""SELECT * EXCLUDE(geom), ST_GeomFromWKB(geom) AS geom FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
-                except Exception as e:
-                    # in case no geom column is present or geom column is already in WKB format just ignore and keep original table
-                    QgsMessageLog.logMessage(cls.tr("Error: {e}").format(e=e), level=Qgis.Warning)
+                else:
+                    # geom is already a geometry type (or absent) — load as-is
                     records = scopedb.execute(f"""SELECT * FROM "{table_name}";""").fetchall()  # nosec B608 - table name is already validated to avoid SQL injection
 
                 return records, columns
