@@ -986,7 +986,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>Out of  geofence:</source>
-      <translation>Fuori geofence:</translation>
+      <translation>Fuori confine:</translation>
     </message>
     <message>
       <source>Score: </source>
