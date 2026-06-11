@@ -25,6 +25,7 @@ from qgis.PyQt.QtCore import QMetaType
 
 from anncsu_manager.utils.misc_utils import PLUGIN_PATH
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
+from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 
 def remove_layer_by_name(layer_name: str) -> None:
     """Remove a layer from QGIS by its name.
@@ -150,6 +151,13 @@ def load_dataframe_as_layer(
         QgsApplication.processEvents()
     while task.status() == QgsTask.Running:
         QgsApplication.processEvents()
+
+    # check if task has been terminated due to error or cancellation
+    if task.status() == QgsTask.Terminated:
+        ANNCSUMessageManager().show_message(
+            task.tr(f"Error loading layer: {layer_name}"),
+            "error",
+        )
 
     return task.vector_layer
 
