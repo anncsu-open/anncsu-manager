@@ -26,7 +26,7 @@
    <item>
     <widget class="QPushButton" name="add_to_project_pb">
      <property name="text">
-      <string>Add layers to a Project</string>
+      <string>Add layers to a project</string>
      </property>
     </widget>
    </item>
