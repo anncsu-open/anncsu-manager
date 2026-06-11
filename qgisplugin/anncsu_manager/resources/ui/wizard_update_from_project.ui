@@ -14,10 +14,10 @@
    <string>WizardPage</string>
   </property>
   <property name="title">
-   <string>Update from Mergin</string>
+   <string>Update from project</string>
   </property>
   <property name="subTitle">
-   <string>Merge modified Mergin layers into geocoded results</string>
+   <string>Merge modified project layers into geocoded results</string>
   </property>
   <attribute name="pageId">
    <string notr="true">update_from_mergin_id</string>

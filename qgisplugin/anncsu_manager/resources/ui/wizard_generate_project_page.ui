@@ -14,7 +14,7 @@
    <string>WizardPage</string>
   </property>
   <property name="title">
-   <string>Add layers to Mering</string>
+   <string>Add layers to a project</string>
   </property>
   <property name="subTitle">
    <string>Export geocoded layers to a Mergin project</string>

@@ -1160,11 +1160,11 @@ Vuoi procedere?</translation>
     <!-- wizard_generate_project_page.ui -->
     <message>
       <source>Add layers to a project</source>
-      <translation>Aggiungi layer a un progetto</translation>
+      <translation>Aggiungi layers a un progetto</translation>
     </message>
     <message>
-      <source>Export geocoded layers to a Mergin project</source>
-      <translation>Esporta layer geocodificati in un progetto Mergin</translation>
+      <source>Export geocoded layers to a project</source>
+      <translation>Esporta layer geocodificati in un progetto</translation>
     </message>
     <message>
       <source>Add layers to a project</source>
@@ -1186,7 +1186,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>Merge modified project layers into geocoded results</source>
-      <translation>Unisci layer del progetto modificati nei risultati geocodificati</translation>
+      <translation>Aggiorna geocodifiche a partire dai layer modificati</translation>
     </message>
   </context>
 
