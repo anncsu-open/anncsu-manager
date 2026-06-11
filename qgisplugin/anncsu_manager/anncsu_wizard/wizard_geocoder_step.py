@@ -279,7 +279,7 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
                 # because of new results mark scope as ditry that need synchronization
                 current_scope.syncked = False
                 current_scope.sync_changed.emit()
-                self.feedback.pushInfo(self.tr("warning:  Scope repo locally updated need to be synched to remote repo."))
+                self.feedback.pushInfo(self.tr("warning: Scope repo locally updated need to be synched to remote repo."))
 
                 # update scope modification data
                 current_scope.update_date = datetime.now()

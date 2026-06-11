@@ -289,7 +289,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
         # notify to sync the scope folder to push changes to server
         current_scope.syncked = False
         current_scope.sync_changed.emit()
-        self.feedback.pushInfo(self.tr("warning:  Scope repo locally updated need to be synched to remote repo."))
+        self.feedback.pushInfo(self.tr("warning: Scope repo locally updated need to be synched to remote repo."))
 
 
     def update_feedback_progress(self, progress: int):

@@ -585,8 +585,8 @@ Vuoi procedere?</translation>
       <translation>Tutti i processi di geocodifica completati.</translation>
     </message>
     <message>
-      <source>warning:  Scope repo locally updated need to be synched to remote repo.</source>
-      <translation>warning:  Repository scope aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
+      <source>warning: Scope repo locally updated need to be synched to remote repo.</source>
+      <translation>Attenzione: Scope database aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
     </message>
     <message>
       <source>An error occurred: {error}</source>
@@ -835,15 +835,15 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>warning: Layer &apos;{layer_name}&apos; not found in the project. Skipping.</source>
-      <translation>warning: Layer &apos;{layer_name}&apos; non trovato nel progetto. Ignorato.</translation>
+      <translation>Attenzione: Layer &apos;{layer_name}&apos; non trovato nel progetto. Ignorato.</translation>
     </message>
     <message>
       <source>warning: Layer file &apos;{layer_path}&apos; not found in project folder. Skipping.</source>
-      <translation>warning: File layer &apos;{layer_path}&apos; non trovato nella cartella del progetto. Ignorato.</translation>
+      <translation>Attenzione: File layer &apos;{layer_path}&apos; non trovato nella cartella del progetto. Ignorato.</translation>
     </message>
     <message>
       <source>warning: Could not load layer from file &apos;{layer_path}&apos;. Skipping.</source>
-      <translation>warning: Impossibile caricare il layer dal file &apos;{layer_path}&apos;. Ignorato.</translation>
+      <translation>Attenzione: Impossibile caricare il layer dal file &apos;{layer_path}&apos;. Ignorato.</translation>
     </message>
     <message>
       <source>info: Loaded layer &apos;{layer_name}&apos; from project folder.</source>
@@ -878,8 +878,8 @@ Vuoi procedere?</translation>
       <translation>info: Aggiornamento dal progetto completato con successo.</translation>
     </message>
     <message>
-      <source>warning:  Scope repo locally updated need to be synched to remote repo.</source>
-      <translation>warning:  Repository scope aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
+      <source>warning: Scope repo locally updated need to be synched to remote repo.</source>
+      <translation>Attenzione: Scope database aggiornato localmente, sincronizzazione con il repository remoto necessaria.</translation>
     </message>
   </context>
 
