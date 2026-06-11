@@ -1130,7 +1130,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>Reduce ovelapped addresses mixig geocoding results</source>
-      <translation>Riduci indirizzi sovrapposti combinando risultati geocodifica</translation>
+      <translation>Riduci indirizzi sovrapposti combinando geocodifiche</translation>
     </message>
     <message>
       <source>Reduce overlapped clusters</source>
