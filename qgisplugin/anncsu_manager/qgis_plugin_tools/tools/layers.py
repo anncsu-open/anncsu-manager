@@ -328,7 +328,8 @@ class load_dataframe_as_layer_task(QgsTask):
                 # is needed.
                 options = QgsVectorFileWriter.SaveVectorOptions()
                 options.fileEncoding = 'UTF-8'
-                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+                if output_file_path.exists():
+                    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
                 options.driverName = 'GPKG'
                 options.layerName = self.layer_name
                 options.saveMetadata = True
