@@ -135,7 +135,7 @@ def load_dataframe_as_layer(
     Returns:
         QgsVectorLayer: The created QGIS vector layer.
     """
-    task = load_dataframe_QgsTaskas_layer_task(
+    task = load_dataframe_as_layer_task(
         dataframe=dataframe,
         layer_name=layer_name,
         column_types=column_types,
@@ -153,7 +153,7 @@ def load_dataframe_as_layer(
 
     return task.vector_layer
 
-class load_dataframe_QgsTaskas_layer_task(QgsTask):
+class load_dataframe_as_layer_task(QgsTask):
 
     def __init__(self,
             dataframe: pandas.DataFrame,
