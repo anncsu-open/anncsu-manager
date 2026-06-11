@@ -912,7 +912,7 @@ Vuoi procedere?</translation>
     <!-- wizard_settings.ui -->
     <message>
       <source>ANNCSU Wizard settings</source>
-      <translation>Impostazioni ANNCSU Wizard</translation>
+      <translation>Impostazioni ANNCSU</translation>
     </message>
     <message>
       <source>ANNCSU</source>

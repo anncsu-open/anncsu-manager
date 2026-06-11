@@ -21,7 +21,7 @@
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
-       <string>ANNCSU Wizard settings</string>
+       <string>ANNCSU settings</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
