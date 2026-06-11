@@ -439,6 +439,10 @@ Vuoi procedere?</translation>
       <source>Added results for geocoder &apos;{geocoder_name}&apos; into git repo.</source>
       <translation>Risultati per il geocoder &apos;{geocoder_name}&apos; aggiunti al repository git.</translation>
     </message>
+    <message>
+      <source>Error loading layer: {layer_name}</source>
+      <translation>Errore caricando il layer: {layer_name}</translation>
+    </message>
   </context>
 
   <!-- ============================================================ -->
