@@ -767,7 +767,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>info: Geofence polygon layer &apos;{layer_geofence_polygon}&apos; added to project &apos;{project_name}&apos;.</source>
-      <translation>info: Layer poligono geofence &apos;{layer_geofence_polygon}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+      <translation>info: Layer poligono geofence &apos;{layer_geofence_polygon}&apos; aggiunto al progetto &apos;{project_name}&apos;.</translation>
     </message>
     <message>
       <source>error: Unable to merge geocoded results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving success layer.</source>
@@ -775,7 +775,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>info: Success layer &apos;{layer_name_success}&apos; added to project &apos;{project_name}&apos;.</source>
-      <translation>info: Layer dei successi &apos;{layer_name_success}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+      <translation>info: Layer dei successi &apos;{layer_name_success}&apos; aggiunto al progetto &apos;{project_name}&apos;.</translation>
     </message>
     <message>
       <source>error: Unable to merge fails results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving fails layer.</source>
@@ -783,7 +783,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>info: Fails layer &apos;{layer_name_fails}&apos; added to project &apos;{project_name}&apos;.</source>
-      <translation>info: Layer dei fallimenti &apos;{layer_name_fails}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+      <translation>info: Layer dei fallimenti &apos;{layer_name_fails}&apos; aggiunto al progetto &apos;{project_name}&apos;.</translation>
     </message>
     <message>
       <source>error: Unable to merge out of geofence results with anncsu table for geocoder &apos;{geocoder_name}&apos;. Skipping saving out of geofence layer.</source>
@@ -791,7 +791,7 @@ Vuoi procedere?</translation>
     </message>
     <message>
       <source>info: Out of geofence layer &apos;{layer_name_out_of_geofence}&apos; added to project &apos;{project_name}&apos;.</source>
-      <translation>info: Layer fuori geofence &apos;{layer_name_out_of_geofence}&apos; aggiunto al progetto Mergin &apos;{project_name}&apos;.</translation>
+      <translation>info: Layer fuori geofence &apos;{layer_name_out_of_geofence}&apos; aggiunto al progetto &apos;{project_name}&apos;.</translation>
     </message>
   </context>
 
