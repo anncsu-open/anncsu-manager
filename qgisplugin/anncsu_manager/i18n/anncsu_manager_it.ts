@@ -74,6 +74,10 @@ I dettagli mostrano gli accessi con coordinate aggiornate.
       <translation>Errore in populate_table_from_source_task: {e}</translation>
     </message>
     <message>
+      <source>Error in load_dataframe_as_layer_task: {e}</source>
+      <translation>Errore in load_dataframe_as_layer_task: {e}</translation>
+    </message>
+    <message>
       <source>Table {table_name} successfully populated from {source_db}</source>
       <translation>Tabella {table_name} popolata con successo da {source_db}</translation>
     </message>

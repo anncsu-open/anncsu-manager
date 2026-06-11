@@ -370,7 +370,7 @@ class load_dataframe_as_layer_task(QgsTask):
 
         except Exception as e:
             self.exception = e
-            QgsMessageLog.logMessage(self.tr("Error in populate_table_from_source_task: {e}").format(e=e), level=Qgis.Critical)
+            QgsMessageLog.logMessage(self.tr("Error in load_dataframe_as_layer_task: {e}").format(e=e), level=Qgis.Critical)
             self.result = False
 
         return self.result
