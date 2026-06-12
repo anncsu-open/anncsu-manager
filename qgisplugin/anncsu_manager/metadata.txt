@@ -5,12 +5,14 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.18
+version=v0.0.19
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=0.0.18
+changelog=0.0.19
+    Fixed: Added missing Italian translations for 6 untranslated strings across wizard settings, geocoder step, and geocode task contexts
+    0.0.18
     Added: Session path is now a configurable and persisted setting with a folder-browser widget; it auto-updates when a session is selected and validates the path before saving
     0.0.17
     Fixed: Windows exception when checking a file option that does not exist: added existence guard before accessing the file path
