@@ -5,12 +5,15 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.16
+version=v0.0.17
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=0.0.16
+changelog=0.0.17
+    Fixed: Windows exception when checking a file option that does not exist: added existence guard before accessing the file path
+    Changed: Improved Italian translations and GUI label names across the wizard settings
+    0.0.16
     Fixed: Geometry column type is now checked before applying ST_GeomFromWKB; if already a native geometry (DuckDB spatial >1.5), table is loaded as-is
     Changed: Adapted code to DuckDB >1.5 which returns native geometry from st_read instead of a BLOB
     0.0.15
