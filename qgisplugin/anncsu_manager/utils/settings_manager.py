@@ -787,7 +787,7 @@ class ANNCSUSettingsManager:
         if not Path(path).exists():
             QMessageBox.critical(
                 None,
-                cls.tr("Invalid session path"),
+                cls.tr("Invalid sessions path"),
                 cls.tr("The sessions folder path does not exist:\n{path}").format(path=path),
             )
             return

@@ -141,6 +141,16 @@ I dettagli mostrano gli accessi con coordinate aggiornate.
       <source>No duckdb sessions available. Please create a new session for {nome} or select another session.</source>
       <translation>Nessuna sessione duckdb disponibile. Crea una nuova sessione per {nome} o seleziona un&apos;altra sessione.</translation>
     </message>
+    <message>
+      <source>Invalid sessions path</source>
+      <translation>Percorso sessioni non valido</translation>
+    </message>
+    <message>
+      <source>The sessions folder path does not exist:
+{path}</source>
+      <translation>Il percorso della cartella sessioni non esiste:
+{path}</translation>
+    </message>
   </context>
 
   <!-- ============================================================ -->
@@ -328,6 +338,10 @@ Verrà generata una nuova sessione ANNCSU. Vuoi procedere?</translation>
     <message>
       <source>ANNCSU QGIS Plugin settings reset.</source>
       <translation>Impostazioni del plugin ANNCSU QGIS ripristinate.</translation>
+    </message>
+    <message>
+      <source>Select a municipality code to setup the remote repository.</source>
+      <translation>Selezionare un codice comune per configurare il repository remoto.</translation>
     </message>
     <message>
       <source>Prevent sync with remote repository</source>
@@ -542,6 +556,22 @@ Vuoi procedere?</translation>
   <!-- anncsu_wizard/wizard_geocoder_step.py                        -->
   <!-- ============================================================ -->
   <context>
+    <name>geocode_task</name>
+
+    <message>
+      <source>Error in geocode task: {e}</source>
+      <translation>Errore nel task di geocodifica: {e}</translation>
+    </message>
+    <message>
+      <source>Successfully geocoded {count} addresses</source>
+      <translation>Geocodificati con successo {count} indirizzi</translation>
+    </message>
+    <message>
+      <source>Error geocoding {count} addresses</source>
+      <translation>Errore nella geocodifica di {count} indirizzi</translation>
+    </message>
+  </context>
+  <context>
     <name>ANNCSUWizardRunGeocoders</name>
 
     <message>
@@ -591,6 +621,14 @@ Vuoi procedere?</translation>
     <message>
       <source>All geocoding processes completed.</source>
       <translation>Tutti i processi di geocodifica completati.</translation>
+    </message>
+    <message>
+      <source>Error geocoding using {geocoder_name}...</source>
+      <translation>Errore durante la geocodifica con {geocoder_name}...</translation>
+    </message>
+    <message>
+      <source>Successfully geocoded {count} bulk addresses.</source>
+      <translation>Geocodificati con successo {count} indirizzi in modalità bulk.</translation>
     </message>
     <message>
       <source>warning: Scope repo locally updated need to be synched to remote repo.</source>
@@ -959,8 +997,8 @@ Vuoi procedere?</translation>
       <translation>Crea Nuova Sessione</translation>
     </message>
     <message>
-      <source>Session path</source>
-      <translation>Percorso sessione</translation>
+      <source>Sessions path</source>
+      <translation>Percorso sessioni</translation>
     </message>
     <message>
       <source>Local folder where sessions are stored</source>
