@@ -19,8 +19,10 @@ from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QWidget,
     QLineEdit,
+    QToolButton,
     QTreeView,
     QMessageBox,
     QProgressBar,
@@ -81,6 +83,8 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.update_session: QPushButton
         self.delete_session: QPushButton
         self.create_new_session: QPushButton
+        self.anncsu_session_path: QLineEdit
+        self.anncsu_session_path_browse: QToolButton
 
         # self.default_base_raster: QgsMapLayerComboBox
         self.minimal_menu_selection: QCheckBox
@@ -97,6 +101,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.delete_session.clicked.connect(lambda: self.manageDeleteSession())
         self.update_session.clicked.connect(self.manageUpdateSession)
         self.create_new_session.clicked.connect(lambda: self.save_settings(force_creation_new_session=True))
+
+        self.anncsu_session_path.editingFinished.connect(self._on_session_path_edited)
+        self.anncsu_session_path_browse.clicked.connect(self._browse_session_path)
 
         self.settings_button_box.button(
             QDialogButtonBox.RestoreDefaults
@@ -372,6 +379,13 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             remote_git_repo = "N/A"
         self.session_url.setText(remote_git_repo)
 
+        if scope is not None:
+            session_folder = str(Path(scope.duckdb_path).parent.parent)
+            ANNCSUSettingsManager.set_session_path(session_folder)
+            self.anncsu_session_path.setText(session_folder)
+        else:
+            self.anncsu_session_path.setText(str(ANNCSUSettingsManager.get_session_path()))
+
         # depending on sync flag into current session
         # set color of sync_pb button
         self.update_sync_button_color()
@@ -443,6 +457,8 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
             self.current_session.addItem(scope_id, scope)
         self.current_session.blockSignals(False)
 
+        self.anncsu_session_path.setText(str(ANNCSUSettingsManager.get_session_path()))
+
         self.update_sync_button_color()
 
     def registerGeocoders(self):
@@ -478,6 +494,21 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
                 print(f"Registered geocoder {builder_name}")
             except (ImportError, AttributeError) as e:
                 ANNCSUMessageManager().show_message(self.tr("Could not register geocoder '{geocoder_name}': {e}").format(geocoder_name=geocoder_name, e=e), "error")
+
+    def _browse_session_path(self):
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            self.tr("Select sessions folder"),
+            self.anncsu_session_path.text(),
+        )
+        if folder:
+            self.anncsu_session_path.setText(folder)
+            self._on_session_path_edited()
+
+    def _on_session_path_edited(self):
+        ANNCSUSettingsManager.set_session_path(self.anncsu_session_path.text())
+        # read back: if validation failed the setter returned early and the old value is still current
+        self.anncsu_session_path.setText(str(ANNCSUSettingsManager.get_session_path()))
 
     def save_settings(self, force_creation_new_session: bool = False):
         """Save current selections and persist ANNCSU plugin settings.
@@ -590,6 +621,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         ANNCSUSettingsManager.set_scopes(scopes)
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
         ANNCSUSettingsManager.set_geocoded_anncsu_form_fields(ANNCSUSettingsManager.get_geocoded_anncsu_form_fields())
+        ANNCSUSettingsManager.set_session_path(self.anncsu_session_path.text())
         ANNCSUMessageManager().show_message(self.tr("ANNCSU QGIS Plugin settings saved."), "success")
 
     def reset_settings_to_default(self):

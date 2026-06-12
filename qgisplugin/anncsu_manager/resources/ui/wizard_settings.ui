@@ -53,13 +53,7 @@
              <property name="checkable">
               <bool>false</bool>
              </property>
-             <layout class="QFormLayout" name="formLayout_3">
-              <property name="labelAlignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-              <property name="verticalSpacing">
-               <number>6</number>
-              </property>
+             <layout class="QFormLayout" name="formLayout">
               <item row="0" column="0">
                <widget class="QLabel" name="label">
                 <property name="text">
@@ -93,6 +87,23 @@
               <item row="1" column="1">
                <widget class="QComboBox" name="comune_cb"/>
               </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_2">
+                <property name="text">
+                 <string>Session name:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QComboBox" name="current_session"/>
+              </item>
+              <item row="3" column="1">
+               <widget class="QPushButton" name="update_session">
+                <property name="text">
+                 <string>Update from ANNCSU</string>
+                </property>
+               </widget>
+              </item>
               <item row="4" column="1">
                <layout class="QHBoxLayout" name="horizontalLayout">
                 <item>
@@ -104,14 +115,21 @@
                 </item>
                </layout>
               </item>
-              <item row="7" column="0">
+              <item row="5" column="1">
+               <widget class="QPushButton" name="create_new_session">
+                <property name="text">
+                 <string>Create New Session</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
                <widget class="QLabel" name="label_5">
                 <property name="text">
                  <string>Session URL:</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="1">
+              <item row="6" column="1">
                <layout class="QHBoxLayout" name="horizontalLayout_2">
                 <item>
                  <widget class="QLineEdit" name="session_url">
@@ -150,27 +168,40 @@
                 </item>
                </layout>
               </item>
-              <item row="2" column="1">
-               <widget class="QComboBox" name="current_session"/>
+              <item row="8" column="1">
+               <layout class="QHBoxLayout" name="horizontalLayout_3">
+                <item>
+                 <widget class="QLineEdit" name="anncsu_session_path">
+                  <property name="toolTip">
+                   <string>Local folder where sessions are stored</string>
+                  </property>
+                  <property name="dragEnabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="placeholderText">
+                   <string>Select sessions folder...</string>
+                  </property>
+                  <property name="clearButtonEnabled">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="anncsu_session_path_browse">
+                  <property name="toolTip">
+                   <string>Browse for sessions folder</string>
+                  </property>
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="label_2">
+              <item row="8" column="0">
+               <widget class="QLabel" name="label_3">
                 <property name="text">
-                 <string>Session name:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QPushButton" name="update_session">
-                <property name="text">
-                 <string>Update from ANNCSU</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="1">
-               <widget class="QPushButton" name="create_new_session">
-                <property name="text">
-                 <string>Create New Session</string>
+                 <string>Sessions path</string>
                 </property>
                </widget>
               </item>

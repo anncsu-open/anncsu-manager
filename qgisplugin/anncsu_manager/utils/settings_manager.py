@@ -135,7 +135,7 @@ class ScopeData:
             Exception: If the duckdb file is not found in the remote git repo or if there is an error during the process.
         """
         repo_name = remote_git_repo.split("/")[-1].replace(".git", "")
-        local_path = ANNCSUSettingsManager.DATA_PATH / repo_name
+        local_path = ANNCSUSettingsManager.get_session_path() / repo_name
 
         # clone or pull the remote git repo
         repo = clone_or_pull_git_repo(
@@ -351,6 +351,7 @@ class ANNCSUSettingsManager:
     """
     PLUGIN_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
     DATA_PATH = PLUGIN_PATH / "resources" / "data"
+    SESSION_PATH = DATA_PATH
 
     DEFAULT_COORDINATE_DISTANCE_THRESHOLD=0.00001
     DEFAULT_GEOCODED_ANNCSU_FORM_FIELDS = ["ODONIMO", "CIVICO", "ESPONENTE", "QUOTA"]
@@ -474,6 +475,7 @@ class ANNCSUSettingsManager:
     SCOPES_KEY = "anncsu_manager/scopes"
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
     GEOCODED_ANNCSU_FORM_FIELDS_KEY = "anncsu_manager/geocoded_anncsu_form_fields"
+    SESSION_PATH_KEY = "anncsu_manager/session_path"
 
     # Git credential keys to get from environment variables (preferred) or QGIS settings (fallback)
     GIT_TOKEN_KEY = "anncsu_manager/git_token"  # pragma: allowlist secret - no secter at all but obly a key # nosec B105
@@ -494,6 +496,7 @@ class ANNCSUSettingsManager:
         # A scope id has the following format: "<codice_municipio>_YYYYMMDD_HHMMSS"
         SCOPE_ID_KEY: "",
         GEOCODED_ANNCSU_FORM_FIELDS_KEY: DEFAULT_GEOCODED_ANNCSU_FORM_FIELDS,
+        SESSION_PATH_KEY: str(DATA_PATH),
     }
 
     # set credential defaults
@@ -577,6 +580,11 @@ class ANNCSUSettingsManager:
             return json.loads(raw)
         except (TypeError, json.JSONDecodeError):
             return list(cls.DEFAULTS[key])
+
+    @classmethod
+    def get_session_path(cls) -> Path:
+        key = cls.SESSION_PATH_KEY
+        return Path(QgsSettings().value(key, cls.DEFAULTS[key]))
 
     @classmethod
     def get_scopes(cls) -> Dict[str, ScopeData]:
@@ -775,6 +783,18 @@ class ANNCSUSettingsManager:
         QgsSettings().setValue(cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY, json.dumps(fields))
 
     @classmethod
+    def set_session_path(cls, path: str):
+        if not Path(path).exists():
+            QMessageBox.critical(
+                None,
+                cls.tr("Invalid session path"),
+                cls.tr("The sessions folder path does not exist:\n{path}").format(path=path),
+            )
+            return
+        QgsSettings().setValue(cls.SESSION_PATH_KEY, path)
+        cls.SESSION_PATH = Path(path)
+
+    @classmethod
     def set_scopes(cls, scopes: dict[str, ScopeData]):
         class jsonEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -817,6 +837,11 @@ class ANNCSUSettingsManager:
         QgsSettings().setValue(cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY, json.dumps(cls.DEFAULTS[cls.GEOCODED_ANNCSU_FORM_FIELDS_KEY]))
 
     @classmethod
+    def reset_session_path(cls):
+        QgsSettings().setValue(cls.SESSION_PATH_KEY, cls.DEFAULTS[cls.SESSION_PATH_KEY])
+        cls.SESSION_PATH = cls.DATA_PATH
+
+    @classmethod
     def reset_all(cls):
         cls.reset_default_session_repo_url()
         cls.reset_geofence_polygons_source()
@@ -826,6 +851,7 @@ class ANNCSUSettingsManager:
         cls.reset_geocoders_configs()
         cls.reset_scopes()
         cls.reset_geocoded_anncsu_form_fields()
+        cls.reset_session_path()
 
     @staticmethod
     def delete_session(scope_id: str):
@@ -1467,7 +1493,7 @@ class ANNCSUSettingsManager:
                     if response_head.status_code == 200 and response_head.headers.get('Content-Disposition'):
                         remote_filename = response_head.headers.get('Content-Disposition').split('filename=')[-1].strip('"')
 
-                    temp_duckdb_path = cls.DATA_PATH / remote_filename
+                    temp_duckdb_path = cls.get_session_path() / remote_filename
 
                     # Download file asynchronously with progress tracking in QGIS task manager
                     # download_task = download_file_async(str(source_db), temp_duckdb_path)
@@ -1571,7 +1597,7 @@ class ANNCSUSettingsManager:
         remote_git_repo = str.lower(cls.get_default_session_repo_url().format(**municipality_data.to_dict()))
         remote_git_repo = beautify_url(remote_git_repo)
         repo_name = os.path.basename(remote_git_repo).replace(".git", "")
-        local_path = cls.DATA_PATH / repo_name
+        local_path = cls.get_session_path() / repo_name
         print(f"Using remote git repo URL: {remote_git_repo}")
 
         # check correctness of the url

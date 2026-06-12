@@ -959,6 +959,26 @@ Vuoi procedere?</translation>
       <translation>Crea Nuova Sessione</translation>
     </message>
     <message>
+      <source>Session path</source>
+      <translation>Percorso sessione</translation>
+    </message>
+    <message>
+      <source>Local folder where sessions are stored</source>
+      <translation>Cartella locale dove vengono salvate le sessioni</translation>
+    </message>
+    <message>
+      <source>Select sessions folder...</source>
+      <translation>Seleziona cartella sessioni...</translation>
+    </message>
+    <message>
+      <source>Browse for sessions folder</source>
+      <translation>Sfoglia per la cartella sessioni</translation>
+    </message>
+    <message>
+      <source>Select sessions folder</source>
+      <translation>Seleziona cartella sessioni</translation>
+    </message>
+    <message>
       <source>Geocoders</source>
       <translation>Geocoder</translation>
     </message>
