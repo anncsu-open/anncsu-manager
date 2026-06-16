@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.20] - 2026-06-16
+
+### Fixed
+
+- Invalid geocoder name during project import now skips only that geocoder instead of aborting the entire import (`return` → `continue`); also fixed a potential uninitialized variable if the Mergin branch was not taken (#12)
+- ANNCSU coordinate-change notification now displays the human-readable address (ODONIMO, CIVICO, ESPONENTE) instead of the internal PROGRESSIVO_NAZIONALE identifier (#15)
+- ODONIMO default value expression no longer re-fires on every field edit; `setApplyOnUpdate` set to `False` so the nearest-feature inference runs only on new record creation (#11)
+
 ## [0.0.19] - 2026-06-12
 
 ### Fixed
