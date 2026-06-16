@@ -1225,7 +1225,10 @@ class ANNCSUSettingsManager:
                         COORD_X_COMUNE AS ANNCSU_COORD_X,
                         COORD_Y_COMUNE AS ANNCSU_COORD_Y,
                         LOCAL_COORD_X_COMUNE,
-                        LOCAL_COORD_Y_COMUNE
+                        LOCAL_COORD_Y_COMUNE,
+                        ODONIMO,
+                        CIVICO,
+                        ESPONENTE
                     FROM updated_anncsu
                     WHERE
                         (COORD_X_COMUNE IS NOT NULL AND
@@ -1244,7 +1247,7 @@ class ANNCSUSettingsManager:
 
                     # create informative text to be displayed to the user
                     details = "\n".join([
-                        f"Address {row['PROGRESSIVO_ACCESSO']} (PROGRESSIVO_NAZIONALE: {row['PROGRESSIVO_NAZIONALE']}): "
+                        f"Address {row['PROGRESSIVO_ACCESSO']} ({row['ODONIMO']} {row['CIVICO']} {row['ESPONENTE']}): "
                         f"ANNCSU({row['ANNCSU_COORD_X']}, {row['ANNCSU_COORD_Y']}) -> "
                         f"Local({row['LOCAL_COORD_X_COMUNE']}, {row['LOCAL_COORD_Y_COMUNE']})"
                         for row in out_of_threshold.to_dict(orient="records")
