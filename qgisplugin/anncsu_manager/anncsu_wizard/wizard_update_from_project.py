@@ -108,6 +108,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
         """Update geocoded results in the current scope duckdb database with modified layers
         in the selected Mergin project or current QGIS project if no Mergin project is selected.
         """
+        get_from_mergin_folder: bool = False
         cur_project: QgsProject = QgsProject.instance()
         if not mergin_available or self.mergin_project_cb.currentData() is None:
             out_path = cur_project.homePath()
@@ -135,7 +136,6 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
 
             # check if selected mergin project refers to the current loaded qgis project
             cur_project = QgsProject.instance()
-            get_from_mergin_folder: bool = False
             if project_name != cur_project.baseName():
                 # ask user to confirm to proceed anyway
                 reply = QMessageBox.question(
@@ -225,7 +225,7 @@ class ANNCUWizardUpdateFromProjectStep(QWizardPage, FORM_CLASS):
                         # if not valid break the loop and do not proceed with update from project
                         if not re.match(r"^[a-zA-Z_]\w*$", table_name):
                             self.feedback.reportError(self.tr("Invalid geocoder name: '{table_name}'. Skipping.").format(table_name=table_name))
-                            return
+                            continue
 
                         # TODO: improve the code to be generic instead of hardcoding columns
                         scopedb.execute(f"""CREATE OR REPLACE TABLE "{table_name}" AS SELECT * FROM st_read('{layer_path}');""")  # nosec B608
