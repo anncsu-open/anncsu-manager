@@ -414,7 +414,7 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
 
         # set default value for ODONIMO inferring it's value from the nearest (under 50m) one
         odonimo_default_value = QgsDefaultValue()
-        odonimo_default_value.setApplyOnUpdate(True)
+        odonimo_default_value.setApplyOnUpdate(False)
         odonimo_default_value.setExpression("""
             with_variable(
                 'nearest',
