@@ -159,7 +159,16 @@ def load_dataframe_as_layer(
             "error",
         )
 
-    return task.vector_layer
+    # avoid to return the task.vector_layer directly because it is a reference to the
+    # layer in the task and will be deleted when the task is deleted (hung in some cases).
+    # Instead, clone the layer to return a new instance.
+    layer = task.vector_layer.clone() if task.vector_layer is not None else None
+    if layer is not None:
+        # show the layer in QGIS
+        QgsProject.instance().addMapLayer(layer)
+
+    del task  # free memory
+    return layer
 
 class load_dataframe_as_layer_task(QgsTask):
 
@@ -363,10 +372,7 @@ class load_dataframe_as_layer_task(QgsTask):
             print(f"Applying style from file: {named_style_path} to layer '{self.layer_name}'")
             vl.loadNamedStyle(str(named_style_path))
 
-            # show the layer in QGIS
-            QgsProject.instance().addMapLayer(vl)
-
-            self.vector_layer = vl
+            self.vector_layer = vl.clone()
             self.result = True
 
         except Exception as e:

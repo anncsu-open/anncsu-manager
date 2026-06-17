@@ -194,7 +194,8 @@ class ANNCSUWizardRunGeocoders(QWizardPage, FORM_CLASS):
 
                     # combine geocoded results with anncsu addresses to mantain relation with
                     # anncsu unique identifications
-                    geocoded: list[dict] = do_geocode_task.geocoded_results
+                    geocoded: list[dict] = do_geocode_task.geocoded_results.copy()
+                    del do_geocode_task  # free memory
                     for idx, result in enumerate(geocoded):
                         result["address_id"] = anncsu_addresses[idx].get("PROGRESSIVO_ACCESSO", idx)
                         result["road_id"] = anncsu_addresses[idx].get("PROGRESSIVO_NAZIONALE", idx)
