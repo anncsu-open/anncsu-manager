@@ -5,12 +5,14 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.20
+version=v0.0.21
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=0.0.20
+changelog=0.0.21
+    Fixed: Layer creation task no longer holds a QgsVectorLayer reference inside QgsTask, which was causing QGIS to hang on Windows 11; layer is cloned before returning and task is explicitly deleted (#16)
+    0.0.20
     Fixed: Invalid geocoder name during project import now skips only that geocoder instead of aborting the entire import; also fixed potential uninitialized variable (#12)
     Fixed: ANNCSU coordinate-change notification now displays ODONIMO, CIVICO, ESPONENTE instead of PROGRESSIVO_NAZIONALE (#15)
     Fixed: ODONIMO default value expression no longer re-fires on every edit; setApplyOnUpdate set to False (#11)
