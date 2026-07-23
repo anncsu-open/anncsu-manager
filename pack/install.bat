@@ -2,10 +2,25 @@
 setlocal
 
 set SCRIPT_DIR=%~dp0
+
+rem When this script is run elevated under a separate administrator account,
+rem %USERPROFILE% points to the admin's profile, not the real desktop user's.
+rem Recover the real user from the NTFS owner of the install files instead
+rem (they were normally extracted by the real user before elevating to run this).
+rem Ask PowerShell for the folder's NTFS owner, stripping any DOMAIN\ prefix
+rem so only the bare username remains (empty if the lookup fails).
+set PS_GET_OWNER=(Get-Acl '%SCRIPT_DIR%' -ErrorAction SilentlyContinue).Owner -replace '^.*\\'
+set SCRIPT_OWNER=
+for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "%PS_GET_OWNER%"`) do set SCRIPT_OWNER=%%A
+
 set DEST_DIR=%USERPROFILE%\Desktop\qgis
+if defined SCRIPT_OWNER if exist "%SystemDrive%\Users\%SCRIPT_OWNER%" (
+    set DEST_DIR=%SystemDrive%\Users\%SCRIPT_OWNER%\Desktop\qgis
+)
 
 echo Installing ANNCSU QGIS environment...
 echo Destination: %DEST_DIR%
+echo File owner: "%SCRIPT_OWNER%" - Script running as: "%USERNAME%"
 
 if not exist "%SCRIPT_DIR%anncsu_manager_win.tar" (
     echo ERROR: anncsu_manager_win.tar not found in %SCRIPT_DIR%
