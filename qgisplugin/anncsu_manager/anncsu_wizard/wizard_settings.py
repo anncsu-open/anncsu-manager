@@ -12,7 +12,12 @@ from qgis.core import (
     QgsMessageLog,
     QgsTask,
     QgsApplication,
+    QgsProcessing,
+    QgsProcessingContext,
+    QgsProcessingParameterVectorLayer,
+    QgsProject,
 )
+from qgis.gui import QgsProcessingMapLayerComboBox
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -27,6 +32,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QHBoxLayout,
 )
 
 from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
@@ -85,6 +91,9 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.create_new_session: QPushButton
         self.anncsu_session_path: QLineEdit
         self.anncsu_session_path_browse: QToolButton
+        # layer or vector file selector, created at runtime in _setup_sezioni_censimento_widget
+        self.sezioni_censimento_layout: QHBoxLayout
+        self.sezioni_censimento: Optional[QgsProcessingMapLayerComboBox] = None
 
         # self.default_base_raster: QgsMapLayerComboBox
         self.minimal_menu_selection: QCheckBox
@@ -458,6 +467,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         self.current_session.blockSignals(False)
 
         self.anncsu_session_path.setText(str(ANNCSUSettingsManager.get_session_path()))
+        self._setup_sezioni_censimento_widget(ANNCSUSettingsManager.get_sezioni_censimento())
 
         self.update_sync_button_color()
 
@@ -509,6 +519,44 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         ANNCSUSettingsManager.set_session_path(self.anncsu_session_path.text())
         # read back: if validation failed the setter returned early and the old value is still current
         self.anncsu_session_path.setText(str(ANNCSUSettingsManager.get_session_path()))
+
+    def _setup_sezioni_censimento_widget(self, source: str):
+        """(Re)create the layer/vector file selector and set its value.
+        The widget is recreated because QgsProcessingMapLayerComboBox can't be
+        cleared once a file value has been set."""
+        if self.sezioni_censimento is not None:
+            self.sezioni_censimento_layout.removeWidget(self.sezioni_censimento)
+            self.sezioni_censimento.deleteLater()
+
+        parameter = QgsProcessingParameterVectorLayer(
+            "sezioni_censimento",
+            self.tr("Census sections"),
+            [QgsProcessing.TypeVectorAnyGeometry],
+            optional=True,
+        )
+        self.sezioni_censimento = QgsProcessingMapLayerComboBox(
+            parameter,
+            type=Qgis.ProcessingMode.Standard,
+            parent=self
+        )
+        self.sezioni_censimento.setToolTip(self.tr("Layer or vector file containing the census sections"))
+        if source:
+            context = QgsProcessingContext()
+            context.setProject(QgsProject.instance())
+            self.sezioni_censimento.setValue(source, context)
+        self.sezioni_censimento.valueChanged.connect(self._on_sezioni_censimento_changed)
+        self.sezioni_censimento_layout.addWidget(self.sezioni_censimento)
+
+    def _get_sezioni_censimento_source(self) -> str:
+        """Return the source of the selected layer, or the selected file path."""
+        layer = self.sezioni_censimento.currentLayer()
+        if layer is not None:
+            return layer.source()
+        value = self.sezioni_censimento.value()
+        return str(value) if value else ""
+
+    def _on_sezioni_censimento_changed(self):
+        ANNCSUSettingsManager.set_sezioni_censimento(self._get_sezioni_censimento_source())
 
     def save_settings(self, force_creation_new_session: bool = False):
         """Save current selections and persist ANNCSU plugin settings.
@@ -622,6 +670,7 @@ class ANNCSUWizardSettings(QWidget, FORM_CLASS):
         ANNCSUSettingsManager.set_current_scope_id(self.current_session.currentText())
         ANNCSUSettingsManager.set_geocoded_anncsu_form_fields(ANNCSUSettingsManager.get_geocoded_anncsu_form_fields())
         ANNCSUSettingsManager.set_session_path(self.anncsu_session_path.text())
+        ANNCSUSettingsManager.set_sezioni_censimento(self._get_sezioni_censimento_source())
         ANNCSUMessageManager().show_message(self.tr("ANNCSU QGIS Plugin settings saved."), "success")
 
     def reset_settings_to_default(self):

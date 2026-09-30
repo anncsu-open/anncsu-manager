@@ -476,6 +476,7 @@ class ANNCSUSettingsManager:
     SCOPE_ID_KEY = "anncsu_manager/current_scope_id"
     GEOCODED_ANNCSU_FORM_FIELDS_KEY = "anncsu_manager/geocoded_anncsu_form_fields"
     SESSION_PATH_KEY = "anncsu_manager/session_path"
+    SEZIONI_CENSIMENTO_KEY = "anncsu_manager/sezioni_censimento"
 
     # Git credential keys to get from environment variables (preferred) or QGIS settings (fallback)
     GIT_TOKEN_KEY = "anncsu_manager/git_token"  # pragma: allowlist secret - no secter at all but obly a key # nosec B105
@@ -497,6 +498,7 @@ class ANNCSUSettingsManager:
         SCOPE_ID_KEY: "",
         GEOCODED_ANNCSU_FORM_FIELDS_KEY: DEFAULT_GEOCODED_ANNCSU_FORM_FIELDS,
         SESSION_PATH_KEY: str(DATA_PATH),
+        SEZIONI_CENSIMENTO_KEY: "",
     }
 
     # set credential defaults
@@ -585,6 +587,11 @@ class ANNCSUSettingsManager:
     def get_session_path(cls) -> Path:
         key = cls.SESSION_PATH_KEY
         return Path(QgsSettings().value(key, cls.DEFAULTS[key]))
+
+    @classmethod
+    def get_sezioni_censimento(cls) -> str:
+        key = cls.SEZIONI_CENSIMENTO_KEY
+        return str(QgsSettings().value(key, cls.DEFAULTS[key]))
 
     @classmethod
     def get_scopes(cls) -> Dict[str, ScopeData]:
@@ -795,6 +802,11 @@ class ANNCSUSettingsManager:
         cls.SESSION_PATH = Path(path)
 
     @classmethod
+    def set_sezioni_censimento(cls, source: str):
+        """Set the sezioni censimento source: a vector file path or a layer source uri."""
+        QgsSettings().setValue(cls.SEZIONI_CENSIMENTO_KEY, source)
+
+    @classmethod
     def set_scopes(cls, scopes: dict[str, ScopeData]):
         class jsonEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -842,6 +854,10 @@ class ANNCSUSettingsManager:
         cls.SESSION_PATH = cls.DATA_PATH
 
     @classmethod
+    def reset_sezioni_censimento(cls):
+        QgsSettings().setValue(cls.SEZIONI_CENSIMENTO_KEY, cls.DEFAULTS[cls.SEZIONI_CENSIMENTO_KEY])
+
+    @classmethod
     def reset_all(cls):
         cls.reset_default_session_repo_url()
         cls.reset_geofence_polygons_source()
@@ -852,6 +868,7 @@ class ANNCSUSettingsManager:
         cls.reset_scopes()
         cls.reset_geocoded_anncsu_form_fields()
         cls.reset_session_path()
+        cls.reset_sezioni_censimento()
 
     @staticmethod
     def delete_session(scope_id: str):

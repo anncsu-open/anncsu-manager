@@ -361,6 +361,14 @@ Do you want to proceed?</source>
       <translation>La sessione corrente contiene tabelle private che andranno perse se si sincronizza con il repository remoto.
 Vuoi procedere?</translation>
     </message>
+    <message>
+      <source>Census sections</source>
+      <translation>Sezioni di censimento</translation>
+    </message>
+    <message>
+      <source>Layer or vector file containing the census sections</source>
+      <translation>Layer o file vettoriale contenente le sezioni di censimento</translation>
+    </message>
   </context>
 
   <!-- ============================================================ -->
@@ -440,6 +448,14 @@ Vuoi procedere?</translation>
     <message>
       <source>Current project does not have a valid home path. Please save the project before proceeding.</source>
       <translation>Il progetto corrente non ha un percorso valido. Salvare il progetto prima di procedere.</translation>
+    </message>
+    <message>
+      <source>Could not load census sections layer from &apos;{source}&apos;.</source>
+      <translation>Impossibile caricare il layer delle sezioni di censimento da &apos;{source}&apos;.</translation>
+    </message>
+    <message>
+      <source>info: Census sections layer &apos;{layer_name}&apos; added to project &apos;{project_name}&apos;.</source>
+      <translation>info: Layer delle sezioni di censimento &apos;{layer_name}&apos; aggiunto al progetto &apos;{project_name}&apos;.</translation>
     </message>
   </context>
 
@@ -999,6 +1015,10 @@ Vuoi procedere?</translation>
     <message>
       <source>Sessions path</source>
       <translation>Percorso sessioni</translation>
+    </message>
+    <message>
+      <source>Census sections</source>
+      <translation>Sezioni di censimento</translation>
     </message>
     <message>
       <source>Local folder where sessions are stored</source>

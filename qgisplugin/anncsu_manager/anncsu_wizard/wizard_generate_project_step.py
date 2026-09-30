@@ -1,9 +1,17 @@
 import math
 from pathlib import Path
+from typing import Optional
 
 import shapely
 from qgis.core import (
     QgsProject,
+    QgsGeometry,
+    QgsFeature,
+    QgsFeatureRequest,
+    QgsVectorLayer,
+    QgsProviderRegistry,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsDefaultValue,
     QgsEditFormConfig,
     QgsAttributeEditorField,
@@ -20,8 +28,8 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox
 )
 
-from anncsu_manager.utils.misc_utils import tuple_to_dataframe
-from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui
+from anncsu_manager.utils.misc_utils import tuple_to_dataframe, PLUGIN_PATH
+from anncsu_manager.qgis_plugin_tools.tools.resources import load_ui, resources_path
 from anncsu_manager.utils.message_manager import ANNCSUMessageManager
 from anncsu_manager.utils.settings_manager import ANNCSUSettingsManager
 from anncsu_manager.utils.processing_feedback import ANNCSUProcessingFeedback
@@ -160,6 +168,11 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 if reply == QMessageBox.No:
                     return
 
+        # run progress bar
+        self.feedback.progress_bar.show()
+        self.feedback.progress_bar.setMinimum(0)
+        self.feedback.progress_bar.setMaximum(0)
+
         # load anncsu table from DB to join with each geocoder results
         anncsu_records, columns = ANNCSUSettingsManager.get_table(table_name="anncsu")
         if anncsu_records is None:
@@ -173,11 +186,10 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         anncsu_df = tuple_to_dataframe(anncsu_records, columns)
         anncsu_df = anncsu_df.loc[:, ~anncsu_df.columns.str.startswith("PLUGIN_")]
 
-        # for each geocode tab in the related page of the parent ANNCSUWizardManager
-        self.feedback.progress_bar.show()
-        self.feedback.progress_bar.setMinimum(0)
-        self.feedback.progress_bar.setMaximum(0)
+        # add sezioni censimento layer selected in settings if not already in the project
+        self.add_sezioni_censimento_layer(project_name)
 
+        # for each geocode tab in the related page of the parent ANNCSUWizardManager
         parent_wizard = self.wizard()
         geocode_page = parent_wizard.page(parent_wizard.evaluate_geocode_page_id)
 
@@ -294,6 +306,7 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 geocoded_anncsu_df = anncsu_df.copy()
                 geocoded_anncsu_df['PLUGIN_SCORE'] = None
                 geocoded_anncsu_df['PLUGIN_GEOCODER'] = None
+                geocoded_anncsu_df['PLUGIN_SEZIONE_CENSIMENTO'] = None
                 geocoded_anncsu_df['geom'] = None
 
                 # align geocoded_anncsu_column_types with anncsu_column_types and add new columns
@@ -301,6 +314,7 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 # geocoded_anncsu_column_types['PLUGIN_SCORE'] = 'float64'
                 # geocoded_anncsu_column_types['PLUGIN_GEOCODER'] = 'string'
                 # geocoded_anncsu_column_types['geom'] = 'geom'
+                # geocoded_anncsu_column_types['PLUGIN_EXTRA_DATA'] = 'string'
             else:
                 geocoded_anncsu_df = tuple_to_dataframe(list_of_tuples=geocoded_anncsu_records, columns=geocoded_anncsu_columns) if geocoded_anncsu_records is not None else None
 
@@ -311,6 +325,8 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 geocoded_anncsu_df['PLUGIN_SCORE'] = None
             if 'PLUGIN_GEOCODER' not in geocoded_anncsu_df.columns:
                 geocoded_anncsu_df['PLUGIN_GEOCODER'] = None
+            if 'PLUGIN_SEZIONE_CENSIMENTO' not in geocoded_anncsu_df.columns:
+                geocoded_anncsu_df['PLUGIN_SEZIONE_CENSIMENTO'] = None
             if 'geom' not in geocoded_anncsu_df.columns:
                 geocoded_anncsu_df['geom'] = None
 
@@ -386,6 +402,44 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         self.feedback.progress_bar.hide()
 
 
+    def add_sezioni_censimento_layer(self, project_name: str):
+        """Add the census sections layer configured in settings to the current project
+        if no layer with the same source is already present."""
+        source = ANNCSUSettingsManager.get_sezioni_censimento()
+        if not source:
+            return
+
+        # layer selected from project or already added
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.source() == source:
+                return
+
+        # layer name from the file name or from the layer name inside the file (e.g. gpkg)
+        uri_parts = QgsProviderRegistry.instance().decodeUri("ogr", source)
+        layer_name = "sezioni_censimento"
+
+        layer = QgsVectorLayer(source, layer_name, "ogr")
+        if not layer.isValid():
+            ANNCSUMessageManager().show_message(
+                self.tr("Could not load census sections layer from '{source}'.").format(source=source),
+                level="error",
+            )
+            return
+        QgsProject.instance().addMapLayer(layer)
+
+        named_style = "sezioni_censimento_style.qml"
+        named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / named_style
+        layer.updateExtents()
+        if not named_style_path.exists():
+            print(f"Style file not found: {named_style_path} applying fallback for '{self.layer_name}'")
+            named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / "Fallback" / named_style
+
+        print(f"Applying style from file: {named_style_path} to layer '{layer_name}'")
+        layer.loadNamedStyle(str(named_style_path))
+
+
+        self.feedback.pushInfo(self.tr("info: Census sections layer '{layer_name}' added to project '{project_name}'.").format(layer_name=layer_name, project_name=project_name))
+
     def setup_default_values_for_geocoded_anncsu(self):
         """This function sets up default QGIS form values for the geocoded_anncsu layer."""
         # get layer named "geocoded_anncsu"
@@ -440,12 +494,22 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         score_default_value = QgsDefaultValue()
         score_default_value.setExpression("0.99")
         score_field_index = layer.fields().indexFromName("PLUGIN_SCORE")
-
         layer.setDefaultValueDefinition(score_field_index, score_default_value)
+
         geocoder_default_value = QgsDefaultValue()
         geocoder_default_value.setExpression("'MANUAL'")
         geocoder_field_index = layer.fields().indexFromName("PLUGIN_GEOCODER")
         layer.setDefaultValueDefinition(geocoder_field_index, geocoder_default_value)
+
+        # set default value for PLUGIN_SEZIONE_CENSIMENTO getting SEZ21_ID from the census
+        # section of R12_21_WGS84 layer intersecting the feature geometry
+        sezione_censimento_default_value = QgsDefaultValue()
+        sezione_censimento_default_value.setApplyOnUpdate(True)
+        sezione_censimento_default_value.setExpression(
+            "array_first(overlay_intersects('sezioni_censimento', \"SEZ21_ID\", limit:=1))"
+        )
+        sezione_censimento_field_index = layer.fields().indexFromName("PLUGIN_SEZIONE_CENSIMENTO")
+        layer.setDefaultValueDefinition(sezione_censimento_field_index, sezione_censimento_default_value)
 
         # set "COORD_X_COMUNE", "COORD_Y_COMUNE" from geom if not already set
         x_default_value = QgsDefaultValue()
@@ -488,6 +552,41 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
                 root.addChildElement(QgsAttributeEditorField(field_name, field_idx, root))
 
         layer.setEditFormConfig(form_config)
+
+    @staticmethod
+    def get_sezione_censimento(
+        geometry: QgsGeometry,
+        geometry_crs: QgsCoordinateReferenceSystem = QgsCoordinateReferenceSystem("EPSG:4326"),
+    ) -> Optional[QgsFeature]:
+        """Return the census section (sezione di censimento) feature of R12_21_WGS84.shp
+        that intersects the given geometry, or None if no feature intersects it.
+
+        :param geometry: geometry to intersect with the census sections
+        :param geometry_crs: CRS of the input geometry (default EPSG:4326)
+        """
+        if geometry is None or geometry.isNull() or geometry.isEmpty():
+            return None
+
+        shp_path = resources_path("data", "R12_21_WGS84.shp")
+        layer = QgsVectorLayer(shp_path, "R12_21_WGS84", "ogr")
+        if not layer.isValid():
+            raise RuntimeError(f"Cannot load census sections shapefile: {shp_path}")
+
+        # reproject input geometry to the layer CRS if needed
+        geom = QgsGeometry(geometry)
+        if geometry_crs.isValid() and geometry_crs != layer.crs():
+            transform = QgsCoordinateTransform(geometry_crs, layer.crs(), QgsProject.instance())
+            geom.transform(transform)
+
+        # prefilter by bounding box, then check exact intersection
+        request = QgsFeatureRequest().setFilterRect(geom.boundingBox())
+        engine = QgsGeometry.createGeometryEngine(geom.constGet())
+        engine.prepareGeometry()
+        for feature in layer.getFeatures(request):
+            if engine.intersects(feature.geometry().constGet()):
+                return feature
+
+        return None
 
     def update_feedback_progress(self, progress: int):
         self.feedback.progress_bar.setValue(progress)

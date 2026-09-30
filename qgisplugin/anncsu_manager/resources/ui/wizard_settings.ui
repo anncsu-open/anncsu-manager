@@ -205,6 +205,16 @@
                 </property>
                </widget>
               </item>
+              <item row="9" column="1">
+               <layout class="QHBoxLayout" name="sezioni_censimento_layout"/>
+              </item>
+              <item row="9" column="0">
+               <widget class="QLabel" name="label_sezioni_censimento">
+                <property name="text">
+                 <string>Census sections</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>
