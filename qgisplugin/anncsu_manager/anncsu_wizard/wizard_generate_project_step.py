@@ -431,12 +431,13 @@ class ANNCUWizardGenerateProjectStep(QWizardPage, FORM_CLASS):
         named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / named_style
         layer.updateExtents()
         if not named_style_path.exists():
-            print(f"Style file not found: {named_style_path} applying fallback for '{self.layer_name}'")
-            named_style_path = Path(PLUGIN_PATH) / "resources" / "styles" / "Fallback" / named_style
-
-        print(f"Applying style from file: {named_style_path} to layer '{layer_name}'")
-        layer.loadNamedStyle(str(named_style_path))
-
+            ANNCSUMessageManager().show_message(
+                self.tr("Style file not found: '{named_style_path}'. No style is applied.").format(named_style_path=named_style_path),
+                level="warning",
+            )
+        else:
+            print(f"Applying style from file: {named_style_path} to layer '{layer_name}'")
+            layer.loadNamedStyle(str(named_style_path))
 
         self.feedback.pushInfo(self.tr("info: Census sections layer '{layer_name}' added to project '{project_name}'.").format(layer_name=layer_name, project_name=project_name))
 
