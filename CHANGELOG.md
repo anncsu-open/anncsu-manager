@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.22] - 2026-10-05
+
+### Added
+
+- Census sections (sezioni di censimento) setting, using a `QgsProcessingMapLayerComboBox` to select a project layer or a vector file; the value is persisted in settings and reset with defaults
+- Generate project step adds the configured census sections layer to the project, if not already present, and applies the `sezioni_censimento` style
+- `PLUGIN_SEZIONE_CENSIMENTO` field in `geocoded_anncsu`, auto-filled with the `SEZ21_ID` of the intersecting census section when inserting or editing records
+- Italian translations for the new census sections strings
+
+### Changed
+
+- Windows install script no longer installs on the administrator desktop when run as admin; it installs on the desktop of the user running the script
+
 ## [0.0.21] - 2026-06-17
 
 ### Fixed

@@ -5,12 +5,18 @@ description=Plugin to help to update the Italian ANNCSU database of the portal n
     or be sure to have version matching these requirements https://github.com/anncsu-open/anncsu-manager/blob/main/qgisenv/pixi.toml
     The main aspect is to have GDAL supporting parquet format.
 about=Plugin to to help to update the Italian ANNCSU database of the portal numbers. 
-version=v0.0.21
+version=v0.0.22
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 author=Luigi Pirelli
 email=luipir@gmail.com
-changelog=0.0.21
+changelog=0.0.22
+    Added: Census sections (sezioni di censimento) setting to select a project layer or a vector file, persisted in settings and reset with defaults
+    Added: Generate project step adds the configured census sections layer to the project, if not already present, and applies the sezioni_censimento style
+    Added: PLUGIN_SEZIONE_CENSIMENTO field in geocoded_anncsu, auto-filled with the SEZ21_ID of the intersecting census section when inserting or editing records
+    Added: Italian translations for the new census sections strings
+    Changed: Windows install script no longer installs on the administrator desktop when run as admin; it installs on the desktop of the user running the script
+    0.0.21
     Fixed: Layer creation task no longer holds a QgsVectorLayer reference inside QgsTask, which was causing QGIS to hang on Windows 11; layer is cloned before returning and task is explicitly deleted (#16)
     0.0.20
     Fixed: Invalid geocoder name during project import now skips only that geocoder instead of aborting the entire import; also fixed potential uninitialized variable (#12)
